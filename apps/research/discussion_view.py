@@ -25,8 +25,7 @@ def turn_text(turn):
     if isinstance(text, str) and text:
         return text
     response = turn.get('response') or {}
-    return str(response.get('reason') or response.get('error') or
-               ('No response returned (' + str(turn.get('status', 'UNKNOWN')) + ').'))
+    return str(response.get('reason') or response.get('error') or '반환된 응답이 없습니다.')
 
 
 class _TurnCard(QFrame):
@@ -100,7 +99,13 @@ class _TurnCard(QFrame):
             citations.addStretch()
             layout.addLayout(citations)
         if turn.get('status') not in ('AUTHORED', 'ANSWERED', 'SUCCEEDED'):
-            label = QLabel(str(turn.get('status', 'UNKNOWN')))
+            status = str(turn.get('status', 'UNKNOWN'))
+            label = QLabel({'FAILED': '응답 실패', 'CANCELLED': '응답 취소',
+                'INTERRUPTED': '응답 중단', 'PARTIAL': '일부 응답',
+                'RUNNING': '응답 작성 중', 'PENDING': '응답 대기',
+                'BLOCKED_SCOPE': '현재 권한으로 읽을 수 없음',
+                'UNKNOWN': '응답 상태 미확인'}.get(status, '응답 상태 확인 필요'))
+            label.setToolTip(status)
             layout.addWidget(label)
         self.installEventFilter(self)
 
@@ -214,5 +219,32 @@ class ConversationList(QListWidget):
             card.fit_width(width)
 
     def resizeEvent(self, event):
+        pending = getattr(self, '_resize_anchor', None)
+        if pending is None or pending[0] is not self._snapshot:
+            pending = None
+            for row in range(self.count()):
+                item = self.item(row)
+                rectangle = self.visualItemRect(item)
+                if rectangle.bottom() >= 0 and rectangle.top() < self.viewport().height():
+                    pending = (self._snapshot, item.data(Qt.ItemDataRole.UserRole), max(0, -rectangle.top()))
+                    break
+        self._resize_anchor = pending
+        self._resize_epoch = getattr(self, '_resize_epoch', 0) + 1
+        epoch = self._resize_epoch
         super().resizeEvent(event)
         self._fit()
+        if pending is not None:
+            def restore_reading_position():
+                from shiboken6 import isValid
+                if not isValid(self) or self._resize_epoch != epoch:
+                    return
+                self._resize_anchor = None
+                snapshot, identifier, offset = pending
+                if self._snapshot is not snapshot or identifier not in self._cards:
+                    return
+                self.doItemsLayout()
+                item = self._cards[identifier].item
+                self.scrollToItem(item, QAbstractItemView.ScrollHint.PositionAtTop)
+                self.verticalScrollBar().setValue(self.verticalScrollBar().value() +
+                    self.visualItemRect(item).top() + offset)
+            QTimer.singleShot(0, restore_reading_position)

@@ -132,6 +132,49 @@ def test_domain_boundaries_space_and_time_are_separate_editable_nodes(window, ap
     assert window.document['saved_revision']
 
 
+def test_list_record_nodes_edit_only_selected_user_state_and_preserve_raw_on_switch(window, app, monkeypatch):
+    draft = default_draft('pde.scipy.ode')
+    draft['settings']['states'][0]['label'] = '사용자 상태'
+    second = deepcopy(draft['settings']['states'][0])
+    second.update(name=second['name']+'_second', label='두 번째 상태')
+    draft['settings']['states'].append(second)
+    window.open_document(draft=draft); settle(app, window)
+    before = deepcopy(window.client.owner.read(window.document['id']))
+    first_path = ('settings','states',0)
+    second_path = ('settings','states',1)
+    assert window._nodes[first_path].text(0) == '사용자 상태 [' + draft['settings']['states'][0]['unit'] + ']'
+    assert window._nodes[second_path].text(0).startswith('두 번째 상태')
+    window.tree.setCurrentItem(window._nodes[first_path])
+    assert all(path[:3] == first_path for path in window.fields)
+    label=window.fields[(*first_path,'label')][0]
+    label.setFocus();label.setText('편집한 사용자 상태');label.textEdited.emit(label.text())
+    label.setCursorPosition(3)
+    window._update_actions()
+    assert window._nodes[first_path].text(0).startswith('편집한 사용자 상태')
+    assert label.hasFocus() and label.cursorPosition()==3
+    edit(window, (*first_path,'initial'), '1e')
+    window.tree.setCurrentItem(window._nodes[second_path])
+    assert all(path[:3] == second_path for path in window.fields)
+    assert window.edited_draft()['settings']['states'][0]['initial'] == '1e'
+    window.tree.setCurrentItem(window._nodes[first_path])
+    assert window.fields[(*first_path,'initial')][0].text() == '1e'
+    assert window.edited_draft()['settings']['states'][1] == second
+    assert window.client.owner.read(before['id'])['draft'] == before['draft']
+    questions=[]
+    def cancel(*args,**kwargs):
+        questions.append(args[1:3])
+        return QMessageBox.StandardButton.Cancel
+    monkeypatch.setattr(QMessageBox,'question',cancel)
+    continued=[];window._abandon(lambda:continued.append(True))
+    assert not continued and window.fields[(*first_path,'initial')][0].text() == '1e'
+    assert questions==[('모델 저장','현재 모델의 변경 내용을 저장할까요?')]
+    window.save_document(); settle(app, window)
+    saved=window.client.owner.open(document_id=before['id'])
+    assert saved['draft']['settings']['states'][0]['initial'] == '1e'
+    assert saved['draft']['settings']['states'][1] == second
+    assert not saved['runs']
+
+
 def test_save_before_open_continues_after_owner_save(window, app, monkeypatch):
     original = window.document['id']
     window.tree.setCurrentItem(window._nodes[('settings', 'problem', 'weak_form')])
@@ -272,3 +315,201 @@ def test_numerical_plan_requires_applied_generation_and_retries_same_creation(wi
     assert 'Nfrozenrequest' in window.messages.toPlainText()
     assert window.document['runs'] == []
     assert not any(operation == 'pde.evaluate' for operation, _ in window.client.calls)
+
+
+@pytest.fixture
+def http_window(app, tmp_path, request):
+    """Real HTTP commands/receipts, with every numerical submission forbidden."""
+    import threading
+    from apps.lab.server import LabHTTPServer
+    from apps.lab.service import LabService
+    from caelab.workbench_client import Client
+    from apps.research.simulation_window import SimulationWindow
+    from caelab.simulation_document import default_draft as simulation_draft
+    kind=request.param
+    server=LabHTTPServer(LabService(tmp_path/'사용자 모델 저장소'),0)
+    thread=threading.Thread(target=server.serve_forever,kwargs={'poll_interval':.02},daemon=True)
+    thread.start();win=None
+    try:
+        def forbidden(*args,**kwargs):raise AssertionError('Numerical submission forbidden in command recovery checks')
+        server.workbench.submit=server.workbench.manager.submit=forbidden
+        for owner in server.workbench.research_owners():owner.submit=forbidden
+        client=Client('http://127.0.0.1:'+str(server.server_port))
+        draft=default_draft('pde.scipy.ode') if kind=='pde' else simulation_draft('thermal.scikit_fem.rectangle')
+        cls=PDEWindow if kind=='pde' else SimulationWindow
+        doc=client.document_open(kind=kind,title='사용자 조건 모델',draft=draft)
+        win=cls(client,auto_open=False,poll_interval=0);win._opened(doc);win.show();app.processEvents()
+        path=('settings','states',0,'initial') if kind=='pde' else ('settings','boundary_gradient','values',0)
+        parent=next(path[:n] for n in range(len(path),0,-1) if path[:n] in win._nodes)
+        win.tree.setCurrentItem(win._nodes[parent]);app.processEvents()
+        yield win,client,server.workbench,path
+    finally:
+        if win:
+            settle(app,win);win._allow_close=True;win.close();app.processEvents()
+        server.shutdown();server.server_close();thread.join(5)
+        assert not thread.is_alive() and server.workbench.shutdown()['joined']
+
+
+@pytest.mark.parametrize('http_window',['pde','simulation'],indirect=True)
+@pytest.mark.parametrize('operation',['save','update','save_with_update'])
+def test_http_lost_ack_retry_keeps_same_request_late_edit_and_blocks_switch(http_window,app,monkeypatch,operation):
+    win,client,wb,path=http_window
+    original=client.document_command;calls=[];lost=[True]
+    def lose_once(identifier,op,args,**options):
+        calls.append((identifier,op,deepcopy(args),deepcopy(options)))
+        receipt=original(identifier,op,args,**options)
+        if lost[0]:lost[0]=False;raise TimeoutError('CONTROLLED committed response loss')
+        return receipt
+    monkeypatch.setattr(client,'document_command',lose_once)
+    if operation in ('update','save_with_update'):
+        edit(win,path,'2')
+        if operation=='save_with_update':win.save_document()
+        else:win.apply_inputs()
+    else:win.save_document()
+    settle(app,win)
+    pending=win._pending_command
+    assert pending and pending['uncertain'] and len(calls)==1
+    first=deepcopy(client.document_read(win.document['id']))
+    edit(win,path,'1e')
+    selected=win.tree.currentItem().data(0,Qt.ItemDataRole.UserRole)
+    assert win.open_document(title='Must not replace the current model') is False
+    assert win.new_document() is False
+    assert win.choose_document() is False
+    assert win.command(win.document_kind+'.evaluate') is False
+    win.save_document();win.apply_inputs()
+    monkeypatch.setattr(QMessageBox,'question',lambda *args,**kwargs:pytest.fail('Pending close must not ask to discard'))
+    win.close();app.processEvents()
+    assert win.isVisible() and len(calls)==1 and win._pending_command is pending
+    if win.document_kind=='simulation':
+        monkeypatch.setattr(win,'_impact_source_run',lambda:{'job_id':'Jretained'})
+        assert win.reprocess_impact() is False
+    assert not win.save_action.isEnabled() and win.retry_action.isEnabled()
+    win.retry_command();settle(app,win)
+    assert calls[0]==calls[1] and win._pending_command is None
+    assert win.local_dirty and win.fields[path][0].text()=='1e'
+    assert win.tree.currentItem().data(0,Qt.ItemDataRole.UserRole)==selected
+    after=client.document_read(win.document['id'])
+    assert after['generation']==first['generation'] and after['saved_revision']==first['saved_revision']
+    assert after['draft']==first['draft'] and not wb.manager.list()
+    assert len(list(wb._document_owner(after['id'])._folder(after['id']).joinpath('commands').glob('*.json')))==1
+
+
+@pytest.mark.parametrize('http_window',['pde','simulation'],indirect=True)
+@pytest.mark.parametrize('rejection',['generation','session'])
+def test_http_definite_generation_rejection_preserves_buffer_and_unlocks_recovery(http_window,app,rejection):
+    from caelab.storage import canonical_hash, load_json
+    win,client,wb,path=http_window
+    doc=deepcopy(win.document)
+    if rejection=='generation':
+        from apps.research.pde_window import set_path
+        external=deepcopy(doc['draft']);set_path(external,path,3.)
+        client.document_command(doc['id'],win.document_kind+'.update',{'draft':external},
+            session_id=doc['session_id'],expected_generation=doc['generation'],command_id='CexternalEdit')
+    else:wb._document_owner(doc['id']).session_id='SreplacementOwner'
+    before=client.document_read(doc['id'])
+    edit(win,path,'1e');win.apply_inputs()
+    pending=deepcopy(win._pending_command)
+    settle(app,win)
+    assert win._pending_command is None and win.conflict
+    assert win.fields[path][0].text()=='1e' and win.local_dirty
+    assert win.reload_button.isVisible() and not wb.manager.list()
+    receipts={p.stem:load_json(p) for p in wb._document_owner(doc['id'])._folder(doc['id']).joinpath('commands').glob('*.json')}
+    if rejection=='generation':
+        # The external edit applied once; the stale local command has its own
+        # definite rejection receipt so retrying that UUID cannot apply it.
+        assert set(receipts)=={'CexternalEdit',pending['command_id']}
+        assert 'response' in receipts['CexternalEdit']
+        rejected=receipts[pending['command_id']]
+        assert rejected['state']=='REJECTED' and 'response' not in rejected
+        assert rejected['operation']==win.document_kind+'.update'
+        assert rejected['rejection']=='Document generation changed; reread before applying'
+        assert rejected['request_hash']==canonical_hash(dict(document_id=doc['id'],operation=pending['operation'],
+            arguments=pending['arguments'],session_id=doc['session_id'],expected_generation=doc['generation']))
+    else:assert receipts=={}
+    after=client.document_read(doc['id'])
+    assert after['generation']==before['generation'] and after['draft']==before['draft']
+
+
+@pytest.mark.parametrize('http_window',['pde','simulation'],indirect=True)
+def test_http_rejection_after_lost_ack_and_post_receipt_400_remain_uncertain(http_window,app,monkeypatch):
+    win,client,wb,path=http_window
+    original=client.document_command
+    def lost(*args,**kwargs):
+        original(*args,**kwargs);raise TimeoutError('CONTROLLED committed response loss')
+    monkeypatch.setattr(client,'document_command',lost)
+    win.save_document();settle(app,win);pending=win._pending_command
+    assert pending and pending['uncertain']
+    owner=wb._document_owner(win.document['id'])
+    owner.session_id='SreplacementOwner'
+    monkeypatch.setattr(client,'document_command',original)
+    edit(win,path,'1e');win.retry_command();settle(app,win)
+    assert win._pending_command is pending and win.fields[path][0].text()=='1e'
+    assert not pending['not_applied'] and not wb.manager.list()
+    # A different known 400 can occur after APPLYING. It is not proof that a
+    # fresh request had no effect, even without a previous transport failure.
+    owner.session_id=win.document['session_id'];win.retry_command();settle(app,win)
+    assert win._pending_command is None
+    win.local_dirty=False;win._draft=deepcopy(win.document['draft']);win._capture_settings()
+    # Keep the invalid buffer out of this deliberately malformed save request.
+    win.fields={};win.local_dirty=False
+    win.command('document.save',{'unexpected':'argument'});settle(app,win)
+    assert win._pending_command and win._pending_command['uncertain'] and not wb.manager.list()
+
+
+@pytest.mark.parametrize('http_window',['pde','simulation'],indirect=True)
+@pytest.mark.parametrize('changed_selection',[False,True])
+def test_http_lost_evaluate_ack_reuses_single_controlled_submission(http_window,app,monkeypatch,changed_selection):
+    """One owner run record, with a controlled submit receipt and no evaluator."""
+    win,client,wb,path=http_window
+    from caelab.storage import utc_now
+    owner=wb._document_owner(win.document['id']);submissions=[];calls=[]
+    def controlled_submit(operation,args,**options):
+        submissions.append((operation,deepcopy(args),deepcopy(options)))
+        return {'id':'JcontrolledSubmission','operation':operation,'arguments':deepcopy(args),
+                'created_utc':utc_now(),'request_id':options['request_id'],'state':'QUEUED'}
+    monkeypatch.setattr(owner,'submit',controlled_submit)
+    monkeypatch.setattr(win,'refresh_result',lambda:None)
+    original=client.document_command
+    def lost_once(*args,**kwargs):
+        calls.append((deepcopy(args),deepcopy(kwargs)))
+        result=original(*args,**kwargs)
+        if len(calls)==1:raise TimeoutError('CONTROLLED run acknowledgement loss')
+        return result
+    monkeypatch.setattr(client,'document_command',lost_once)
+    win.command(win.document_kind+'.evaluate');settle(app,win)
+    assert win._pending_command and len(submissions)==1
+    if changed_selection:win._selected_job='JexplicitViewSelection'
+    edit(win,path,'1e');win.command(win.document_kind+'.evaluate')
+    assert len(calls)==1
+    win.retry_command();settle(app,win)
+    assert len(submissions)==1 and calls[0]==calls[1]
+    assert len(win.document['runs'])==1 and win.local_dirty and win.fields[path][0].text()=='1e'
+    assert win._selected_job==('JexplicitViewSelection' if changed_selection else 'JcontrolledSubmission')
+    assert not wb.manager.list()  # No actual JobManager execution or solver.
+
+
+@pytest.mark.parametrize('http_window',['pde','simulation'],indirect=True)
+def test_http_delayed_receipt_cannot_replace_another_displayed_owner(http_window,app,monkeypatch):
+    import threading
+    win,client,wb,path=http_window
+    original=client.document_command;started=threading.Event();release=threading.Event()
+    def delayed(*args,**kwargs):
+        result=original(*args,**kwargs);started.set()
+        assert release.wait(5)
+        return result
+    monkeypatch.setattr(client,'document_command',delayed)
+    source=deepcopy(win.document)
+    other=client.document_open(kind=win.document_kind,title='다른 사용자 문서',draft=source['draft'])
+    try:
+        win.save_document()
+        deadline=time.monotonic()+5
+        while not started.is_set() and time.monotonic()<deadline:app.processEvents();QTest.qWait(10)
+        assert started.is_set()
+        pending=win._pending_command
+        # Force an unexpected display replacement to exercise the late-response
+        # gate; ordinary open/new are blocked while the request is unresolved.
+        win._show_document(other)
+        shown=deepcopy(win.edited_draft());release.set();settle(app,win)
+        assert win.document['id']==other['id'] and win.edited_draft()==shown
+        assert win._pending_command is pending and not wb.manager.list()
+    finally:release.set()

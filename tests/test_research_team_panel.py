@@ -431,6 +431,20 @@ def test_new_team_result_does_not_inherit_old_checked_permission(window):
     assert not window.allow_results.isChecked()
     assert window._buffer['context']['transmission_scope'] == {'result_ids':['Jold']}
 
+
+def test_failed_turn_keeps_original_error_and_raw_status_in_details(window):
+    from apps.research.discussion_view import ConversationList
+    view = ConversationList()
+    turn = {'id':'Afailed','author':'structures','status':'FAILED',
+        'response':{'error':'원 자료의 접근 권한이 없습니다.'}}
+    view.set_turns([turn],ROLES)
+    card=view.itemWidget(view.item(0))
+    assert '원 자료의 접근 권한이 없습니다.' in card.body.toPlainText()
+    state=next(label for label in card.findChildren(QtWidgets.QLabel) if label.toolTip()=='FAILED')
+    assert state.text()=='응답 실패'
+    assert turn['status']=='FAILED' and turn['response']['error']=='원 자료의 접근 권한이 없습니다.'
+    view.deleteLater()
+
 def test_map_evidence_uses_only_current_checked_map_and_existing_reader(window, monkeypatch):
     cfg = window.document['draft']['context']['research_team']
     state = window.document['discussion']['research_team']

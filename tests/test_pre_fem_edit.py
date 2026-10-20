@@ -127,6 +127,7 @@ def native(monkeypatch):
     solver = Object(doc, 'Solver', 'Fem::SolverCcxTools', AnalysisType='static', ModelSpace='3D',
         GeometricalNonlinearity='linear', MaterialNonlinearity='linear', SplitInputWriter=False)
     analysis = Object(doc, 'Analysis', 'Fem::FemAnalysis', Group=[mesh, material, fixed, force, solver])
+    monkeypatch.setattr('apps.desktop_pre.native_calculix.validate_analysis', lambda a, s: (mesh, None))
     state = NS(doc=doc, shape=shape, mesh=mesh, material=material, fixed=fixed, force=force,
                solver=solver, analysis=analysis, metadata={'keep_other_owner_field': True},
                tools=[], generated=Mesh(2), failure=None, transactions=[], edit=None, selection=[],
@@ -251,7 +252,8 @@ def test_region_geometry_edit_needs_explicit_repair_then_condition_confirmation(
     with pytest.raises(ValueError, match='previous region target hash'):
         region(native, 'Face1', region_id=selected['id'])
     selected = region(native, 'Face1', region_id=selected['id'], expected_target_sha256=selected['target_sha256'])
-    assert any('STALE_CONDITION_TARGET' in row['message'] for row in native.editor.validate_for_run(native.analysis))
+    assert any('STALE_CONDITION_TARGET' in message for message in
+               native.editor._condition_errors(native.fixed, native.editor._metadata()))
     submit(native, 'condition_repair', {'region_id': selected['id']}, native.fixed)
     assert not native.editor._condition_errors(native.fixed, native.editor._metadata())
     assert native.editor._condition_errors(native.force, native.editor._metadata())
@@ -259,7 +261,9 @@ def test_region_geometry_edit_needs_explicit_repair_then_condition_confirmation(
 
 def test_current_native_condition_can_be_confirmed_without_recreating_it(native):
     before = list(native.doc.Objects)
-    assert all(row['errors'][0].startswith('UNTRACKED_TARGET') for row in native.editor.descriptor()['conditions'])
+    assert all(native.editor._condition_errors(obj, native.editor._metadata())[0].startswith('UNTRACKED_TARGET')
+               for obj in (native.fixed, native.force))
+    assert all(not row['errors'] for row in native.editor.descriptor()['conditions'])
     repair_conditions(native)
     assert native.doc.Objects == before
     assert not native.editor.validate_for_run(native.analysis)
@@ -301,6 +305,27 @@ def test_quality_uses_native_ids_order_four_samples_and_both_original_gates(nati
     assert 'NORMALIZED_JACOBIAN_SINGULAR' in flat['errors']
 
 
+@pytest.mark.parametrize('second', ['valid', 'inverted', 'duplicate', 'nonfinite'])
+def test_native_admission_keeps_small_elements_and_rejects_invalid_unpaged_elements(native, second):
+    from apps.desktop_pre.mesh_binding import PROPERTY_NAME
+    mesh = Mesh(.0001)
+    mesh.Volumes.append(74)
+    mesh.elements[74] = [node + 10 for node in mesh.elements[73]]
+    for node, point in list(mesh.Nodes.items()):
+        mesh.Nodes[node + 10] = NS(x=point.x, y=point.y, z=-point.z if second == 'inverted' else point.z)
+    if second == 'duplicate':
+        mesh.elements[74][1] = mesh.elements[74][0]
+    if second == 'nonfinite':
+        mesh.Nodes[14].z = math.nan
+    native.mesh.FemMesh = mesh
+    native.mesh.PropertiesList.remove(PROPERTY_NAME)  # Ordinary imported, unbound native mesh.
+    quality = native.editor.quality(native.mesh, limit=1)
+    assert quality['bad_element_count'] >= 1  # Original quality floor remains visible.
+    assert quality['invalid_input_element_count'] == (second != 'valid')
+    assert [row['element_id'] for row in quality['rows']] == [73]
+    assert bool(native.editor.validate_for_run(native.analysis)) == (second != 'valid')
+
+
 def test_quality_keeps_bad_nonfinite_rows_and_highlight_is_exact_and_hash_guarded(native):
     quality = submit(native, 'mesh_quality', {}, native.mesh)
     result = submit(native, 'mesh_highlight', {'element_ids': [73], 'node_ids': [4], 'mesh_sha256': quality['mesh_sha256']}, native.mesh)
@@ -338,6 +363,22 @@ def test_explicit_async_generation_native_update_in_transaction_and_history(nati
     assert _mesh_hash(archive.FemMesh) == old
 
 
+@pytest.mark.parametrize('family,element', [('Faces',81),('Edges',92)])
+def test_generation_retains_native_surface_and_line_meshes(native, family, element):
+    native.shape.Shape.Solids = []
+    if family == 'Edges':
+        native.shape.Shape.Faces = []
+    native.generated.Volumes = []
+    if family == 'Edges':
+        native.generated.Faces = []
+    result = submit(native,'mesh_generate',{},native.mesh)
+    native.tools[0].process.finished.emit(0,0)
+    record = next(row for row in native.metadata['mesh_history'] if row['id']==result['history_id'])
+    assert record['state']=='SUCCEEDED'
+    assert native.mesh_bindings.validate(native.mesh)['status']=='OBSERVED_NATIVE_MESH_REPLACEMENT'
+    assert native.editor.quality(native.mesh)['rows'][0]['element_id']==element
+
+
 @pytest.mark.parametrize('failure', ['process', 'cancel', 'late_geometry', 'late_mesh', 'empty_generated_mesh', 'failed_start'])
 def test_failure_cancel_late_edits_do_not_replace_prior_or_human_mesh(native, failure):
     old = _mesh_hash(native.mesh.FemMesh)
@@ -352,7 +393,7 @@ def test_failure_cancel_late_edits_do_not_replace_prior_or_human_mesh(native, fa
         native.mesh.FemMesh = Mesh(3)
         old = _mesh_hash(native.mesh.FemMesh)
     elif failure == 'empty_generated_mesh':
-        native.generated.Volumes = []
+        native.generated.Volumes, native.generated.Faces, native.generated.Edges = [], [], []
     if failure == 'failed_start':
         tool.process.errorOccurred.emit(0)
     else:
@@ -365,7 +406,7 @@ def test_failure_cancel_late_edits_do_not_replace_prior_or_human_mesh(native, fa
 
 
 @pytest.mark.parametrize('unsupported', ['C3D4', 'bad_jacobian'])
-def test_successful_native_generation_keeps_unsupported_invalid_draft_and_previous_mesh(native, unsupported):
+def test_native_generation_accepts_linear_tetrahedra_and_preserves_bad_draft_and_previous_mesh(native, unsupported):
     previous = _mesh_hash(native.mesh.FemMesh)
     if unsupported == 'C3D4':
         native.mesh.ElementOrder = '1st'
@@ -376,13 +417,15 @@ def test_successful_native_generation_keeps_unsupported_invalid_draft_and_previo
     submit(native, 'mesh_generate', {}, native.mesh)
     native.tools[0].process.finished.emit(0, 0)
     history = native.metadata['mesh_history'][0]
-    assert history['state'] == 'SUCCEEDED' and history['run_admissibility'] == 'BLOCKED'
+    assert history['state'] == 'SUCCEEDED'
+    assert history['run_admissibility'] == ('QUALITY_GATES_PASSED' if unsupported == 'C3D4' else 'BLOCKED')
     assert _mesh_hash(native.mesh.FemMesh) == _mesh_hash(native.generated)
     assert _mesh_hash(native._object(history['previous_mesh_object_id']).FemMesh) == previous
     quality = submit(native, 'mesh_quality', {}, native.mesh)
-    assert quality['bad_element_count'] == 1
+    assert quality['bad_element_count'] == (0 if unsupported == 'C3D4' else 1)
     assert quality['rows'][0]['element_type'] == ('C3D4' if unsupported == 'C3D4' else 'C3D10')
-    assert any('Jacobian/type gates' in row['message'] for row in native.editor.validate_for_run(native.analysis))
+    errors = native.editor.validate_for_run(native.analysis)
+    assert any('Jacobian' in row['message'] for row in errors) == (unsupported == 'bad_jacobian')
     assert not native.editor.descriptor()['mesh_busy']
 
 
@@ -592,3 +635,9 @@ def test_quality_reads_native_nodes_once_per_call_without_persistent_cache(nativ
     assert changed['mesh_sha256'] != actual['mesh_sha256']
     native.mesh.FemMesh = mesh
     assert changed == submit(native, 'mesh_quality', {}, native.mesh)
+
+
+@pytest.fixture(scope='module')
+def app():
+    widgets = pytest.importorskip('PySide6.QtWidgets')
+    return widgets.QApplication.instance() or widgets.QApplication([])

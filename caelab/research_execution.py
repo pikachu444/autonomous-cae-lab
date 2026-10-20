@@ -5,11 +5,47 @@ another queue, alter runtime configuration or reconstruct a field numerically.
 """
 from copy import deepcopy
 from pathlib import Path
+import shutil
 import uuid
 
 from . import evaluation
 from .execution_control import ExecutionCleanupFailed
 from .storage import check_id
+
+
+def retain_native_artifacts(result, source, destination):
+    """Keep declared native files in the same saved result as its responses."""
+    source, destination = Path(source).resolve(), Path(destination)
+    records = result.get('artifacts', [])
+    if not records:
+        return
+    files = []
+    for record in records:
+        relative = record.get('relative', record.get('path'))
+        if (not isinstance(relative, str) or not relative or Path(relative).anchor
+                or '..' in Path(relative).parts):
+            raise ValueError('Native artifact needs a local relative path')
+        original = source / relative
+        if (any(path.is_symlink() for path in (original, *original.parents) if path != source and source in path.parents)
+                or not original.resolve().is_relative_to(source)):
+            raise ValueError('Native artifact is outside its execution directory')
+        if evaluation.file_hash(original) != record['sha256']:
+            raise ValueError('Native artifact changed before retention')
+        files.append((original, relative, record['sha256']))
+    destination.mkdir(parents=True, exist_ok=False)
+    retained = []
+    for original, relative, digest in files:
+        target = destination / 'calculation' / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(original, target)
+        if evaluation.file_hash(target) != digest or evaluation.file_hash(original) != digest:
+            raise ValueError('Native artifact changed while retaining the result')
+        retained.append({'path': target.relative_to(destination).as_posix(), 'sha256': digest})
+    if result.get('native_result'):
+        directory = result['native_result']['directory']
+        result['native_result']['directory'] = 'calculation' if directory == source.name else 'calculation/' + directory
+    result['artifacts'] = retained
+    evaluation.save_evaluation(result, destination, existing=True)
 
 
 def run_domain(workbench, model, output, *, runtime=None):

@@ -569,7 +569,7 @@ class Workbench:
         if source.suffix.lower() in NATIVE_EXTENSIONS:
             return register_native_input(self.root, roots[root_id], source, 'D'+uuid.uuid4().hex,
                 root_id=root_id, relative=relative, limit=limit)
-        if source.name == 'snapshot.json':
+        if source.name in {'snapshot.json','support-source.json'}:
             return register_frozen_input(self.root, roots[root_id], source, 'D'+uuid.uuid4().hex,
                 root_id=root_id, relative=relative, limit=limit)
         with source.open('rb') as stream:
@@ -601,7 +601,7 @@ class Workbench:
         path=contained(self.root,receipt['file'])
         if file_hash(path)!=receipt['sha256']:
             raise ValueError('Uploaded source changed')
-        if receipt.get('kind') in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_composite_shell', 'frozen_beam', 'frozen_connector', 'native_curve'}:
+        if receipt.get('kind') in {'support_source', 'native_result', 'native_design', 'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_composite_shell', 'frozen_beam', 'frozen_connector', 'native_curve'}:
             folder=(self.root/'inputs'/identifier).resolve()
             files=receipt.get('files',[])
             if not files or not any(item.get('file')==receipt['file'] and item.get('sha256')==receipt['sha256'] for item in files):
@@ -644,7 +644,7 @@ class Workbench:
         return {'post_input':{key:receipt[key] for key in ('id','sha256','format')},
                 'reference':deepcopy(reference)}
 
-    def native_input(self, identifier):
+    def native_input(self, identifier, *, static=None):
         """Resolve a registered native set for a local reader after verification."""
         path = self.input_path(identifier)
         receipt = load_json(self.root/'inputs'/identifier/'input.json')
@@ -659,7 +659,7 @@ class Workbench:
                            'bytes': m['bytes'], 'sha256': m['sha256']}
                           for m in verified.snapshot['members'] if m['storage'] == 'file'],
                 'registration_origin': deepcopy(receipt.get('origin')), 'native_reference': deepcopy(verified.reference)}
-        if receipt.get('kind') not in {'native_result', 'native_design', 'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_composite_shell', 'frozen_beam', 'frozen_connector', 'native_curve'}:
+        if receipt.get('kind') not in {'support_source', 'native_result', 'native_design', 'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_composite_shell', 'frozen_beam', 'frozen_connector', 'native_curve'}:
             raise ValueError('Select a registered native result or FEM snapshot')
         result = {'id': identifier, 'path': str(path), 'format': receipt['format'], 'kind': receipt['kind'], 'sha256': receipt['sha256'],
                 'source_pins': [{'path': str(contained(self.root, item['file'])),
@@ -668,6 +668,11 @@ class Workbench:
         result['registration_origin'] = deepcopy(receipt.get('origin'))
         if receipt.get('candidate_branch'):
             result['candidate_branch'] = deepcopy(receipt['candidate_branch'])
+        if receipt['kind'] == 'support_source':
+            from .adapters.conservative_load import selection_catalog
+            result['selection_catalog'] = selection_catalog(path, static=static)
+        elif static is not None:
+            raise ValueError('Static frame selection requires a retained support source')
         if receipt['kind'] in {'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_composite_shell', 'frozen_beam', 'frozen_connector'}:
             manifest = load_json(path)
             result['editable_path'] = str(path.parent / manifest.get('editable_project', 'editable.FCStd'))
@@ -871,6 +876,15 @@ class Workbench:
                 'assistance':{'configured':bool(self.config.get('runtime'))},
                 'operations':sorted(OPERATIONS)}
 
+    def job_monitor(self, identifier, *, log=None, offset=0, limit=65536):
+        from .job_monitor import read_monitor
+        return read_monitor(self.root, self.desktop.job_record(identifier),
+                            log=log, offset=offset, limit=limit)
+
+    def engineering_context(self, identifier):
+        from .engineering_context import read_context
+        return read_context(self, identifier)
+
     def result(self, identifier, *, selection=None):
         identifier=check_id(identifier)
         if not (self.root/'results'/identifier/'result.json').is_file():
@@ -957,6 +971,10 @@ class Workbench:
     def submit(self, operation, arguments, *, request_id=None, resources=None):
         if operation not in OPERATIONS or not isinstance(arguments,dict):
             raise ValueError('Select a registered operation with JSON arguments')
+        if arguments.get('backend') == 'structure.calculix.conservative_load':
+            supplied = [arguments.get('settings',{})] + [r.get('settings',{}) for r in arguments.get('experiments',[]) if isinstance(r,dict)]
+            if any(isinstance(settings,dict) and 'nodal_load' in settings for settings in supplied):
+                raise ValueError('Connect conservative loads through a saved Evaluation transfer')
         if 'label' in arguments and (not isinstance(arguments['label'],str) or len(arguments['label'])>160):
             raise ValueError('Research name must be text of at most 160 characters')
         if set(arguments)&{'output','record','runtime','command','factory','module','source_roots'}:
@@ -1080,7 +1098,8 @@ class Workbench:
         callbacks={'calculations.inputs':self.describe_inputs,
                    'calculations.resources':lambda request:self.resource_request(request.get('inputs',request),request.get('resources')),
                    'calculations.submit':self._proposed_submit,
-                   'calculations.status':lambda request:self.manager.status(request['job_id']),
+                   'calculations.status':lambda request:{**self.desktop.job_record(request['job_id']),
+                       'engineering_context':self.engineering_context(request['job_id'])},
                    'results.read':lambda request:self.result(request.get('result_id',request.get('job_id',request.get('run_id'))),selection=request.get('selection',{'metadata_only':True})),
                    'numerical.doe':lambda request:self._numerical_submit('doe',request),
                    'numerical.analyze':lambda request:self._execute('analyze',request,'read'),
@@ -1166,6 +1185,14 @@ class Workbench:
 
     def _settings(self, backend, settings):
         settings=deepcopy(settings)
+        if backend in {'structure.calculix.support_reaction','structure.calculix.conservative_load'}:
+            get_backend(backend).validate_settings(settings)
+            path=self.input_path(settings['data_id'])
+            receipt=load_json(self.root/'inputs'/settings['data_id']/'input.json')
+            expected='support_source' if backend=='structure.calculix.support_reaction' else 'frozen_contact'
+            if receipt.get('kind')!=expected:
+                raise ValueError('Select a registered support source or receiver input')
+            return {**settings,'snapshot_path':str(path)}
         if backend == 'structure.calculix.design':
             from .cad_numerical import resolve_settings
             return resolve_settings(self, settings)
@@ -1174,13 +1201,13 @@ class Workbench:
             receipt=load_json(self.root/'inputs'/identifier/'input.json')
             if receipt.get('kind')!='frozen_connector':raise ValueError('Select a registered connector input')
             return {'data_id':identifier,'snapshot_path':str(path)}
-        if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen'}:
+        if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen', 'structure.codeaster.contact', 'structure.codeaster.implicit_interface', 'structure.calculix.initial_fields', 'structure.codeaster.initial_fields'}:
             if set(settings) != {'data_id'}:
                 raise ValueError('Frozen FEM execution requires only a registered data_id')
             identifier=settings['data_id']
             path=self.input_path(identifier)
             receipt=load_json(self.root/'inputs'/identifier/'input.json')
-            if receipt.get('kind') != {'structure.calculix.contact':'frozen_contact', 'structure.calculix.pretension':'frozen_contact', 'structure.calculix.frozen':'frozen_fem', 'structure.codeaster.frozen':'frozen_fem',
+            if receipt.get('kind') != {'structure.calculix.contact':'frozen_contact', 'structure.calculix.pretension':'frozen_contact', 'structure.codeaster.contact':'frozen_contact', 'structure.codeaster.implicit_interface':'frozen_contact', 'structure.calculix.initial_fields':'frozen_contact', 'structure.codeaster.initial_fields':'frozen_contact', 'structure.calculix.frozen':'frozen_fem', 'structure.codeaster.frozen':'frozen_fem',
                                       'structure.calculix.shell':'frozen_shell', 'structure.calculix.shell.composite':'frozen_composite_shell', 'structure.calculix.beam':'frozen_beam'}[backend]:
                 raise ValueError('Select a registered frozen FEM snapshot')
             return {'data_id':identifier,'snapshot_path':str(path)}
@@ -1201,7 +1228,15 @@ class Workbench:
         def reject_paths(value,trail=()):
             if isinstance(value,dict):
                 for key,item in value.items():
-                    if key in {'command','argv','module','factory','script','executable','output','output_root','runtime','snapshot_path'}:
+                    # This exact typed provenance member names a retained
+                    # response, never a destination directory or executable.
+                    temperature_response = (backend=='structure.felupe.law_native'
+                        and key=='output' and len(trail)==6
+                        and trail[:3]==('thermal_regions','temperature','source')
+                        and type(trail[3]) is int and trail[4]=='source_refs'
+                        and type(trail[5]) is int and isinstance(item,str)
+                        and bool(item) and all(c.isalnum() or c in '_-' for c in item))
+                    if key in {'command','argv','module','factory','script','executable','output','output_root','runtime','snapshot_path'} and not temperature_response:
                         raise ValueError('Remote execution configuration is not a model input')
                     if key=='path' and backend!='files.table' and trail+(key,) not in provenance_paths:
                         raise ValueError('Use an uploaded input reference, not a server path')
@@ -1235,11 +1270,21 @@ class Workbench:
             args=resolve_request_inputs(operation,args,resolve_document=self.document_read,
                                         resolve_result=self.document_result)
         backend=args.get('backend')
+        if operation == 'evaluate' and backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension'}:
+            if args.pop('values', None):
+                raise ValueError('Edit the native FreeCAD model and prepare its updated input before rerunning.')
+            operation = 'run'
         if operation=='detail_eval':
             from .numerical_candidate_detail import validate_detail_arguments, validate_backend_binding
             validate_detail_arguments(self.numerical_documents, arguments, allow_active=True)
             validate_backend_binding(self, arguments)
         domain_adapter = None
+        if operation == 'evaluate' and backend in self.config.get('external_backends', {}):
+            from .adapters.external_files import FileEvaluationFactory
+            settings = self._settings(backend, args.get('settings', {}))
+            values = args.get('values', settings.pop('values', {}))
+            return evaluate(FileEvaluationFactory(backend, self.config['external_backends'][backend],
+                            self.root / 'native' / identifier), settings, values=values)
         if operation == 'evaluate' and backend not in {'evaluation.definition', 'material.mfront.prepared'}:
             candidate = get_backend(backend)
             if not callable(candidate) and not callable(getattr(candidate, 'prepare', None)):
@@ -1305,16 +1350,22 @@ class Workbench:
                 from .adapters.external_files import ExternalFilesAdapter
                 backend=ExternalFilesAdapter(backend,self.config['external_backends'][backend])
             output=self.root/'native'/identifier
-            result=run(backend,args.get('settings',{}),output=output,selection=args.get('selection'))
-            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen'}:
+            native_runtime = None
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension'}:
+                executable = self.desktop.context().get('freecad_executable')
+                if executable:
+                    native_runtime = {'freecad_executable': executable}
+            options = {'runtime': native_runtime} if native_runtime is not None else {}
+            result=run(backend,args.get('settings',{}),output=output,selection=args.get('selection'),**options)
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen', 'structure.codeaster.contact', 'structure.codeaster.implicit_interface', 'structure.calculix.initial_fields', 'structure.codeaster.initial_fields'}:
                 result['origin_input']={'id':arguments['settings']['data_id'],
-                    'kind':{'structure.calculix.contact':'frozen_contact', 'structure.calculix.pretension':'frozen_contact', 'structure.calculix.frozen':'frozen_fem', 'structure.codeaster.frozen':'frozen_fem',
+                    'kind':{'structure.calculix.contact':'frozen_contact', 'structure.calculix.pretension':'frozen_contact', 'structure.codeaster.contact':'frozen_contact', 'structure.codeaster.implicit_interface':'frozen_contact', 'structure.calculix.initial_fields':'frozen_contact', 'structure.codeaster.initial_fields':'frozen_contact', 'structure.calculix.frozen':'frozen_fem', 'structure.codeaster.frozen':'frozen_fem',
                             'structure.calculix.shell':'frozen_shell', 'structure.calculix.shell.composite':'frozen_composite_shell', 'structure.calculix.beam':'frozen_beam'}[backend]}
             publish_contact_prefix = (backend in {'structure.calculix.contact', 'structure.calculix.pretension'} and
                 result.get('partial_result',{}).get('status')=='CONVERGED_PREFIX' and
                 result.get('partial_result',{}).get('complete_analysis') is False)
             publish_shell_prefix = (backend in {'structure.calculix.shell','structure.calculix.shell.composite'} and bool(result.get('post_artifact')))
-            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen'} and (
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension', 'structure.calculix.shell', 'structure.calculix.shell.composite', 'structure.calculix.beam', 'structure.codeaster.frozen', 'structure.codeaster.contact', 'structure.codeaster.implicit_interface', 'structure.calculix.initial_fields', 'structure.codeaster.initial_fields'} and (
                     result.get('execution_status')=='SUCCEEDED' or publish_contact_prefix or publish_shell_prefix or
                     (backend=='structure.calculix.beam' and result.get('post_artifact') and
                      result.get('execution_status') in {'FAILED','CANCELLED'})):
@@ -1342,6 +1393,9 @@ class Workbench:
                     result.update(execution_status='FAILED', native_execution_status=native_status,
                                   post_registration={'status':'FAILED','type':type(error).__name__,'message':str(error)})
                     result.setdefault('diagnostics', {})['post_registration'] = str(error)
+            if backend in {'structure.calculix.frozen', 'structure.calculix.contact', 'structure.calculix.pretension'}:
+                from .research_execution import retain_native_artifacts
+                retain_native_artifacts(result, output, self.root / 'results' / identifier)
             return result
         if operation=='import_table':
             mapping=args.get('mapping',{})

@@ -116,6 +116,64 @@ def questions(monkeypatch, choices):
     return seen
 
 
+def test_switching_editor_docks_preserves_unapplied_text_and_model_tree(app):
+    from apps.desktop_pre.connection import Connection
+    main = QtWidgets.QMainWindow()
+    main.setCentralWidget(QtWidgets.QWidget())
+    def make_dock(title, area, widget=None):
+        dock = QtWidgets.QDockWidget(title, main)
+        dock.setObjectName(title)
+        dock.setWidget(widget or QtWidgets.QWidget())
+        main.addDockWidget(area, dock)
+        return dock
+    model = make_dock('Model', QtCore.Qt.LeftDockWidgetArea)
+    calculation = make_dock('CAELabCalculation', QtCore.Qt.BottomDockWidgetArea)
+    note = make_dock('UserNotes', QtCore.Qt.BottomDockWidgetArea)
+    edit = QtWidgets.QLineEdit('1e')
+    first = make_dock('Parameters', QtCore.Qt.RightDockWidgetArea, edit)
+    second = make_dock('Motion', QtCore.Qt.RightDockWidgetArea)
+    first.hide(); second.hide()
+    conn = Connection.__new__(Connection)
+    conn.QtWidgets, conn.QtCore, conn.closed = QtWidgets, QtCore, False
+    conn.Gui = NS(getMainWindow=lambda: main)
+    conn.dock = calculation
+    conn.panels = {'UserModel': {'parameters': first, 'motion': second}}
+    for dock in (first, second):
+        dock.visibilityChanged.connect(lambda visible, dock=dock: conn._editor_dock_visibility(dock, visible))
+    main.resize(1280, 800); main.show(); app.processEvents()
+    try:
+        first.show(); app.processEvents()
+        edit.setSelection(1, 1)
+        assert model.isVisible() and note.isVisible()
+        assert not calculation.isVisible()
+        second.show(); app.processEvents()
+        assert second.isVisible() and not first.isVisible()
+        assert first.widget() is edit and edit.text() == '1e' and edit.selectedText() == 'e'
+        first.show(); app.processEvents()
+        assert first.isVisible() and not second.isVisible() and model.isVisible()
+        assert edit.text() == '1e' and edit.selectedText() == 'e'
+        first.close(); app.processEvents()
+        assert calculation.isVisible() and model.isVisible()
+        assert note.isVisible()
+    finally:
+        conn.closed = True
+        main.close(); main.deleteLater(); app.processEvents()
+
+
+def test_native_fem_stays_primary_without_duplicate_preprocessor_entry(controls):
+    c = controls
+    opened = []
+    c.connection.show_panel = lambda kind: opened.append(kind)
+    toolbar = [action.text() for action in c.guards.toolbar.actions()]
+    assert toolbar == ['모델 열기…', '프로젝트 저장', '다른 이름으로 저장…', '계산 목록…']
+    assert not opened
+    menu = next(action.menu() for action in c.main.menuBar().actions() if action.text() == 'CAE 작업')
+    research = next(action.menu() for action in menu.actions() if action.text() == '연구 도구')
+    assert '확장 조건 편집…' not in [action.text() for action in research.actions()]
+    assert not opened
+    assert c.originals == [] and not c.connection.calls
+
+
 @pytest.mark.parametrize('choice', ['cancel', 'discard', 'saved', 'empty'])
 def test_main_close_restores_task_layout_only_after_close_is_approved(controls, monkeypatch, app, choice):
     c = controls; calls = []

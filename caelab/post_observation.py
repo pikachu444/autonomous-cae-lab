@@ -171,10 +171,26 @@ def measurement_columns(snapshot):
         array = 'GaugeRelativeDisplacement'
     if snapshot.get('recipe',{}).get('measurement') in ('surface_average','surface_time'):
         summary = snapshot.get('summary',{})
+        recipe = snapshot['recipe']
+        geometry = recipe.get('geometry','fixed_reference')
+        aggregation = recipe.get('aggregation') if recipe.get('leaf_selections') else None
+        array_name = 'SurfaceIntegral' if aggregation=='integral_sum' else 'SurfaceAreaAverage'
+        reductions = ('native_surface_triangulation_area_weighted_mean', 'native_parametric_quadratic_area_weighted_mean')
+        if aggregation is not None:
+            reducers = {'per_leaf':'native_leaf_results','area_weighted_mean':'native_leaf_area_weighted_mean',
+                        'integral_sum':'native_leaf_integral_sum'}
+            if (aggregation not in reducers or summary.get('aggregation')!=aggregation or
+                    not summary.get('leaf_results')):
+                raise ValueError('Saved leaf output differs from its explicit selection/aggregation')
+            reductions = (reducers[aggregation],)
+        if geometry not in ('fixed_reference','current'):
+            raise ValueError('Unsupported saved surface geometry')
+        if geometry=='current' and (recipe.get('geometry_state',{}).get('mode')!='reference_plus_displacement'
+                or summary.get('geometry_state')!=recipe['geometry_state'] or summary.get('display_scale_used') is not False):
+            raise ValueError('Current surface needs its original displacement and geometry state, without display scaling')
         if (summary.get('measurement')!=snapshot['recipe']['measurement'] or summary.get('input_array')!=array
-                or summary.get('array')!='SurfaceAreaAverage'
-                or summary.get('reduction') not in ('native_surface_triangulation_area_weighted_mean', 'native_parametric_quadratic_area_weighted_mean')
-                or summary.get('geometry')!='fixed_reference'):
+                or summary.get('array')!=array_name or summary.get('reduction') not in reductions
+                or summary.get('geometry')!=geometry):
             raise ValueError('Saved surface average differs from its actual native face integral')
         if summary.get('reduction') == 'native_parametric_quadratic_area_weighted_mean':
             q=summary.get('quadrature',{})
@@ -182,7 +198,7 @@ def measurement_columns(snapshot):
                     or summary.get('field_interpolation') not in ('native_quadratic_shape','original_owner_cell_piecewise_constant_on_face')
                     or not any(len(f.get('point_indices',[])) in (6,8) for f in snapshot['recipe'].get('surface_faces',[]))):
                 raise ValueError('고차면의 원 선택과 형상함수 적분 정의를 확인할 수 없습니다.')
-        array = 'SurfaceAreaAverage'
+        array = array_name
     if not isinstance(array, str) or not array:
         raise ValueError('Saved measurement has no declared source array')
     available = choices(snapshot)['arrays']

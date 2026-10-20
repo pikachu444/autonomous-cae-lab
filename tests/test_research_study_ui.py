@@ -131,6 +131,31 @@ def test_actual_qt_research_edit_support_conflict_save_undo_reopen(app, tmp_path
         close(app, window, client)
 
 
+def test_cancel_judgment_keeps_question_and_exact_reading_context(app, tmp_path):
+    client = Client(tmp_path)
+    window = setup(client)
+    try:
+        original = deepcopy(window.document['draft'])
+        window.question.setPlainText('나중에 다듬을 연구 질문')
+        window._select(('decisions', 'Ddecision'))
+        window._show_editor()
+        window.detail_text.setPlainText('취소할 판단\n' * 40)
+        window.detail_status.setCurrentIndex(window.detail_status.findData('PROVISIONAL'))
+        reference = deepcopy(window._content_reference)
+        window.resize(900, 680)
+        app.processEvents()
+        assert window.detail_text.toPlainText() == '취소할 판단\n' * 40
+        assert window.cancel_entry_edits()
+        assert window.edited_draft()['decisions'] == original['decisions']
+        assert window.edited_draft()['question'] == '나중에 다듬을 연구 질문'
+        assert window._content_reference == reference
+        assert window.local_dirty and window.editor.isHidden()
+        assert client.owner.read(window.document['id'])['draft'] == original
+        assert not any(call[0] in {'study.update', 'document.save'} for call in client.calls)
+    finally:
+        close(app, window, client)
+
+
 def test_apply_late_question_edit_preserves_buffer_generation_and_blocks_save_continuation(app, tmp_path):
     client = Client(tmp_path)
     client.delay_operation = 'study.update'

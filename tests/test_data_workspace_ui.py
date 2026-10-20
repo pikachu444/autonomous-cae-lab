@@ -211,6 +211,8 @@ def test_saved_document_reopens_in_a_new_qt_process_without_execution(workspace)
     window._select_original_rows({3}); window.select_calculation_rows('quality')
     window.save_document()
     wait(app, lambda: not window._busy and window.document.get('saved_revision'))
+    window._allow_close = True
+    window.close(); app.processEvents()
     script = '''import json,sys,time
 from pathlib import Path
 from PySide6.QtWidgets import QApplication

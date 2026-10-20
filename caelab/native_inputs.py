@@ -35,6 +35,9 @@ def _files(source, root):
 
 
 def _frozen_files(source, root, *, kind='freecad-fem-frozen'):
+    if kind == 'conservative-support-source':
+        from .adapters.conservative_load import registration_members
+        return registration_members(source, root)
     if kind == 'freecad-connector-frozen':
         from .connector_snapshot import validate_snapshot
         _, _, _, paths = validate_snapshot(source)
@@ -58,6 +61,18 @@ def _frozen_files(source, root, *, kind='freecad-fem-frozen'):
     manifest = json.loads(payload)
     if manifest.get('kind') != kind or manifest.get('schema_version') != '1':
         raise ValueError('A completed FreeCAD FEM snapshot is required')
+    if kind == 'freecad-fem-frozen' and manifest.get('export_profile') == 'freecad-calculix-writer':
+        from .adapters.frozen_fem import validate_snapshot
+        _, _, pins, _ = validate_snapshot(source)
+        return [_within_root(source.parent / name, root) for name in pins], file_hash(source)
+    if kind == 'freecad-contact-frozen' and manifest.get('backend') == 'structure.codeaster.contact':
+        from .adapters.contact_aster_model import validate_snapshot
+        _, _, pins, _ = validate_snapshot(source)
+        return [_within_root(source.parent / name, root) for name in pins], file_hash(source)
+    if kind == 'freecad-contact-frozen' and manifest.get('backend') == 'structure.codeaster.implicit_interface':
+        from .adapters.implicit_interface_aster import validate_snapshot
+        _, _, pins, _ = validate_snapshot(source)
+        return [_within_root(source.parent / name, root) for name in pins], file_hash(source)
     entries = manifest.get('files', [])
     names = [entry.get('relative') for entry in entries]
     inp = manifest.get('input_file', '')
@@ -130,6 +145,9 @@ def _register_set(workbench_root, root, source, paths, parsed_sha, identifier, *
         if _identity(path.stat()) != before[path] or file_hash(path) != entry['sha256']:
             raise ValueError('Source changed during native registration')
     entry = files[0]
+    if kind == 'support_source':
+        from .adapters.conservative_load import validate_source
+        validate_source(Path(workbench_root) / entry['file'])
     if kind in {'frozen_fem', 'frozen_contact', 'frozen_shell', 'frozen_composite_shell', 'frozen_beam', 'frozen_connector'}:
         # The copied bytes must match the manifest too, including a change before copying.
         _frozen_files(Path(workbench_root) / entry['file'], folder.resolve(),
@@ -230,10 +248,11 @@ def register_frozen_input(workbench_root, approved_root, source, identifier, *, 
     if len(raw) > 8 * 1024 * 1024:
         raise ValueError('FEM snapshot manifest exceeds 8 MiB')
     kind = json.loads(raw).get('kind')
-    if kind not in {'freecad-fem-frozen', 'freecad-contact-frozen', 'freecad-shell-frozen', 'freecad-composite-shell-frozen', 'freecad-beam-frozen', 'freecad-connector-frozen'}:
+    if kind not in {'conservative-support-source', 'freecad-fem-frozen', 'freecad-contact-frozen', 'freecad-shell-frozen', 'freecad-composite-shell-frozen', 'freecad-beam-frozen', 'freecad-connector-frozen'}:
         raise ValueError('Select an admitted native frozen snapshot kind')
     paths, parsed_sha = _frozen_files(source, root, kind=kind)
     receipt_kind, format_name = {'freecad-fem-frozen':('frozen_fem','freecad-fem'),
+        'conservative-support-source':('support_source','conservative-support-source'),
         'freecad-contact-frozen':('frozen_contact','freecad-contact'),
         'freecad-shell-frozen':('frozen_shell','freecad-shell'),
         'freecad-composite-shell-frozen':('frozen_composite_shell','freecad-composite-shell'),

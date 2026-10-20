@@ -398,7 +398,9 @@ def post_table_module(monkeypatch):
     native=NS(ProgrammableSource=lambda **_:Proxy(), Delete=lambda proxy:deleted.append(proxy))
     monkeypatch.setitem(sys.modules,'paraview',NS(simple=native))
     ext=NS(contact_api=lambda:contact_inspection)
-    analysis=NS(_fetch=lambda proxy:proxy.table)
+    from apps.desktop_post.naming import proxy_name
+    analysis=NS(_fetch=lambda proxy:proxy.table,
+                _name=lambda namespace, role:proxy_name(namespace, role, {}))
     for name,module in [('external',ext),('analysis',analysis)]:
         monkeypatch.setitem(sys.modules,'apps.desktop_post.'+name,module)
         monkeypatch.setattr(package,name,module,raising=False)

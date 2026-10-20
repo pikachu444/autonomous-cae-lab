@@ -102,7 +102,12 @@ def test_stage_cards_preserve_old_native_values_and_global_field_controls(model)
     dynamic['step']['controls']=[draft()['iterations'],draft()['factors']]
     assert render(dynamic).count('*DYNAMIC')==2  # Existing dynamic TIME path stays available.
     dynamic['step']['field_controls']='.005'
-    with pytest.raises(ValueError,match='NS1'):render(dynamic)
+    deck=render(dynamic)
+    assert deck.count('*DYNAMIC')==2
+    assert deck.count('*CONTROLS,PARAMETERS=FIELD\n.005\n')==2
+    assert deck.count('*CONTROLS,PARAMETERS=TIME INCREMENTATION\n'+draft()['iterations']+'\n'+draft()['factors'])==2
+    dynamic['step']['line_search_controls']=',.25,1.01,,'
+    with pytest.raises(ValueError,match='LINE SEARCH'):render(dynamic)
 
 
 @pytest.mark.parametrize('single',[False,True])

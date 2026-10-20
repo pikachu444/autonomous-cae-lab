@@ -30,7 +30,7 @@ from apps.desktop_pre.shell_edit import ShellEditor, OPERATIONS as SHELL_OPERATI
 from apps.desktop_pre.composite_edit import CompositeEditor, OPERATIONS as COMPOSITE_OPERATIONS, READ_ONLY as COMPOSITE_READ_ONLY
 
 
-OPERATIONS = ('pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze', 'pre.contact.freeze', 'pre.pretension.freeze', 'pre.impact.capture',
+OPERATIONS = ('pre.inspect', 'pre.set_property', 'pre.set_datum', 'pre.select', 'pre.freeze', 'pre.contact.freeze', 'pre.contact.aster_freeze', 'pre.pretension.freeze', 'pre.initial.freeze', 'pre.impact.capture',
               'document.save', 'document.undo', 'document.redo', 'document.activate',
               'pre.workbench', 'pre.export_native_copy', 'pre.validate', 'pre.fem.mesh_compare', 'pre.fem.mesh_view') + PARAMETER_OPERATIONS + PROJECT_OPERATIONS + MOTION_OPERATIONS + FEM_OPERATIONS + CONVERGENCE_OPERATIONS + RESEARCH_OPERATIONS + SHELL_OPERATIONS + BEAM_OPERATIONS + POSE_CANDIDATE_OPERATIONS + DYNAMIC_OPERATIONS + CONNECTOR_OPERATIONS + COMPOSITE_OPERATIONS
 EDITABLE = {'Length', 'Length2', 'Width', 'Height', 'Radius', 'Radius1', 'Radius2',
@@ -73,8 +73,7 @@ class Owner:
         self.pose_candidates = PoseCandidates(self)
         App.addDocumentObserver(self)
         for obj in doc.Objects:
-            if (hasattr(obj, 'FemMesh') and getattr(obj, 'Shape', None) is not None
-                    and not (obj.FemMesh.Edges and not obj.FemMesh.Faces and not obj.FemMesh.Volumes)):
+            if hasattr(obj, 'FemMesh') and getattr(obj, 'Shape', None) is not None:
                 try:
                     self.mesh_bindings.track(obj)
                 except Exception as error:
@@ -285,6 +284,7 @@ class Owner:
                 readonly |= LAW_READ_ONLY
                 readonly |= {'pre.fem.displacement_read', 'pre.fem.displacement_preview'}
                 readonly |= {'pre.fem.pretension_read', 'pre.fem.pretension_faces', 'pre.fem.pretension_highlight'}
+                readonly |= {'pre.initial.read', 'pre.initial.region'}
                 readonly |= COMPOSITE_READ_ONLY | SHELL_READ_ONLY | POSE_CANDIDATE_READ_ONLY | DYNAMIC_READ_ONLY | set(CONNECTOR_READ_ONLY)
                 if self.pose_candidates.busy and operation not in readonly | {'pre.assembly_candidate.cancel', 'document.activate'}:
                     raise ValueError('해석 모델을 만드는 중입니다. 완료하거나 취소한 뒤 편집하세요.')
@@ -394,13 +394,15 @@ class Owner:
                         raise ValueError('Choose an exact native Analysis')
                     diagnostics = self.fem.validate_for_run(self._object(args['analysis_id']))
                     payload = {'diagnostics': diagnostics, 'can_freeze': not diagnostics, 'engineering_release': 'UNKNOWN'}
-                elif operation in {'pre.freeze', 'pre.contact.freeze', 'pre.pretension.freeze'}:
+                elif operation in {'pre.freeze', 'pre.contact.freeze', 'pre.contact.aster_freeze', 'pre.pretension.freeze', 'pre.initial.freeze'}:
                     from caelab.structural_field_ports import consume_displacement_source
                     args, displacement_source = consume_displacement_source(args)
                     requested_source = args.pop('source_reference', None)
                     if set(args) != {'analysis_id', 'solver_id'} or target:
                         raise ValueError('Freeze requires exact analysis_id and solver_id')
                     transfer_record = self.read_metadata().get('displacement_transfers', {}).get(args['analysis_id'])
+                    if transfer_record is not None and operation in {'pre.initial.freeze','pre.contact.aster_freeze'}:
+                        raise ValueError('현재 변위 전달의 수신은 초기장·비관통 접촉과 결합하지 않습니다.')
                     if transfer_record is not None:
                         if (requested_source is None or displacement_source is None or
                                 transfer_record.get('draft', {}).get('source_reference') != requested_source or
@@ -414,9 +416,10 @@ class Owner:
                     require_ready_model(self.doc, owner=self)
                     if args['analysis_id'] in self.read_metadata().get('dynamic_programs', {}):
                         raise ValueError('동해석 설정의 입력 생성/계산을 사용하세요. 일반 FEM 입력으로 초기조건과 시간 단계를 생략하지 않습니다.')
-                    from apps.desktop_pre.beam_menu import uses_beam
-                    if uses_beam(self._object(args['analysis_id']), self.read_metadata()):
+                    if args['analysis_id'] in self.read_metadata().get('beam_models', {}):
                         raise ValueError('빔 설정에서 입력을 생성하세요. 일반 FEM 입력으로 빔 끝 모멘트를 생략하지 않습니다.')
+                    if args['analysis_id'] in self.read_metadata().get('initial_fields',{}) and operation != 'pre.initial.freeze':
+                        raise ValueError('초기장이 있는 모델은 초기조건의 입력 생성/계산을 사용하세요.')
                     has_pretension = (args['analysis_id'] in self.read_metadata().get('pretension_editors',{}) or
                         any(row.get('analysis_id') == args['analysis_id']
                             for row in self.read_metadata().get('pretension_sections', [])))
@@ -435,7 +438,6 @@ class Owner:
                             raise ValueError('체결 절단면과 조임값을 적용하고 진단을 확인하세요.')
                     saved = self.project.save()
                     frozen_generation = self.generation
-                    from apps.desktop_pre.nonlinear_material import uses_solid_route
                     if transfer_record is not None:
                         if operation == 'pre.pretension.freeze':
                             raise ValueError('변위 전달의 첫 수신 해석은 체결 단계를 지원하지 않습니다.')
@@ -463,7 +465,11 @@ class Owner:
                             raise ValueError('변위 전달 입력 생성 중 수신 모델이 바뀌었습니다. 다시 확인하세요.')
                         # Catch source replacement during packaging as well as queue wait.
                         consume_displacement_source(request['arguments'])
-                    elif operation == 'pre.contact.freeze' or uses_solid_route(self._object(args['analysis_id']), self.fem._metadata()):
+                    elif operation == 'pre.contact.aster_freeze':
+                        from apps.desktop_pre.freeze_contact_aster import freeze
+                        manifest = freeze(self._object(args['analysis_id']), self._object(args['solver_id']),
+                                          self.export_root / self.document_id, fem=self.fem)
+                    elif operation in {'pre.contact.freeze', 'pre.initial.freeze'}:
                         from apps.desktop_pre.freeze_contact import freeze_contact
                         manifest = freeze_contact(self._object(args['analysis_id']), self._object(args['solver_id']),
                                                   self.export_root / self.document_id, fem=self.fem)

@@ -4,7 +4,7 @@ Only the provider execution boundary is a controlled, explicitly labelled test
 double. These checks demonstrate UI wiring, not live model/provider readiness.
 """
 import os
-os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 from copy import deepcopy
 import threading
 import time
@@ -142,6 +142,19 @@ def test_real_qt_round_topic_reply_evidence_and_plan_callbacks(app, ui_owner):
     window.turns.setCurrentRow(1)
     window.plans.setCurrentRow(0)
     assert window.plan_button.isEnabled()
+    assert not window.proposal_panel.isHidden()
+    if os.environ.get('CAELAB_GUI_CAPTURE_DIR'):
+        from pathlib import Path
+        captures = Path(os.environ['CAELAB_GUI_CAPTURE_DIR'])
+        captures.mkdir(parents=True, exist_ok=True)
+        window.show()
+        for width, height in ((1440, 900), (1100, 760)):
+            window.resize(width, height)
+            wait(app, lambda: window.isVisible())
+            for _ in range(10):
+                app.processEvents()
+                time.sleep(.02)
+            assert window.screen().grabWindow(int(window.winId())).save(str(captures / ('expert-' + str(width) + '.png')))
     window.plan_button.click()
     assert plans == [(window.document['id'], response['id'], 0)]
     # Exact source metadata is forwarded unchanged to the integration callback.
@@ -290,3 +303,24 @@ def test_choose_document_uses_client_documents_envelope(app, ui_owner, monkeypat
     window.choose_document()
     wait(app, lambda: window.document['id'] == other['id'] and not window._busy)
     assert window.document['title'] == 'Another saved discussion'
+
+
+def test_cancel_question_keeps_other_local_inputs_and_never_sends(app, ui_owner):
+    owner, manager, calls, _ = ui_owner
+    window = open_window(app, owner)
+    before = deepcopy(window.document)
+    window.question.setPlainText('취소할 긴 질문\n' * 40)
+    window.classification.setCurrentIndex(window.classification.findData('challenge'))
+    window.model_calls.setValue(window.model_calls.value() + 1)
+    budget = window.edited_draft()['budget']
+    window.question.selectAll()
+    window.show_side(window.source_tab)
+    window.side.hide()
+    assert window.question.toPlainText() == '취소할 긴 질문\n' * 40
+    assert window.question.textCursor().hasSelection()
+    assert window.cancel_question_edits()
+    assert window.question.toPlainText() == before['draft']['composer']['text']
+    assert window.edited_draft()['composer'] == before['draft']['composer']
+    assert window.edited_draft()['budget'] == budget and window.local_dirty
+    assert owner.read(before['id']) == before
+    assert window.client.operations == [] and not manager.list() and not calls

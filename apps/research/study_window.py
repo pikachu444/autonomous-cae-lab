@@ -13,7 +13,7 @@ from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QFontMetrics, QKeySequence
 from PySide6.QtWidgets import (QApplication, QBoxLayout, QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QHeaderView, QInputDialog,
     QLabel, QLineEdit, QListWidget, QListWidgetItem, QMessageBox, QPushButton, QPlainTextEdit,
-    QScrollArea, QSizePolicy, QSplitter, QToolBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QFileDialog)
+    QScrollArea, QSizePolicy, QSplitter, QTabWidget, QToolBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget, QFileDialog)
 
 from caelab.study_document import (default_draft, diagnostics, reference_error, HYPOTHESIS_STATUSES,
     DECISION_STATUSES, OBSERVATION_STATUSES)
@@ -242,9 +242,12 @@ class StudyWindow(NumericalWindow):
         self.discussion_button.clicked.connect(lambda: self.request_followup('discussion'))
         self.plan_button.clicked.connect(lambda: self.request_followup('plan'))
         reading_actions.addWidget(self.followup_basis, 1)
-        reading_actions.addWidget(self.discussion_button)
-        reading_actions.addWidget(self.plan_button)
         right_layout.addLayout(reading_actions)
+        followup_actions = QHBoxLayout()
+        followup_actions.addStretch(1)
+        followup_actions.addWidget(self.discussion_button)
+        followup_actions.addWidget(self.plan_button)
+        right_layout.addLayout(followup_actions)
         self.content_splitter.addWidget(self.reading_page)
         self.editor = QWidget()
         detail = QVBoxLayout(self.editor)
@@ -256,6 +259,9 @@ class StudyWindow(NumericalWindow):
         heading.addWidget(self.detail_identity, 1)
         self.close_editor_button = QPushButton('접기')
         self.close_editor_button.clicked.connect(self.hide_editor)
+        self.cancel_entry_button = QPushButton('수정 취소')
+        self.cancel_entry_button.clicked.connect(self.cancel_entry_edits)
+        heading.addWidget(self.cancel_entry_button)
         heading.addWidget(self.close_editor_button)
         detail.addLayout(heading)
         scroll = QScrollArea()
@@ -291,23 +297,25 @@ class StudyWindow(NumericalWindow):
         self.detail_text.textChanged.connect(self._detail_edited)
         self.detail_status.currentIndexChanged.connect(self._detail_edited)
         self.refs_layout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
+        self.link_tabs = QTabWidget()
+        self.link_tabs.setDocumentMode(True)
         self.link_lists, self.link_panels = {}, {}
         for key, label in (('hypothesis_ids', '관련 가설'), ('supporting', '지지하는 자료'),
                            ('conflicting', '반박하는 자료'), ('evidence_ids', '참고 자료')):
             panel = QWidget()
             column = QVBoxLayout(panel)
             column.setContentsMargins(0, 0, 0, 0)
-            column.addWidget(QLabel(label))
             choices = QListWidget()
             choices.setObjectName('study_' + key)
             choices.setMinimumHeight(56)
-            choices.setMaximumHeight(160)
+            choices.setMaximumHeight(128)
             choices.itemChanged.connect(self._detail_edited)
             choices.itemClicked.connect(lambda item, key=key: self.read_linked_evidence(item.data(DATA))
                 if key != 'hypothesis_ids' else None)
             column.addWidget(choices)
             self.link_lists[key], self.link_panels[key] = choices, panel
-            self.refs_layout.addWidget(panel)
+            self.link_tabs.addTab(panel, label)
+        self.refs_layout.addWidget(self.link_tabs)
         body.addLayout(self.refs_layout)
         body.addStretch(1)
         self.reference_detail = QPlainTextEdit()
@@ -349,11 +357,38 @@ class StudyWindow(NumericalWindow):
         self.editor.hide()
         self._arrange_editor()
 
+    def cancel_entry_edits(self):
+        if not self.document or not self._selected or self._busy or self._callbacks or self._raw_mode:
+            return False
+        if self._pending_literature_target():
+            self.message.setText(PENDING_LITERATURE_TARGET)
+            return False
+        kind, identifier = self._selected
+        original = next((row for row in self.document['draft'].get(kind, []) if row['id'] == identifier), None)
+        rows = self._buffer.get(kind, [])
+        index = next((i for i, row in enumerate(rows) if row['id'] == identifier), None)
+        if index is None:
+            return False
+        if original is None:
+            rows.pop(index)
+            self._selected = None
+        else:
+            rows[index] = deepcopy(original)
+        self._edit_serial += 1
+        self.local_dirty = self.edited_draft() != self.document['draft']
+        self._populate_entries()
+        self._populate_evidence()
+        self._show_detail()
+        self.hide_editor()
+        self.message.setText('선택 항목의 수정을 취소했습니다. 읽던 근거와 다른 편집은 유지합니다.')
+        self._update_actions()
+        return True
+
     def _size_editor(self):
         if self.content_splitter.orientation() == Qt.Orientation.Vertical:
             # Leave the judgment state visible below its statement on first open.
             # User splitter adjustments remain untouched while editing/selection changes.
-            size = 300 if self._selected and self._selected[0] == 'evidence' else 320
+            size = min(300, max(220, self.content_splitter.height() // 2))
             self.content_splitter.setSizes([max(250, self.content_splitter.height() - size), size])
         else:
             self.content_splitter.setSizes([max(400, self.content_splitter.width() - 360), 360])
@@ -576,7 +611,7 @@ class StudyWindow(NumericalWindow):
         self.detail_status.setVisible(bool(row and 'status' in row))
         self.status_label.setVisible(bool(row and 'status' in row))
         for key, choices in self.link_lists.items():
-            self.link_panels[key].setVisible(bool(row and key in row))
+            self.link_tabs.setTabVisible(self.link_tabs.indexOf(self.link_panels[key]), bool(row and key in row))
             choices.clear()
             if row is None or key not in row:
                 continue

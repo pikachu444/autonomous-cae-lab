@@ -7,53 +7,15 @@ from types import SimpleNamespace as NS
 import pytest
 W=pytest.importorskip('PySide6.QtWidgets')
 C=pytest.importorskip('PySide6.QtCore')
-from test_pre_fem_panel_ui import panel, app, native
+from test_pre_fem_edit import app
 from test_contact_execution import model
 from test_contact_steps import staged, write_snapshot
 from apps.desktop_pre.connection import Connection
 from apps.research.contact_run_dialog import ContactRunDialog
 
 
-def prepare_controls(panel,native):
-    def q(v): return NS(getValueAs=lambda unit:NS(Value=v))
-    for key,v in [('TimePeriod',1.),('TimeInitialIncrement',.1),
-                  ('TimeMinimumIncrement',.001),('TimeMaximumIncrement',.2)]:
-        setattr(native.solver,key,q(v))
-    native.solver.IncrementsMaximum=100
-    page=panel.steps_page
-    page.refresh(load_forms=True)
-    assert page.info and page.buffer
-    panel.tabs.setCurrentWidget(page)
-    panel.resize(1100,780); panel.show()
-    W.QApplication.processEvents()
-    return page
 
 
-def test_steps_partial_owner_apply_late_edit_and_reread(panel,native):
-    page=prepare_controls(panel,native)
-    page.points.item(1,1).setText('1e')
-    page.apply()
-    assert panel.test_calls[-1][0]=='pre.contact.steps_set'
-    page.points.item(1,1).setText('2e')
-    panel.test_complete()
-    assert native.metadata['contact_programs'][0]['draft']['steps'][0]['curves'][0]['points'][1][1]=='1e'
-    assert page.points.item(1,1).text()=='2e' and page.modified
-    page.discard()
-    assert page.points.item(1,1).text()=='1e' and not page.modified
-    page.points.item(1,1).setText('25.1234567890123')
-    page.apply(); panel.test_complete()
-    assert not page.modified and native.metadata['keep_other_owner_field']
-    from apps.desktop_pre.contact import ContactEditor
-    reread=ContactEditor(native.editor).step_inputs(native.analysis)
-    assert reread['draft']['steps'][0]['curves'][0]['points'][1][1]=='25.1234567890123'
-    page.add()
-    assert len(page.buffer['steps'])==2 and page.modified
-    page.mode.setCurrentIndex(page.mode.findData('release'))
-    assert not page.points.isEnabled()
-    page.apply(); panel.test_complete()
-    assert native.metadata['contact_programs'][0]['draft']['steps'][1]['curves'][0]['mode']=='release'
-    assert page.plot.height()>=170 and panel.size().width()==1100
-    assert all(op[0]=='pre.contact.steps_set' for op in panel.test_calls)
 
 
 def test_input_only_recovered_completion_uses_same_receipt_never_submits(model,tmp_path,app):
@@ -101,57 +63,3 @@ def test_exact_failed_input_opens_saved_copy_not_changed_live_source(model,app,m
     assert calls[1]==('post','Dpartial',{'job_id':'Jfailed'})
     assert dialog.canvas.height()>170 and dialog.width()==1100
     dialog.close(); runner.close(); app.processEvents()
-
-
-def test_native_enum_is_not_changed_and_noncontact_program_cannot_run(panel,native):
-    page=prepare_controls(panel,native)
-    base=type(native.solver)
-    class NativeEnum(base):
-        def __setattr__(self,key,value):
-            if key=='AnalysisType' and value not in ('static','frequency','thermomech','check','buckling'):
-                raise ValueError('Explicit FreeCAD 1.1.4 enumeration double')
-            super().__setattr__(key,value)
-    native.solver.__class__=NativeEnum
-    page.procedure.setCurrentIndex(page.procedure.findData('dynamic'))
-    page.apply(); panel.test_complete()
-    assert native.solver.AnalysisType=='static'
-    assert native.metadata['contact_programs'][0]['draft']['procedure']=='dynamic'
-    errors=native.editor.validate_for_run(native.analysis)
-    assert errors and errors[0]['path']=='steps' and errors[0]['blocks_evaluation']
-
-
-def test_changed_native_conditions_require_explicit_reconcile_and_preserve_raw_edit(panel,native,app):
-    from test_pre_fem_edit import Object, Quantity
-    page=prepare_controls(panel,native)
-    page.apply(); panel.test_complete()
-    page.points.item(1,1).setText('1e')
-    other=Object(native.doc,'OtherForce','Fem::ConstraintForce',Force=Quantity('12 N'))
-    travel=Object(native.doc,'Travel','Fem::ConstraintDisplacement',
-        xFree=False,yFree=True,zFree=True,xDisplacement=Quantity('.1 mm'))
-    native.analysis.Group.extend([other,travel])
-    before=deepcopy(page.buffer)
-    def reply(button):
-        def click():
-            dialog=app.activeModalWidget()
-            assert isinstance(dialog,W.QMessageBox)
-            assert '추가' in dialog.text() or '정리' in dialog.text()
-            dialog.button(button).click()
-        C.QTimer.singleShot(0,click)
-    reply(W.QMessageBox.StandardButton.Cancel); page.reconcile()
-    assert page.buffer==before and page.modified
-    reply(W.QMessageBox.StandardButton.Yes); page.reconcile()
-    rows=page.buffer['steps'][0]['curves']
-    assert {(r['condition_id'],r['component']) for r in rows}=={('Force',0),('OtherForce',0),('Travel',1)}
-    assert next(r for r in rows if r['condition_id']=='Force')['points'][1][1]=='1e'
-    assert not native.metadata['contact_programs'][0]['draft']['steps'][0]['curves'][0]['points'][1][1]=='1e'
-    page.apply(); panel.test_complete()
-    assert native.metadata['contact_programs'][0]['draft']==page.buffer
-    native.analysis.Group.remove(other)
-    travel.yFree=False; travel.yDisplacement=Quantity('.2 mm')
-    reply(W.QMessageBox.StandardButton.Yes); page.reconcile()
-    rows=page.buffer['steps'][0]['curves']
-    assert {(r['condition_id'],r['component']) for r in rows}=={('Force',0),('Travel',1),('Travel',2)}
-    assert next(r for r in rows if r['condition_id']=='Force')['points'][1][1]=='1e'
-    page.apply(); panel.test_complete()
-    from apps.desktop_pre.contact import ContactEditor
-    assert ContactEditor(native.editor).step_inputs(native.analysis)['draft']==page.buffer

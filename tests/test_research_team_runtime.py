@@ -47,10 +47,12 @@ def role_host(monkeypatch):
             'max_steps':options['max_steps'],'model':model,'session_actor':task['actor_id']})
         sources=[]
         if task['kind']!='QUESTION':
-            source=payload['source_segments'][0]
-            ref={key:source[key] for key in ('document_id','revision','locator')}
-            returned=tools['knowledge_source']['call'](**ref)
+            assigned=payload['context']['research_team']['assignment']['source_refs'][0]
+            returned=tools['knowledge_source']['call'](**assigned)
             assert returned['segments']
+            source=returned['segments'][0]
+            ref={key:source[key] for key in ('document_id','revision','locator')}
+            assert all(ref[key]==value for key,value in assigned.items())
             sources=[ref]
         reply={'kind':'question' if task['kind']=='QUESTION' else 'hypothesis',
             'claims':[] if task['kind']=='QUESTION' else [{'text':'CALIBRATION_CHECK '+task['actor_id'],
@@ -85,6 +87,45 @@ def test_flat_result_marker_exact_task_and_nested_selector_rejection():
                                  'selector': selector}, [receipt]) is None
     assert match_result_citation({'reference': reference, 'read_receipt_id': receipt['id']}, [receipt]) is None
     assert match_result_citation(marker, []) is None  # Other tasks' receipts are not supplied.
+
+
+def test_whole_document_read_cites_only_actual_returned_chunks_and_task_reads(tmp_path):
+    from test_research_team_evidence import make_env,make_binding
+    from caelab.assist.research_team import cited_information
+    from caelab.assist.research_evidence import check_receipt
+    from caelab.research_team_contract import validate_reply
+    env=make_env(tmp_path);binding=make_binding(env)
+    permit=binding.prepare_tool('knowledge.source',deepcopy(env.pin),debit=True)
+    returned=env.store.source(**env.pin)
+    completed=binding.finish_tool(permit,returned)
+    exact={key:returned['segments'][0][key] for key in ('document_id','revision','locator')}
+    receipts=completed['read_receipts'];ledger=binding.generation_ledger
+    assert receipts[0]['source_ref']==env.pin
+    chunk=next(row for row in receipts if row['source_ref']==exact)
+    assert env.state['resolve_payload'](chunk['payload_ref'])==returned['segments'][0]
+    assert chunk['requested_selector'] is None and chunk['returned_selector']==exact['locator']
+    scope={**env.state,'generation_ledger':ledger}
+    scope['check_receipt']=lambda row:check_receipt(row,runtime=env.runtime,
+        workspace_id='local',current_scope=scope,recipients=['mesh'])
+    record={'read_receipt_ids':ledger.read_receipt_ids}
+    reply={'answer':'The retained text discusses convergence [1].','sources':[exact],
+        'research_reply':{'kind':'hypothesis','claims':[{'text':'The source discusses convergence.',
+            'basis':'observed','conditions':[],'source_refs':[exact],'missing_evidence':[]}],
+            'questions':[],'revisions':[],'unknowns':[]}}
+    assert validate_reply(reply,task={'kind':'INITIAL_RESEARCH'},allowed_references=[exact],
+        read_receipts=receipts)['status']=='VALID'
+    information=cited_information(reply,record,ledger.state,scope)
+    assert information[1].meta['source']==exact
+    assert json.loads(information[1].snippets[0])==returned['segments'][0]
+    forged={**deepcopy(exact),'locator':{**exact['locator'],'segment_id':'not-returned'}}
+    with pytest.raises(ValueError,match='실제 읽은 원 자료'):
+        cited_information({'sources':[forged]},record,ledger.state,scope)
+    other=make_binding(env,actor='material',state=ledger.state)
+    with pytest.raises(ValueError,match='실제 읽은 원 자료'):
+        cited_information(reply,{'read_receipt_ids':other.generation_ledger.read_receipt_ids},ledger.state,scope)
+    env.state['context']['selected_sources']=[]
+    env.state['context']['selected_document_ids']=[]
+    with pytest.raises(PermissionError):cited_information(reply,record,ledger.state,scope)
 
 
 def test_cross_assigned_official_metadata_projects_exact_source_before_external_transmission(tmp_path,monkeypatch):
@@ -672,18 +713,36 @@ def test_revoked_shared_history_does_not_stop_still_permitted_independent_role(t
         draft['context']['research_team']['assignments'][2]['source_refs']=[reference]
         doc=command(wb,doc,'expert.update',{'draft':draft})['document']
         with controlled_generation() as calls:
+            original=openscience_host.run_openscience;inputs=[];reads=[]
+            def host(prompt,tools,*args,**kwargs):
+                source=None
+                if 'Conversation and request JSON: ' in prompt:
+                    payload=json.loads(prompt.split('Conversation and request JSON: ',1)[1]);inputs.append(payload)
+                    if payload['context']['research_task']['kind']=='INITIAL_RESEARCH':
+                        assigned=payload['context']['research_team']['assignment']['source_refs']
+                        assert len(assigned)==1
+                        returned=tools['knowledge_source']['call'](**assigned[0])
+                        assert returned['segments']
+                        source=returned['segments'][0];reads.append(deepcopy(source))
+                raw=original(prompt,tools,*args,**kwargs)
+                if source is not None:
+                    reply=json.loads(raw)
+                    refs=[{key:source[key] for key in ('document_id','revision','locator')}]
+                    reply['sources']=refs
+                    for claim in reply['research_reply']['claims']:claim['source_refs']=deepcopy(refs)
+                    return json.dumps(reply,ensure_ascii=False)
+                return raw
+            monkeypatch.setattr(openscience_host,'run_openscience',host)
             doc,_=finish(wb,doc,command(wb,doc,'expert.ask'))
             wb.assistance().knowledge.revoke(first['document_id'])
-            original=openscience_host.run_openscience;inputs=[]
-            def host(prompt,*args,**kwargs):
-                if 'Conversation and request JSON: ' in prompt:
-                    inputs.append(json.loads(prompt.split('Conversation and request JSON: ',1)[1]))
-                return original(prompt,*args,**kwargs)
-            monkeypatch.setattr(openscience_host,'run_openscience',host)
+            inputs.clear();reads.clear()
             doc,result=finish(wb,doc,command(wb,doc,'expert.advance'))
             independent=[row for row in inputs if row['context']['research_task']['kind']=='INITIAL_RESEARCH']
             assert len(independent)==1 and independent[0]['context']['research_task']['actor_id']=='r2'
-            assert '27 mm' in independent[0]['source_segments'][0]['text'] and not independent[0]['history']
+            assert len(reads)==1 and '27 mm' in reads[0]['text']
+            assert {key:reads[0][key] for key in reference}==reference and not independent[0]['history']
+            assert any(row['actor_id']=='r2' and row['kind']=='INITIAL_RESEARCH' and row['status']=='COMPLETED'
+                for row in doc['discussion']['research_team']['tasks'].values())
             assert result['costorm']['map_results'][0]['status']=='BLOCKED_SCOPE'
             assert doc['discussion']['research_team']['map_checkpoints']=={}
     finally:assert wb.shutdown()['joined']

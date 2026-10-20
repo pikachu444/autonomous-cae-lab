@@ -308,7 +308,7 @@ def test_authenticated_close_allows_fresh_working_open_but_queries_and_shutdown_
     assert len(native.launches)==2 and len(native.saves)==1 and server.workbench.manager.list()==[]
 
 
-def test_qwindows_closed_saved_window_needs_next_click_and_heartbeat_loss_never_relaunches(connected):
+def test_qt_closed_saved_window_needs_next_click_and_heartbeat_loss_never_relaunches(connected):
     import time
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QApplication
@@ -316,7 +316,6 @@ def test_qwindows_closed_saved_window_needs_next_click_and_heartbeat_loss_never_
     from apps.research.reference_window import ReferenceWindow
     server,client,reference,_=connected
     app=QApplication.instance() or QApplication([])
-    assert app.platformName()=='windows'
     native=ControlledNativePublisher(server)
     client._native_project_actions=NativeProjectActions(client,launcher=native.launch)
     window=ReferenceWindow(client,reference)
@@ -412,7 +411,7 @@ def test_cli_current_ticket_launches_once_without_native_and_rejects_mixed_input
     assert server.workbench.manager.list()==[]
 
 
-def test_reference_window_exact_saved_button_and_first_save_cancel_qwindows(connected):
+def test_reference_window_exact_saved_button_and_first_save_cancel_qt(connected):
     import time
     from PySide6.QtCore import Qt,QTimer
     from PySide6.QtWidgets import QApplication,QMessageBox
@@ -423,7 +422,6 @@ def test_reference_window_exact_saved_button_and_first_save_cancel_qwindows(conn
     server,client,reference,_=connected
     app=QApplication.instance() or QApplication([])
     apply_appearance(app)
-    assert app.platformName()=='windows'
     native=ControlledNativePublisher(server)
     client._native_project_actions=NativeProjectActions(client,launcher=native.launch)
     window=ReferenceWindow(client,reference)

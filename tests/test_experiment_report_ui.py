@@ -8,12 +8,13 @@ import pytest
 pytest.importorskip('PySide6')
 pytest.importorskip('matplotlib')
 from PySide6.QtCore import QThreadPool
+from PySide6.QtGui import QFont, QImage, QTextTable
 from PySide6.QtWidgets import QApplication
 from apps.lab.server import LabHTTPServer
 from apps.lab.service import LabService
 from apps.research.appearance import apply_appearance
 from apps.research.report_window import ReportWindow,section
-from apps.research.report_pages import atomic_export,pdf_document,markdown
+from apps.research.report_pages import atomic_export,pdf_document,markdown,compose
 from apps.research.experiment_dialogs import CalibrationDialog,AcquisitionDialog
 from caelab.workbench_client import Client
 from test_experiment_calibration import calibration,mapping
@@ -69,9 +70,10 @@ def test_report_native_pages_local_section_buffer_save_reopen_and_atomic_pdf(app
     try:
         window.show();wait(app,lambda:window.document and not window._busy,window)
         window.append_section(section('시험 목적',text='공개 자료의 비교'))
-        window.append_section(section('다음 시험',text='반복 문단\n'*160))
+        window.append_section(section('다음 시험',text='반복 문단\n\n'*160))
         for index in (0,1):
             window.sections.setCurrentRow(index);window.edit_section()
+            assert window.section_context.text() == '편집 중: ' + window.draft['sections'][index]['title']
             window.section_text.setPlainText('미적용 '+str(index));window.close_editor()
         assert len(window._edit_buffers)==2
         before=deepcopy(window.draft)
@@ -175,6 +177,53 @@ def test_report_invalid_unknown_values_checks_and_nonconvergence_are_visible(app
         assert evidence in text
 
 
+def test_report_authored_and_retained_markdown_share_safe_print_pages(app,tmp_path):
+    """Typeset stored prose without rewriting it or loading authored images."""
+    local=tmp_path/'private-source.png'
+    image=QImage(12,12,QImage.Format.Format_RGB32);image.fill(0xFF00FF)
+    assert image.save(str(local))
+    source=('**판단 보류**\n\n| 관측 | 응력 [MPa] |\n|---|---:|\n| 원행 4 | 3.25 |\n\n'
+        'UNKNOWN: 파손 기준 미제공. 식 \\(E=1200\\)은 원문 보존.\n\n'
+        '![외부](https://example.invalid/private-source.png)\n\n'
+        '![로컬]('+local.as_uri()+')')
+    turn_source=('**선택한 보존 발언**\n\n| 조건 | 값 |\n|---|---|\n| 단위 | MPa |\n\n'
+        'FAILED: sensor unavailable.\n\n![보존 이미지](https://example.invalid/retained.png)')
+    draft={'title':'원자료 검토','sections':[
+        section('명시 판단',text=source),section('선택 발언',asset={'id':'Aretained'})]}
+    assets={'Aretained':{'source_status':'AVAILABLE','reference':{'document_id':'Xretained','turn_id':'Aoriginal'},
+        'content':{'kind':'expert_turn','turn':{'id':'Aoriginal','author':'user',
+            'status':'AUTHORED','text':turn_source}}}}
+    before=deepcopy((draft,assets));exported=markdown(draft,assets)
+    document=compose(draft,assets,app.font())
+    def tables(frame):
+        for child in frame.childFrames():
+            if isinstance(child,QTextTable):yield child
+            yield from tables(child)
+    rendered_tables=list(tables(document.rootFrame()))
+    assert [(table.rows(),table.columns()) for table in rendered_tables]==[(2,2),(2,2)]
+    assert rendered_tables[0].cellAt(1,1).firstCursorPosition().block().text()=='3.25'
+    assert rendered_tables[1].cellAt(1,1).firstCursorPosition().block().text()=='MPa'
+    for phrase in ('판단 보류','선택한 보존 발언'):
+        found=document.find(phrase)
+        assert not found.isNull() and found.charFormat().fontWeight()>=QFont.Weight.Bold
+    plain=document.toPlainText()
+    for phrase in ('UNKNOWN: 파손 기준 미제공','FAILED: sensor unavailable',r'\(E=1200\)',
+                   '외부 — 이미지 표시 안 함','로컬 — 이미지 표시 안 함','보존 이미지 — 이미지 표시 안 함'):
+        assert phrase in plain
+    block=document.begin()
+    while block.isValid():
+        fragments=block.begin()
+        while not fragments.atEnd():
+            assert not fragments.fragment().charFormat().isImageFormat()
+            fragments+=1
+        block=block.next()
+    # PDF receives the actual preview document, including its native tables.
+    output=tmp_path/'동일 페이지.pdf';pdf_document(document,output)
+    assert output.read_bytes().startswith(b'%PDF')
+    assert (draft,assets)==before
+    assert markdown(draft,assets)==exported and source in exported and turn_source in exported
+
+
 def test_identification_lost_save_reply_retry_keeps_new_question(app,monkeypatch):
     from apps.research.identification_window import IdentificationWindow
     import apps.research.study_window as study_module
@@ -236,4 +285,6 @@ def test_summary_reduction_dialog_reads_exact_final_value_without_curve(app):
         assert dialog.content.values.item(0,2).text()=='MPa'
         dialog.accept()
     finally:
-        dialog.close();assert QThreadPool.globalInstance().waitForDone(5000)
+        assert QThreadPool.globalInstance().waitForDone(5000)
+        app.processEvents()  # Drain the queued canvas draw before deleting its dialog.
+        dialog.close()

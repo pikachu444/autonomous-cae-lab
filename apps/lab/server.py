@@ -8,7 +8,9 @@ import mimetypes
 from pathlib import Path
 import re
 import secrets
+import socket
 import sys
+import time
 from urllib.parse import parse_qs, unquote, urlsplit
 
 from .service import LabService, ServiceError, contained
@@ -120,6 +122,7 @@ class LabHandler(BaseHTTPRequestHandler):
 
     def _send(self, status: int, payload: bytes, mime: str, *, disposition: str | None = None,
               filename: str | None = None):
+        rejected_post = status >= 400 and self.command == "POST"
         self.send_response(status)
         self.send_header("Content-Type", mime)
         self.send_header("Content-Length", str(len(payload)))
@@ -127,11 +130,29 @@ class LabHandler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Frame-Options", "DENY")
+        if rejected_post:
+            self.send_header("Connection", "close")
         self.send_header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'")
         if disposition:
             self.send_header("Content-Disposition", disposition + (f'; filename="{filename}"' if filename else ""))
         self.end_headers()
         self.wfile.write(payload)
+        if rejected_post:
+            # An immediate close with unread input can erase the error response (RFC 9112, 9.6).
+            self.close_connection = True
+            self.wfile.flush()
+            deadline = time.monotonic() + .25
+            remaining = MAX_NATIVE_EVENT_BODY
+            try:
+                self.connection.shutdown(socket.SHUT_WR)
+                while remaining and (timeout := deadline - time.monotonic()) > 0:
+                    self.connection.settimeout(timeout)
+                    chunk = self.rfile.read1(min(65536, remaining))
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+            except OSError:
+                pass
 
     def _json(self, status: int, value):
         self._send(status, json.dumps(value, ensure_ascii=False, allow_nan=False, default=lambda value: value.tolist()).encode("utf-8"),

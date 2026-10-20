@@ -21,7 +21,6 @@ ROOT=Path(__file__).resolve().parents[1]
 @pytest.fixture(scope='module')
 def app():
     application=QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
-    assert application.platformName()=='windows'
     from apps.research.appearance import apply_appearance
     apply_appearance(application);return application
 

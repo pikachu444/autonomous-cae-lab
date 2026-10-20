@@ -19,23 +19,32 @@ def method(relative,cls,name,namespace):
 
 
 def test_gradient_data_logic_preserves_chain_units_and_inputs():
-    # This exercises the actual method body with a drawing sink, NOT a Qt test.
-    tables={};axes=SimpleNamespace(clear=lambda:None,get_xscale=lambda:'linear',set_xlabel=lambda *a:None,set_ylabel=lambda *a:None,
-        legend=lambda:None,loglog=lambda *a,**k:None)
-    view=SimpleNamespace(gradients='g',inputs='i',residuals='r',chains='c',checks='t',
-        axes=axes,canvas=SimpleNamespace(draw_idle=lambda:None),summary=SimpleNamespace(setText=lambda t:tables.update(summary=t)),
-        rows=lambda t,r:tables.__setitem__(t,r))
-    fn=method('apps/research/s2_gradient_widgets.py','GradientEvidence','set_result',{'LABELS':{'heat_source':'체적 열원'}})
+    pytest.importorskip('PySide6')
+    from PySide6.QtWidgets import QApplication
+    from apps.research.s2_gradient_widgets import GradientEvidence
+    app=QApplication.instance() or QApplication([])
+    view=GradientEvidence()
     data={'execution_status':'SUCCEEDED','gradients':{'mean_temperature':{'q':{'value':.25,'unit':'K/(W/m^3)'}}},
         'input_bindings':[{'id':'q','label':'공유 열원','unit':'W/m^3','value':4.,
             'targets':[{'stage':'Heat','input_id':'heat_source','applied_value':4.}]}],
         'objective_gradient':{'unit':'scaled_objective/normalized_coordinate','components':[
             {'id':'q','physical':.25,'dx_dz':8.,'value':.2}]},
         'stage_names':{'Heat':'열전도'}}
-    before=deepcopy(data);fn(view,data)
-    assert data==before and tables['g'][0][3:5]==(.25,'K/(W/m^3)')
-    assert tables['c'][0][2:]==(.25,8.,.2,'scaled_objective/normalized_coordinate')
-    assert tables['i'][0]==('공유 열원',4.,'W/m^3','열전도 / 체적 열원',4.)
+    before=deepcopy(data)
+    try:
+        view.set_result(data)
+        assert data==before
+        assert view.gradients.rowCount()==1
+        assert float(view.gradients.item(0,3).text())==.25
+        assert view.gradients.item(0,4).text()=='K/(W/m^3)'
+        assert view.chains.rowCount()==1
+        assert [float(view.chains.item(0,c).text()) for c in (2,3,4)]==[.25,8.,.2]
+        assert view.chains.item(0,5).text()=='scaled_objective/normalized_coordinate'
+        assert view.inputs.rowCount()==1
+        assert [view.inputs.item(0,c).text() for c in (0,2,3)]==['공유 열원','W/m^3','열전도 / 체적 열원']
+        assert [float(view.inputs.item(0,c).text()) for c in (1,4)]==[4.,4.]
+    finally:
+        view.close();view.deleteLater();app.processEvents()
 
 
 def test_shared_dialog_value_keeps_stable_identity_and_invalid_draft_text():
@@ -73,7 +82,9 @@ def test_gradient_widget_actual_qt_normal_and_narrow():
     try:
         for width in (1100,720):
             widget.resize(width,700);widget.set_result({'execution_status':'FAILED','candidates':[]});widget.show();app.processEvents()
-            assert widget.tabs.count()==5 and widget.summary.text()
+            assert [widget.tabs.tabText(i) for i in range(widget.tabs.count())]==[
+                '미분값','적용 입력','독립 Taylor 검사','계산 잔차','목적과 제약 미분','원 잔차 FD','방법과 지원 범위']
+            assert widget.summary.text()
     finally:
         widget.close();widget.deleteLater();app.processEvents()
 

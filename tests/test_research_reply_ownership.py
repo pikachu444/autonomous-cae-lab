@@ -39,7 +39,8 @@ def wait(app, predicate):
 
 
 def document(identifier, draft):
-    return {'id': identifier, 'session_id': 'Sowner', 'generation': 0, 'title': 'Software fixture',
+    return {'id': identifier, 'kind': {'Q': 'pde', 'X': 'expert', 'N': 'numerical'}[identifier[0]],
+            'session_id': 'Sowner', 'generation': 0, 'title': 'Software fixture',
             'draft': draft, 'diagnostics': [], 'dirty': False, 'runs': [], 'turns': [],
             'discussion': {'rounds': [], 'paused': False}, 'can_undo': False, 'can_redo': False}
 
@@ -56,7 +57,7 @@ class DelayedCommand:
         if 'draft' in arguments:
             self.source['draft'] = deepcopy(arguments['draft'])
         self.source['generation'] += 1
-        return {'document': deepcopy(self.source)}
+        return {'command_id': options['command_id'], 'document': deepcopy(self.source)}
 
 
 def close(app, window):
@@ -66,7 +67,7 @@ def close(app, window):
 
 
 def test_pde_late_edit_retained_with_new_owner_generation_and_no_save_continuation(app):
-    source = document('Pmodel', pde_draft())
+    source = document('Qmodel', pde_draft())
     client = DelayedCommand(source)
     window = PDEWindow(client, auto_open=False, poll_interval=0)
     try:
@@ -100,12 +101,12 @@ def test_pde_native_reply_cannot_merge_into_new_selected_owner(app, switch):
             assert self.release.wait(5)
             return {'responses': {'u@1': {'kind': 'series', 'value': [1, 2], 'unit': 'm',
                 'axes': [{'name': 'time', 'unit': 's', 'values': [0, 1]}]}}}
-    source = document('Pmodel', pde_draft())
+    source = document('Qmodel', pde_draft())
     client = NativeRead()
     window = PDEWindow(client, auto_open=False, poll_interval=0)
     try:
         window._show_document(source)
-        window._selected_job, window._result_key = 'Jone', ('Pmodel', 'Jone')
+        window._selected_job, window._result_key = 'Jone', ('Qmodel', 'Jone')
         window._accept_result({'responses': {}, 'native_channels': {'u': {'node_ids': [1, 2]}}})
         window.read_native_curve()
         wait(app, client.started.is_set)
@@ -114,7 +115,7 @@ def test_pde_native_reply_cannot_merge_into_new_selected_owner(app, switch):
             window._result = None
             window._result_key = None
         elif switch == 'document':
-            other = document('Pother', pde_draft())
+            other = document('Qother', pde_draft())
             window._opened(other)
         else:
             window.node.setCurrentIndex(window.node.findData(2))

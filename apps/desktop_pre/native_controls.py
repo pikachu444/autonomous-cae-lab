@@ -8,7 +8,6 @@ from pathlib import Path
 from .beam_menu import editor_token as beam_token, pending_changes as beam_pending
 from .dynamic_menu import editor_token as dynamic_token, pending_changes as dynamic_pending
 from .connector_menu import editor_token as connector_token, pending_changes as connector_pending
-from .pretension_controls import editor_token as pretension_token, pending_changes as pretension_pending
 from .composite_controls import editor_token as composite_token, has_unsaved_editor as composite_pending
 
 def transfer_panel(connection, owner):
@@ -49,7 +48,6 @@ def _close_version(owner, connection=None):
             dynamic_token(connection, owner) if connection is not None else None,
             composite_token(connection, owner) if connection is not None else None,
             connector_token(connection, owner) if connection is not None else None,
-            pretension_token(connection, owner) if connection is not None else None,
             transfer_token(connection, owner) if connection is not None else None)
 
 
@@ -74,14 +72,22 @@ def install(connection, open_model):
             main.addToolBar(self.toolbar)
             for title, callback in [('모델 열기…', open_model), ('프로젝트 저장', self.save),
                     ('다른 이름으로 저장…', lambda: self.save(as_new=True)),
+                    ('계산 목록…', lambda: connection.open_runner())]:
+                action = self.toolbar.addAction(title)
+                action.triggered.connect(lambda checked=False, callback=callback: self.invoke(callback))
+            menu = next((item for item in main.menuBar().findChildren(QtWidgets.QMenu)
+                         if item.title() == 'CAE 작업'), None)
+            if menu is None:
+                menu = main.menuBar().addMenu('CAE 작업')
+            tools = menu.addMenu('연구 도구')
+            for title, callback in [
                     ('설계 변수', lambda: connection.show_panel('parameters')),
                     ('조립 운동', lambda: connection.show_panel('motion')),
                     ('선택 자세 해석', lambda: connection.show_panel('assembly_candidate')),
-                    ('해석 설정', lambda: connection.show_panel('fem')),
                     ('변위 가져오기…', lambda: connection.show_panel('structural_transfer')),
                     ('빔 설정', lambda: connection.show_panel('beam')),
                     ('프로젝트', lambda: connection.show_panel('project'))]:
-                action = self.toolbar.addAction(title)
+                action = tools.addAction(title)
                 action.triggered.connect(lambda checked=False, callback=callback: self.invoke(callback))
             self.refresh()
 
@@ -89,7 +95,7 @@ def install(connection, open_model):
             from .shell_controls import has_unsaved_editor
             controller = _motion_controller(connection, owner)
             return (_saved(owner) and (controller is None or not controller.has_unsaved_editor())
-                    and not has_unsaved_editor(connection, owner) and not beam_pending(connection, owner) and not dynamic_pending(connection, owner) and not composite_pending(connection, owner) and not connector_pending(connection, owner) and not pretension_pending(connection, owner) and not transfer_pending(connection, owner))
+                    and not has_unsaved_editor(connection, owner) and not beam_pending(connection, owner) and not dynamic_pending(connection, owner) and not composite_pending(connection, owner) and not connector_pending(connection, owner) and not transfer_pending(connection, owner))
 
         def invoke(self, callback):
             try: callback()
@@ -209,7 +215,7 @@ def install(connection, open_model):
                 owner = pending.pop(0)
                 controller = _motion_controller(connection, owner)
                 from .shell_controls import has_unsaved_editor
-                if (controller is None or not controller.has_unsaved_editor()) and not has_unsaved_editor(connection, owner) and not beam_pending(connection, owner) and not dynamic_pending(connection, owner) and not composite_pending(connection, owner) and not connector_pending(connection, owner) and not pretension_pending(connection, owner) and not transfer_pending(connection, owner):
+                if (controller is None or not controller.has_unsaved_editor()) and not has_unsaved_editor(connection, owner) and not beam_pending(connection, owner) and not dynamic_pending(connection, owner) and not composite_pending(connection, owner) and not connector_pending(connection, owner) and not transfer_pending(connection, owner):
                     advance(); return
                 version = _close_version(owner, connection)
                 choice = QtWidgets.QMessageBox.question(main, '다시 연결하기 전에 편집을 저장하시겠습니까?',

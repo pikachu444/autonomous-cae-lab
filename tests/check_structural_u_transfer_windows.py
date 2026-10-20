@@ -124,6 +124,7 @@ def run_receiver(output, snapshot):
 def read_retained(output, workspace, job_id):
     """Separate-process HTTP/Qt cold read: no dispatch or solver is permitted."""
     import threading
+    from copy import deepcopy
     from PySide6.QtWidgets import QApplication
     from apps.lab.server import LabHTTPServer
     from apps.lab.service import LabService
@@ -138,6 +139,11 @@ def read_retained(output, workspace, job_id):
                for p in originals.rglob('*') if p.is_file()}
     record={'job_id':job_id,'source':str(source),'original_run_check':previous['status'],
             'source_solver_executions':0,'receiver_solver_executions':0,'new_submissions':0}
+    implementation_files=('apps/research/runner_window.py','caelab/job_monitor.py','caelab/workbench.py',
+        'caelab/workbench_client.py','apps/lab/workbench_routes.py','tests/check_structural_u_transfer_windows.py')
+    def implementation_hashes():
+        return {name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in implementation_files}
+    record['source_launch']=implementation_hashes()
     calls=[]
     def forbidden(*args,**kwargs):calls.append('forbidden_dispatch');raise AssertionError('Cold result read must not submit a calculation.')
     app=QApplication.instance() or QApplication([]);apply_appearance(app)
@@ -168,6 +174,17 @@ def read_retained(output, workspace, job_id):
         assert saved_transfer['mask']==[True]*34 and len(saved_transfer['original_boundary_dofs'])==102
         window=RunnerWindow(client,job_id=job_id,poll_interval=0);window.show()
         until(lambda:window.selected_job_id==job_id and not window._pending)
+        monitor=deepcopy(window._monitor)
+        assert monitor['job_id']==job_id and monitor['progress'] is None
+        log=monitor['selected_log'];assert log and window.log_text.toPlainText()==log['text'].replace('\r\n','\n').replace('\r','\n')
+        assert log==client.job_monitor(job_id,log=log['id'])['selected_log']
+        window.log_search.setText('CalculiX');window.find_log()
+        assert window.log_text.textCursor().selectedText()=='CalculiX'
+        for width,height in ((1420,900),(980,650)):
+            window.resize(width,height);app.processEvents()
+            assert window.log_text.textCursor().selectedText()=='CalculiX'
+            window.grab().save(str(output/('runner-monitor-'+str(width)+'.png')))
+        record['runner_monitor']=monitor
         window.result_button.click();until(lambda:window.result_metadata is not None and not window._pending)
         window.responses.setCurrentIndex(window.responses.findData('displacement'))
         until(lambda:not window._pending)
@@ -238,9 +255,11 @@ def read_retained(output, workspace, job_id):
         after={str(p.relative_to(originals)):hashlib.sha256(p.read_bytes()).hexdigest()
                for p in originals.rglob('*') if p.is_file()}
         record.update(immutable_before=immutable,immutable_after=after,immutable_unchanged=immutable==after)
+        record['source_end']=implementation_hashes()
+        record['implementation_unchanged']=record['source_launch']==record['source_end']
         (output/'cold-result.json').write_text(json.dumps(record,indent=2,ensure_ascii=False),encoding='utf-8')
     print(json.dumps({k:record.get(k) for k in ('status','error','jobs_before','jobs_after','immutable_unchanged')},ensure_ascii=False),flush=True)
-    return 0 if record.get('status')=='READ' else 1
+    return 0 if record.get('status')=='READ' and record['immutable_unchanged'] and record['implementation_unchanged'] else 1
 
 
 def authoring_native(config, *, cold=False):

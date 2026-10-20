@@ -95,7 +95,7 @@ QTimer.singleShot(500, close_owned)
                                         '--session-id', session])+'))\n'
     return subprocess.run([sys.executable, '-c', code], capture_output=True, text=True,
                           encoding='utf-8', timeout=15,
-                          env={**os.environ, 'QT_QPA_PLATFORM': 'windows', 'PYTHONIOENCODING': 'utf-8'})
+                          env={**os.environ, 'PYTHONIOENCODING': 'utf-8'})
 
 
 def test_post_activation_only_and_existing_research_routes_unchanged(controls):

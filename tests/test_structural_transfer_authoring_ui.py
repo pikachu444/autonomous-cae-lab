@@ -18,10 +18,10 @@ def panel_case(monkeypatch, metadata=None, catalog_error=False, empty_analysis=F
     owner = fem.owner
     solver = SimpleNamespace(Name='Solver', Label='기존 CalculiX', TypeId='Fem::SolverCcxTools',
                              AnalysisType='static', GeometricalNonlinearity='linear')
-    body = SimpleNamespace(Name='Solid', Label='수신 고체')
+    body = SimpleNamespace(Name='Solid', Label='적용 부품')
     support = SimpleNamespace(Name='TransferBoundary', Label='기존 지지면',
         TypeId='Fem::ConstraintFixed', References=[(body, ['Face1'])])
-    analysis = fem._object({'object_id':'Analysis'}); analysis.Label = '수신 해석'
+    analysis = fem._object({'object_id':'Analysis'}); analysis.Label = '정적 해석 1'
     analysis.Group = [solver] + ([support] if conditions is None else list(conditions))
     owner.document_id = 'Preceiver'; owner.session_id = 'Sreceiver'; owner.closed = False
     owner.fem = fem
@@ -403,6 +403,8 @@ def test_refresh_never_replaces_dirty_or_busy_native_authoring_controls(app,monk
 
 def test_task_steps_keep_source_and_target_context_and_primary_action_visible(app, monkeypatch):
     """Injected-owner layout check; it is not a native FreeCAD workflow receipt."""
+    from apps.research.appearance import apply_appearance
+    apply_appearance(app)
     panel, _, _, state, _, draft = panel_case(monkeypatch)
     try:
         panel.resize(420, 650); panel.show(); app.processEvents()
@@ -419,8 +421,20 @@ def test_task_steps_keep_source_and_target_context_and_primary_action_visible(ap
             panel.resize(width, 650); app.processEvents()
             assert panel.height() <= 650
             assert panel.target_info.height() - 20 >= 2 * panel.target_info.fontMetrics().lineSpacing()
+            target_bottom = panel.target_info.mapTo(panel, panel.target_info.rect().bottomRight()).y()
+            assert target_bottom < panel.components[0].mapTo(panel, QtCore.QPoint()).y()
+            assert panel.target_scroll.viewport().rect().contains(
+                panel.target_info.mapTo(panel.target_scroll.viewport(), panel.target_info.rect().bottomRight()))
             assert panel.choose_replacements.mapTo(panel, panel.choose_replacements.rect().bottomRight()).y() < panel.preview.mapTo(panel, QtCore.QPoint()).y()
             assert panel.close_button.mapTo(panel, panel.close_button.rect().bottomRight()).y() < panel.height()
+        from PySide6.QtTest import QTest
+        panel.activateWindow(); panel.raise_(); panel.receiver_frame.setFocus()
+        QTest.qWait(20); assert panel.receiver_frame.hasFocus()
+        QTest.keyClick(panel.receiver_frame, QtCore.Qt.Key_Tab)
+        app.processEvents()
+        assert panel.advanced_button.hasFocus()
+        assert panel.target_scroll.viewport().rect().contains(
+            panel.advanced_button.mapTo(panel.target_scroll.viewport(), panel.advanced_button.rect().bottomRight()))
         before = deepcopy(panel.current_draft()); panel.preview.click()
         assert panel.steps.currentIndex() == 2 and panel.apply.isVisible() and panel.apply.isEnabled()
         assert panel.table.rowCount() == 34 and all(panel.table.isColumnHidden(c) for c in (1, 2, 3))

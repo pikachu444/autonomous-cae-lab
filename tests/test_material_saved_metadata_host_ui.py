@@ -70,7 +70,7 @@ def test_lost_save_reply_inspection_keeps_both_pending_owners_for_cold_read(tmp_
     from caelab.workbench_client import Client
     from caelab.numerical_document import from_material_document
     app=QApplication.instance() or QApplication([]);apply_appearance(app)
-    servers=[];windows=[];errors=[]
+    servers=[];windows=[];errors=[];timers=[]
     def start():
         service=LabService(tmp_path);server=LabHTTPServer(service,0)
         thread=threading.Thread(target=server.serve_forever,kwargs={'poll_interval':.02},daemon=True);thread.start()
@@ -85,14 +85,29 @@ def test_lost_save_reply_inspection_keeps_both_pending_owners_for_cold_read(tmp_
             if errors:raise errors[0]
             if ready():return
             time.sleep(.01)
-        raise AssertionError('Pending-cell saved-metadata recovery did not settle')
+        raise AssertionError('Pending-cell saved-metadata recovery did not settle: '+window.message.text())
     def later(kind,action):
+        deadline=time.monotonic()+10
+        timer=QTimer(window);timers.append(timer);timer.setInterval(10)
+        def owned(dialog):
+            parent=dialog.parentWidget()
+            while parent is not None:
+                if parent is window:return True
+                parent=parent.parentWidget()
+            return False
         def find():
-            dialog=next((d for d in app.topLevelWidgets() if isinstance(d,kind) and d.isVisible()),None)
-            if dialog is None:QTimer.singleShot(10,find);return
+            dialog=next((d for d in app.topLevelWidgets() if isinstance(d,kind) and d.isVisible()
+                         and owned(d)),None)
+            if dialog is None:
+                if time.monotonic()>=deadline:
+                    timer.stop();errors.append(AssertionError('Owned '+kind.__name__+' did not open'))
+                    modal=app.activeModalWidget()
+                    if modal is not None and owned(modal):modal.reject()
+                return
+            timer.stop()
             try:action(dialog)
             except BaseException as error:errors.append(error);dialog.reject()
-        QTimer.singleShot(10,find)
+        timer.timeout.connect(find);timer.start()
     server,client=start()
     try:
         material=client.document_open(kind='material',title='탄성 재료')
@@ -115,8 +130,12 @@ def test_lost_save_reply_inspection_keeps_both_pending_owners_for_cold_read(tmp_
         later(RelatedSaveDialog,save);assert panel.save_related()
         receipt_id=panel._related_save_receipts[plan['id']]
         widget.table.item(0,2).setText('2e')
+        panel.coefficient_mode.setCurrentIndex(0)
+        window.input_tabs.setCurrentIndex(0); app.processEvents()
+        window.activateWindow();window.raise_();app.processEvents()
         item=window.coefficients.item(0,1);window.coefficients.setCurrentItem(item);window.coefficients.editItem(item);app.processEvents()
         line=next(e for e in window.coefficients.findChildren(QLineEdit) if e.isVisible())
+        line.setFocus();wait(line.hasFocus)
         line.setText('1e3');line.setSelection(2,-2)
         plan_raw=widget.recovery_snapshot();material_raw=material_raw_snapshot(window)
         later(QMessageBox,lambda dialog:next(b for b in dialog.buttons() if b.text()=='저장').click())
@@ -163,6 +182,7 @@ def test_lost_save_reply_inspection_keeps_both_pending_owners_for_cold_read(tmp_
         assert receipt['all_saved'] and all(len(t['attempts'])==1 for t in receipt['targets'])
         assert not server.workbench.manager.list()
     finally:
+        for timer in timers:timer.stop()
         for window in windows:window._allow_close=True;window.close()
         app.processEvents()
         while servers:stop()

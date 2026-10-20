@@ -3,7 +3,6 @@
 Qt cases skip when the optional PySide6 runtime is absent. Shown Windows Qt
 checks use QTest; OS mouse/focus, native physics and live providers are separate.
 """
-import ast
 from copy import deepcopy
 from pathlib import Path
 from types import SimpleNamespace
@@ -71,18 +70,42 @@ def test_close_touches_only_helper_owned_child_windows():
     assert touched==['owned']
 
 
-def test_copy_choice_and_poll_are_wired_to_explicit_existing_operations():
-    helper=Path(actions.__file__).read_text(encoding='utf-8')
-    parsed=ast.parse(helper)
-    method=next(n for n in parsed.body if isinstance(n,ast.FunctionDef) and n.name=='prepare_copy')
-    called={n.func.attr for n in ast.walk(method) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)}
-    assert 'save_document' in called
-    assert not {'edited_draft','apply_inputs','expert_ask','submit','command'} & called
-    expert=Path(actions.__file__).with_name('expert_window.py').read_text(encoding='utf-8')
-    # Existing nonportable behavior is not changed; portable poll cannot advance.
-    assert "dispatch_ready and not remote.get('portable_research_owner')" in expert
-    assert "from .portable_research_actions import install" in expert
-    assert "from .portable_research_actions import install" in Path(actions.__file__).with_name('study_window.py').read_text(encoding='utf-8')
+@pytest.mark.parametrize('portable',[False,True])
+def test_expert_refresh_advances_ready_round_only_for_nonportable_owner(monkeypatch,portable):
+    pytest.importorskip('PySide6')
+    from PySide6.QtTest import QTest
+    from PySide6.QtWidgets import QApplication
+    from apps.research.expert_window import ExpertWindow
+    from caelab.discussion_document import default_draft
+    import time
+    app=QApplication.instance() or QApplication([])
+    draft=default_draft();draft['composer']['text']='Saved question'
+    document={'id':'Xcurrent','kind':'expert','session_id':'Sowner','generation':0,
+        'title':'Controlled refresh owner','draft':draft,'turns':[],
+        'discussion':{'rounds':[{'id':'Bcurrent','status':'READY'}],'paused':False},
+        'portable_research_owner':{'kind':'copy'} if portable else None}
+    reads=[];commands=[]
+    def read(identifier):
+        reads.append(identifier)
+        return deepcopy(document)
+    window=ExpertWindow(SimpleNamespace(document_read=read),auto_open=False,poll_interval=0)
+    try:
+        window._show_document(document)
+        # A user-started round is ready for the next response. Only the
+        # transport effect is controlled; the refresh/Qt callback is real.
+        window._round_started_here=True;window._auto_round_id='Bcurrent'
+        monkeypatch.setattr(window,'_progress_command',lambda operation:commands.append(operation))
+        window.refresh_document()
+        deadline=time.monotonic()+5
+        while window._busy and time.monotonic()<deadline:
+            app.processEvents();QTest.qWait(5)
+        assert not window._busy and reads==['Xcurrent']
+        QTest.qWait(10);app.processEvents()
+        assert commands==([] if portable else ['expert.advance'])
+        assert window.question.toPlainText()=='Saved question'
+        assert window.document['discussion']['rounds']==document['discussion']['rounds']
+    finally:
+        window._allow_close=True;window.close();app.processEvents()
 
 @pytest.mark.parametrize('choice',['취소','저장된 내용만','저장 후 계속'])
 def test_qt_explicit_copy_choice_keeps_unapplied_editor_and_owns_only_its_children(monkeypatch,choice):

@@ -63,7 +63,7 @@ def make_panel(connection, owner):
             self.analysis = W.QComboBox(); self.solver = W.QComboBox()
             self.analysis.setSizeAdjustPolicy(W.QComboBox.AdjustToMinimumContentsLengthWithIcon)
             self.analysis.setMinimumContentsLength(8)
-            form.addWidget(W.QLabel('해석 이름')); form.addWidget(self.analysis, 1)
+            form.addWidget(W.QLabel('변위를 적용할 해석')); form.addWidget(self.analysis, 1)
             outer.addLayout(form)
             self.analysis_kind = W.QLabel('종류: 해석 설정 확인 필요')
             self.analysis_kind.setWordWrap(True); self.analysis_kind.setTextFormat(C.Qt.PlainText)
@@ -108,7 +108,13 @@ def make_panel(connection, owner):
             self.choose_faces.clicked.connect(self._choose_faces); layout.addWidget(self.choose_faces)
             layout.addStretch(1)
             self.steps.addTab(source_page, '원본 결과')
-            target_page = W.QWidget(); target_layout = W.QVBoxLayout(target_page)
+            target_page = W.QWidget(); target_outer = W.QVBoxLayout(target_page)
+            target_outer.setContentsMargins(0, 0, 0, 0)
+            self.target_scroll = W.QScrollArea(); self.target_scroll.setWidgetResizable(True)
+            self.target_scroll.setFrameShape(W.QFrame.NoFrame)
+            self.target_scroll.setHorizontalScrollBarPolicy(C.Qt.ScrollBarAlwaysOff)
+            target_body = W.QWidget(); target_layout = W.QVBoxLayout(target_body)
+            self.target_scroll.setWidget(target_body); target_outer.addWidget(self.target_scroll)
             target_layout.setContentsMargins(0, 12, 0, 4); target_layout.setSpacing(6)
             target_note = W.QLabel('3D 화면에서 적용할 물체의 외부 면을 선택하세요. 여러 면은 Ctrl을 누른 채 선택합니다.')
             target_note.setWordWrap(True); target_layout.addWidget(target_note)
@@ -599,11 +605,11 @@ def make_panel(connection, owner):
 
         def _highlight(self):
             try:
-                if not self._target: raise ValueError('수신 면을 먼저 선택하세요.')
+                if not self._target: raise ValueError('변위를 적용할 면을 먼저 선택하세요.')
                 from .fem_edit import _target
                 obj = owner._object(self._target['body_id'])
                 if native.canonical_capture(_target(obj, self._target['faces'])) != self._target['stamp']:
-                    raise ValueError('수신 형상이 바뀌었습니다. 면을 다시 선택하세요.')
+                    raise ValueError('변위를 적용할 형상이 바뀌었습니다. 면을 다시 선택하세요.')
                 owner.Gui.Selection.clearSelection()
                 for name in self._target['faces']: owner.Gui.Selection.addSelection(owner.doc.Name, obj.Name, name)
                 owner.Gui.updateGui()

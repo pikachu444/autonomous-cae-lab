@@ -40,6 +40,7 @@ TOOL_LABELS = {
     'knowledge.search': '선택 문헌 검색', 'knowledge.source': '선택 원문 읽기',
     'literature.search': '공개 논문 검색', 'literature.read': '보존 논문 읽기',
     'results.read': '선택 계산 결과 읽기', 'calculations.inputs': '계산 입력 확인',
+    'results_read': '선택 계산 결과 읽기',
     'calculations.plan': '계산 계획 제안', 'calculations.status': '계산 상태 확인',
     'numerical.analyze': '선택 결과 수치 분석', 'experts.consult': '허용 담당자 자문',
 }

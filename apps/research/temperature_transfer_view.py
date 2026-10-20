@@ -66,13 +66,19 @@ class TemperatureTransferView(QWidget):
         clock = data.get('clock') or {}
         sources = ', '.join(text(s['metadata'].get('time')) + ' ' + str(s['metadata'].get('time_units') or '?')
                             for s in data['source_snapshots'])
-        self.details.setText('P1 절점 보간 · 보존적 전달 아님 · 모든 수신 절점 필수\n'
+        extrusion = data.get('extrusion') or {}
+        hex8 = (data.get('metadata',{}).get('basis') == 'Hex8_nodal_samples'
+                or data.get('receiver_mesh',{}).get('element') == 'Hexahedron8')
+        self._project_hex8 = (hex8 and extrusion.get('axis') == 'z' and extrusion.get('invariant') is True
+                              and isinstance(extrusion.get('statement'),str) and bool(extrusion['statement'].strip()))
+        self.details.setText(('P1 → Hex8 절점 보간 · 명시한 z 방향 불변 온도\n' if self._project_hex8 else 'P1 절점 보간 · ')
+            + '보존적 전달 아님 · 모든 수신 절점 필수\n'
             + '공급 ' + sources + ' → 수신 ' + text(policy['receiver']['value']) + ' ' + policy['receiver']['unit']
             + ' (가중치 ' + (' / '.join(text(w) for w in (clock.get('weights') or [])) or '확인 불가') + ')'
             + (' · 동일 정상 상태 선언' if policy['mode'] == 'steady_relabel' else '')
             + ('\n전달할 수 없는 수신 절점: ' + text(data['invalid_receiver_ids']) if data.get('invalid_receiver_ids') else ''))
         self.details.setToolTip(text({'time_policy':policy, 'clock':clock, 'temperature':data.get('temperature'),
-            'source_references':[s['reference'] for s in data['source_snapshots']]}))
+            'extrusion':extrusion, 'source_references':[s['reference'] for s in data['source_snapshots']]}))
         self._show_selection()
 
     def _show_selection(self, *_):
@@ -109,12 +115,18 @@ class TemperatureTransferView(QWidget):
         if not self.data or self.selector.currentData() is None:
             self.canvas.draw_idle(); return
         receiver = self.selector.currentData()[0] == 'receiver'
+        projection = receiver and self._project_hex8
         key = 'mapped' if receiver else 'value'
         # Never join node-ID curves from different meshes or invent triangle
         # faces across holes. This is a paged scatter of exact retained rows.
         def point(row):
             xy=row.get('coordinates')
-            return isinstance(xy,list) and len(xy)==2 and all(type(v) in (int,float) and math.isfinite(v) for v in xy)
+            return isinstance(xy,list) and len(xy)==(3 if projection else 2) and all(type(v) in (int,float) and math.isfinite(v) for v in xy)
+        if receiver and any(isinstance(row.get('coordinates'),list) and len(row['coordinates'])==3 for row in self.rows) and not projection:
+            ax.set_axis_off()
+            ax.text(.5,.5,'3차원 절점의 원래 좌표와 값은 표에서 확인하세요.\n명시한 z 방향 불변 가정이 없어 x-y 투영을 그리지 않습니다.',
+                    ha='center',va='center',transform=ax.transAxes)
+            self.canvas.draw_idle();return
         self.plotted = [i for i, row in enumerate(self.rows) if point(row) and type(row.get(key)) in (float, int) and math.isfinite(row[key])]
         if self.plotted:
             rows = [self.rows[i] for i in self.plotted]
@@ -128,11 +140,16 @@ class TemperatureTransferView(QWidget):
         selected = self.table.currentRow()
         if 0 <= selected < len(self.rows) and point(self.rows[selected]):
             row = self.rows[selected]
-            ax.scatter(*row['coordinates'], s=95, facecolors='none', edgecolors='black')
+            ax.scatter(*row['coordinates'][:2], s=95, facecolors='none', edgecolors='black')
             self.point.setText('절점 '+str(row['node'])+' / 좌표 '+text(row['coordinates'])+' m / '+text(row.get(key))+' '+str(self.metadata.get('unit') or '?'))
             self.point.setToolTip(text(row))
         ax.set_aspect('equal'); ax.set_xlabel('x [m]'); ax.set_ylabel('y [m]')
-        ax.set_title('수신 메시의 보간값' if receiver else '원 공급 메시의 보존값')
+        if projection:
+            ax.set_title('Hex8 수신 절점의 x-y 투영 · z 방향 불변 온도')
+            hint = '같은 x-y 좌표의 절점은 겹칩니다. 원래 z 좌표는 표에서 확인하세요.'
+            self.point.setText((self.point.text()+'\n' if self.point.text() else '')+hint)
+        else:
+            ax.set_title('수신 메시의 보간값' if receiver else '원 공급 메시의 보존값')
         self.canvas.draw_idle()
 
     def _pick(self, event):

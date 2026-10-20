@@ -10,6 +10,18 @@ from .material_document import MaterialDocuments
 
 
 CATALOG = {
+    'structure.calculix.support_reaction': (None, None,
+        '원 선형 C3D10 정적 결과의 선택 프레임에서 원 SPC 지지 반력을 읽습니다. 새 솔버 계산은 하지 않습니다.'),
+    'structure.calculix.conservative_load': (None, None,
+        '선택한 평면 TRI6 경계의 절점력을 사용자 선형 정적 모델에 추가합니다. 원 조건·하중·단계는 보존합니다.'),
+    'structure.codeaster.contact': (None, None,
+        'Code_Aster 17.4의 두 독립 TETRA10/HEXA8 탄성 고체 정적 구조해석. 작은 변형·작은 미끄럼의 비관통/쿨롱 접촉이며 공학 적합성은 UNKNOWN입니다.'),
+    'structure.codeaster.implicit_interface': (None, None,
+        '등록한 고체 메시와 비선형 정적 계면 입력을 Code_Aster에서 실행합니다. 원 적분점 응답을 보존하며 공학 적합성은 UNKNOWN입니다.'),
+    'structure.calculix.initial_fields': (None, None,
+        '사용자 고체와 정적 단계에 온도 또는 원 적분점 초기응력을 적용합니다. 초기조건과 첫 평형/후속 결과를 구분합니다.'),
+    'structure.codeaster.initial_fields': (None, None,
+        '한정한 정적 구조해석에 호환 초기 변위·총변형률·응력을 적용합니다. 미지원 하중 곡선/증분 제어는 실행 전에 차단합니다.'),
     'structure.calculix.pretension': (None, None,
         '실제 C3D10 내부 절단면의 조임·길이 고정·외력. 정적 절단면 절점력 합·복구 응력 면적분·참조 자유도 응답을 구분합니다.'),
     'thermal.scikit_fem.rectangle': (None, None,

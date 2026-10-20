@@ -226,6 +226,8 @@ class MaterialWindow(QMainWindow):
         self.constitutive_action=QAction('구성식 증분…',self)
         self.constitutive_action.triggered.connect(self.open_constitutive)
         windows.addAction(self.constitutive_action)
+        self.discuss_action = windows.addAction('선택 대상으로 논의…')
+        self.discuss_action.triggered.connect(self.discuss_selection)
         toolbar = QToolBar("Material commands", self)
         toolbar.setMovable(False)
         toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
@@ -457,6 +459,15 @@ class MaterialWindow(QMainWindow):
             label='재료 계수와 시험 조건')
         self._draw_results()
         self._update_actions()
+
+    def discuss_selection(self):
+        if not self.document or self.local_dirty or self.conflict or self._busy:
+            self.message.setText('재료와 시험의 편집을 적용한 뒤 논의하세요.')
+            return
+        from .selection_discussion import open_discussion
+        document = deepcopy(self.document)
+        self._call(lambda: open_discussion(self.client, document=document),
+            lambda _: self.message.setText('선택한 재료로 토론을 열었습니다. 질문을 확인하고 보내세요.'))
 
     def _call(self, function, success, *, background=False):
         if self._busy:

@@ -178,6 +178,24 @@ def test_metadata_selection_does_not_return_unselected_physical_catalog(saved):
     assert value['payload']['descriptor']['channels'][0]['frame_indices'] == [2]
 
 
+def test_candidate_tool_input_preserves_actual_failure_reason_and_classification(wb, monkeypatch):
+    response = {'kind': 'scalar', 'value': 17., 'unit': 'N', 'component': 'Y', 'location': 'support',
+                'measure': 'force', 'frame': 'global', 'coordinate_system': 'cartesian', 'association': 'POINTS'}
+    payload = {'execution_status': 'SUCCEEDED', 'responses': {}, 'candidates': [
+        {'candidate_id': 'Caccepted', 'execution_status': 'SUCCEEDED', 'responses': {'force': response}},
+        {'candidate_id': 'Cfailed', 'execution_status': 'FAILED', 'responses': {},
+         'failure_reason': 'Contact increment did not converge', 'diagnostics': {'error_type': 'ConvergenceError'}}]}
+    _, reference, _, readers = retain_fixture(wb, monkeypatch, payload)
+    descriptor = readers['probe'](reference)
+    selected = results.make_result_selection(descriptor, source_id='candidates',
+        selection_request=choose(descriptor, 'force', row_intervals=[[0, 2]]))
+    actual = results.read_selected_result(reference, selected['selector'], readers=readers, read_limits=results.READ_LIMITS)
+    returned = actual['payload']['channels'][0]['response']
+    assert returned['value'] == [17., None]
+    assert returned['failure_reasons'] == [None, 'Contact increment did not converge']
+    assert returned['failure_classifications'] == ['SUCCEEDED', 'ConvergenceError']
+
+
 def test_unsupported_legacy_catalog_preserves_existing_metadata_but_corruption_raises(wb, monkeypatch):
     payload = {'execution_status': 'SUCCEEDED', 'responses': {'old': {
         'kind': 'series', 'value': [1., 2.], 'unit': 'N', 'source_rows': [4, 4],

@@ -54,8 +54,7 @@ def test_disconnected_displacement_draft_survives_project_save_and_cold_read(mon
         {'object_id': 'Analysis'}, owner=owner, on_done=saved)
     connection.submit_native('document.save', {}, owner=owner,
         _capture_motion_view=False, _capture_shell=False, _capture_beam=False,
-        _capture_dynamic=False, _capture_composite=False, _capture_connector=False,
-        _capture_pretension=False)
+        _capture_dynamic=False, _capture_composite=False, _capture_connector=False)
     stored = load_json(output)
     assert stored['displacement_transfers']['Analysis']['draft'] == raw
     assert stored['displacement_transfers']['Analysis']['accepted'] == accepted
@@ -115,10 +114,11 @@ def test_transfer_focus_restores_previous_docks_after_last_task_and_preserves_na
     one, two = object(), object()
     connection._transfer_task_visibility(one, True)
     queued.pop(0)()
-    assert not any(item.visible for item in (model, tasks, overlay, calculation, hidden))
+    assert model.visible
+    assert not any(item.visible for item in (tasks, overlay, calculation, hidden))
     connection._transfer_task_visibility(two, True)
     connection._transfer_task_visibility(one, False)
-    assert not model.visible and not overlay.visible
+    assert model.visible and not overlay.visible
     connection._transfer_task_visibility(two, False)
     assert all(item.visible for item in (model, tasks, overlay, calculation)) and not hidden.visible
     assert commands == ['Std_DockOverlayToggleRight'] * 2
@@ -374,6 +374,40 @@ def test_open_pre_document_registers_all_native_operations(native,tmp_path):
     assert 'pre.impact.capture' in outcome['result']['capabilities']
     owner.close()
     assert owner not in native.app.observers
+
+
+def test_public_native_document_read_reports_current_condition_without_old_tracking_errors(native,tmp_path,monkeypatch):
+    from test_pre_fem_edit import Shape
+    from caelab.workbench import Workbench
+    owner=native.owner;stored={}
+    monkeypatch.setattr(owner,'read_metadata',lambda:deepcopy(stored))
+    def save(value):stored.clear();stored.update(deepcopy(value))
+    monkeypatch.setattr(owner,'write_metadata',save)
+    native.pad.Shape=Shape()
+    native.pad.getGlobalPlacement=lambda:NS(Base=NS(x=0,y=0,z=0),Rotation=NS(Q=[0,0,0,1]))
+    native.force.References=[(native.pad,['Face1'])]
+    native.force.Direction=None;native.force.Reversed=False;native.force.EnableAmplitude=False
+    owner.fem._record_condition(native.force,None)
+    before=deepcopy(stored)
+    wb=Workbench(tmp_path/'public-read')
+    try:
+        registered=wb.native_commands.register(host_id='Hpre',session_id=owner.session_id,
+            application='freecad',version='1.1.4',execution_mode='gui',documents=[owner.descriptor()],registration_nonce='n'*32)
+        native.force.References=[(native.pad,['Face2'])]
+        owner.slotChangedObject(native.force,'References')
+        descriptor=owner.descriptor()
+        wb.native_commands.event('Hpre',session_id=owner.session_id,host_token=registered['host_token'],
+            event='heartbeat',documents=[descriptor])
+        public=wb.document_read(owner.document_id)
+        inspected=owner.dispatch(request(native,'pre.inspect',{},{}))
+        assert inspected['status']=='COMPLETED'
+        for view in (public,inspected['result']):
+            row=next(row for row in view['fem']['conditions'] if row['object_id']==native.force.Name)
+            assert row['native_references']==[{'object_id':native.pad.Name,'subelements':['Face2']}]
+            assert row['force']=='20 N' and row['errors']==[]
+        assert stored==before and native.doc.transactions==[]
+    finally:
+        assert wb.shutdown()['joined']
 
 
 @pytest.mark.parametrize('object_id,property_name,value,unit',[('Pad','Length',25,'mm'),('Load','Force',50,'N')])

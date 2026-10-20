@@ -27,6 +27,13 @@ def native_objects(analysis, base=None, *, include_suppressed=False):
             and (include_suppressed or not getattr(obj, 'Suppressed', False))]
 
 
+def uses_custom_static(analysis, metadata):
+    """Sidecar options that the official writer cannot read from native objects."""
+    return any(row.get('analysis_id') == analysis.Name
+        for key in ('contacts', 'contact_programs', 'convergence_drafts', 'periodic_constraints')
+        for row in metadata.get(key, []))
+
+
 def uses_solid_route(analysis, metadata=None):
     """Keep legacy single-solid linear inputs unchanged; reuse the contact runner."""
     active = [obj for obj in analysis.Group if not getattr(obj, 'Suppressed', False)]
@@ -36,6 +43,7 @@ def uses_solid_route(analysis, metadata=None):
            (getattr(obj, 'MaterialNonlinearity', 'linear') != 'linear' or
             getattr(obj, 'GeometricalNonlinearity', 'linear') != 'linear') for obj in active):
         return True
+    if analysis.Name in (metadata or {}).get('initial_fields',{}):return True
     if analysis.Name in (metadata or {}).get('pretension_editors',{}):return True
     return any(row.get('analysis_id') == analysis.Name for key in ('plasticity_drafts', 'contact_programs', 'convergence_drafts', 'periodic_constraints', 'pretension_sections')
                for row in (metadata or {}).get(key, []))
@@ -226,6 +234,29 @@ def effective(fem, analysis, base):
     return {'law': J2, 'plasticity': curve, 'native_nonlinear_id': obj.Name,
             'source_native_yield_points': list(obj.YieldPoints),
             'source_curve': deepcopy(record['applied_draft']['plasticity']) if record else None}
+
+
+def validate_applied_materials(analysis, solver, metadata):
+    """Validate the legacy typed plasticity operation's applied editor state.
+
+    Generic native export uses the installed writer and current native objects,
+    independently of these preserved editing drafts.
+    """
+    from types import SimpleNamespace
+    rows = [row for row in metadata.get('plasticity_drafts', [])
+            if row.get('analysis_id') == analysis.Name]
+    fem = SimpleNamespace(_metadata=lambda: metadata)
+    for row in rows:
+        bases = [obj for obj in analysis.Group if obj.Name == row.get('material_id')]
+        if (len(bases) != 1 or bases[0].Document is not analysis.Document
+                or native_type(bases[0]) != 'Fem::MaterialCommon'
+                or getattr(bases[0], 'Category', None) != 'Solid'
+                or getattr(bases[0], 'Suppressed', False)):
+            raise ValueError(str(row.get('material_id')) + ': 소성 표의 활성 기본 재료 연결을 확인하세요.')
+        effective(fem, analysis, bases[0])
+    if rows and ((solver.MaterialNonlinearity == 'nonlinear') != bool(native_objects(analysis))):
+        raise ValueError(solver.Name + ': 소성 재료와 CalculiX 재료 비선형 설정이 일치하지 않습니다.')
+    return deepcopy(rows)
 
 
 def settings(fem, solver, args):

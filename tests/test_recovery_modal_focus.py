@@ -8,7 +8,8 @@ from apps.research.recovery_focus import RawEditorFocusGuard
 
 
 @pytest.mark.parametrize('kind', ['data', 'material'])
-def test_modal_review_preserves_live_delegate_text_and_original_cell(kind):
+@pytest.mark.parametrize('text,count,selected', [('1e',1,'1'), ('🙂12',2,'🙂')])
+def test_modal_review_preserves_live_delegate_text_and_original_cell(kind,text,count,selected):
     app = QApplication.instance() or QApplication([])
     if kind == 'data':
         from apps.research.data_window import DataWindow
@@ -30,7 +31,7 @@ def test_modal_review_preserves_live_delegate_text_and_original_cell(kind):
         table.setCurrentCell(row, column); table.setFocus(); table.scrollToItem(table.item(row, column))
         table.editItem(table.item(row, column)); app.processEvents()
         editor = QApplication.focusWidget(); assert isinstance(editor, QLineEdit)
-        original = table.item(row, column).text(); editor.setText('1e'); editor.setSelection(0, 1)
+        original = table.item(row, column).text(); editor.setText(text); editor.setSelection(0, count)
         before = snapshot(view); seen = []
         def inspect():
             button.setFocus(); app.processEvents()
@@ -39,8 +40,8 @@ def test_modal_review_preserves_live_delegate_text_and_original_cell(kind):
             QTimer.singleShot(30, inspect); dialog.exec()
         app.processEvents()
         assert seen == [before]
-        assert table.item(row, column).text() == original and editor.text() == '1e'
-        assert QApplication.focusWidget() is editor and editor.selectedText() == '1'
+        assert table.item(row, column).text() == original and editor.text() == text
+        assert QApplication.focusWidget() is editor and editor.selectedText() == selected
         assert view.document == document
     finally:
         dialog.close(); view._allow_close = True; view.close(); app.processEvents()

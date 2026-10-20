@@ -1,4 +1,4 @@
-"""Export a bounded, existing FreeCAD FEM Analysis; never mesh or run a solver."""
+"""Export an existing FreeCAD FEM Analysis; retain legacy snapshot compatibility."""
 import hashlib
 import json
 import math
@@ -331,7 +331,7 @@ def _deck_scope(path, manifest):
     return times[1]
 
 
-def freeze_analysis(analysis, solver, output_root, *, binding_validator=None):
+def _freeze_legacy_analysis(analysis, solver, output_root, *, binding_validator=None):
     """Return a new complete snapshot manifest, using the installed native writer.
 
     Must be called on FreeCAD's GUI/main thread after native editing/recompute.
@@ -516,3 +516,9 @@ def freeze_analysis(analysis, solver, output_root, *, binding_validator=None):
                      "Export admission is not rigid-mode, Jacobian or physical validation",
                      "Native output: displacement/stress/total-strain FRD; reaction totals DAT; no per-node U/RF DAT"]})
     return manifest
+
+
+def freeze_analysis(analysis, solver, output_root, *, binding_validator=None):
+    """Export the selected native Analysis using FreeCAD's CalculiX writer."""
+    from .native_calculix import export_analysis
+    return export_analysis(analysis, solver, output_root, binding_validator=binding_validator)

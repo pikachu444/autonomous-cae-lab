@@ -191,8 +191,8 @@ def test_accept_commits_active_table_editor_before_admission(app):
 
 
 def _declared_settings():
-    root = Path(__file__).resolve().parents[1]
-    return json.loads((root / 'runs/interface-history-20261018/native-01/normal/declared-settings.json').read_text(encoding='utf-8'))
+    from interface_history_fixtures import declared_settings
+    return declared_settings('normal')
 
 
 def _modal_click(app, button, callback):

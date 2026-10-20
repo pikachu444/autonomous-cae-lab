@@ -36,7 +36,8 @@ def test_programmable_source_global_log_does_not_replace_startup_logger(tmp_path
     calls = []
     owner = SimpleNamespace(document_id='Dretained', session_id='Sretained')
     timer = object()
-    def start(url, *, log):
+    def start(url, *, log, **native_options):
+        assert native_options == {'owner': None, '_portable_binding': None}
         calls.append(url)
         log('controlled_bridge_callback')
         return owner, timer

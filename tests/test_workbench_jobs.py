@@ -191,7 +191,8 @@ def test_spawned_external_candidate_cancellation_owns_child(tmp_path):
 def test_remote_fit_rejects_observation_path(tmp_path):
     wb=Workbench(tmp_path)
     try:
-        job=wb.submit('fit',{'backend':'material.felupe','variables':[],
+        job=wb.submit('fit',{'backend':'material.felupe','variables':[
+            {'id':'E','unit':'MPa','value':1000.,'lower':500.,'upper':2000.,'transform':'linear'}],
             'experiments':[{'settings':{},'observations':{'path':'/server/private.csv'}}]})
         end=finished(wb.manager,job['id'])
         assert end['state']=='FAILED'

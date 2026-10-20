@@ -68,11 +68,11 @@ class BundleTests(unittest.TestCase):
         with self.assertRaises(ValueError):capture(link,self.root)
     def test_original_locations_duplicates_and_untrusted_flatten(self):
         entry=self.root/'model.inp';included=self.root/'Materials/Elastic.inp'
-        included.write_text('*PART,NAME=BAD\n')
+        included.write_text('*UNSUPPORTED_CARD,NAME=BAD\n')
         source=capture(entry,self.root);s=default_settings();s['source']=source
         with self.assertRaises(SourceError) as failure:model_from_settings(s)
         self.assertEqual(failure.exception.file,'Materials/Elastic.inp');self.assertEqual(failure.exception.line,1)
-        self.assertIn('PART',str(failure.exception))
+        self.assertIn('UNSUPPORTED_CARD',str(failure.exception))
         included.write_text('*NODE\n1,0,0,0\n')
         source=capture(entry,self.root);s['source']=source
         with self.assertRaises(SourceError) as failure:model_from_settings(s)

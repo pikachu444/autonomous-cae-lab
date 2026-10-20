@@ -14,7 +14,7 @@ BACKENDS = {"structural.code_aster", "structural.code_aster.plasticity", "struct
 PDE_BACKENDS = {"pde.fenicsx", "pde.fenicsx.nonlinear", "pde.fenicsx.rectangle", "pde.fenicsx.transient", "pde.fenicsx.vector", "pde.fenicsx.coupled", "pde.fenicsx.imported"}
 # Contact is registered for its source/native acceptance. Its GUI/Research
 # preset is admitted after actual native qualification, as a separate gate.
-DEFAULT_MODEL_BACKENDS = BACKENDS | {"structural.code_aster.contact_patch", "pde.fenicsx.coupled", "structure.calculix.design"}
+DEFAULT_MODEL_BACKENDS = BACKENDS | {"structural.code_aster.contact_patch", "pde.fenicsx.coupled"}
 
 
 def test_default_model_registry_constructs_without_native_commands_and_preserves_explicit_mapping(tmp_path, monkeypatch):
@@ -38,17 +38,18 @@ def test_default_model_registry_constructs_without_native_commands_and_preserves
     assert Lab(tmp_path / "custom-pde", pde_adapters=custom_pde).pde_adapters is custom_pde
 
 
-def test_frozen_input_factory_is_evaluation_only_and_declared_lab_rejection_is_explicit(tmp_path, monkeypatch):
+@pytest.mark.parametrize('backend', ['structure.calculix.frozen', 'structure.calculix.design'])
+def test_file_evaluation_factory_and_declared_lab_rejection_is_explicit(tmp_path, monkeypatch, backend):
     from caelab.backends import get_backend, list_backends
     from caelab.contracts import CapabilityUnavailable
     from caelab.evaluation import run, read_result
     from caelab.adapters.frozen_fem import FrozenFemCalculixAdapter
+    from caelab.adapters.cad_analysis import CADAnalysisAdapter
 
     def forbidden(*args, **kwargs):
         pytest.fail("Registry admission must not start a native process")
     monkeypatch.setattr(subprocess, "run", forbidden)
     monkeypatch.setattr(subprocess, "Popen", forbidden)
-    backend = "structure.calculix.frozen"
     lab = Lab(tmp_path / "lab")
     lab.create_study("S-frozen", "Frozen input boundary", "Does declared-model routing reject frozen input?",
                      "Frozen inputs use the existing evaluation.run contract", "TEST ONLY routing")
@@ -58,13 +59,14 @@ def test_frozen_input_factory_is_evaluation_only_and_declared_lab_rejection_is_e
     assert not (lab.store / "experiments/E-frozen").exists()
     entry = next(row for row in list_backends() if row["id"] == backend)
     assert entry["roles"] == ["evaluation"] and entry["readiness"] == "NOT_PROBED"
-    assert isinstance(get_backend(backend), FrozenFemCalculixAdapter)
+    adapter_type = FrozenFemCalculixAdapter if backend.endswith('.frozen') else CADAnalysisAdapter
+    assert isinstance(get_backend(backend), adapter_type)
     calls = []
     def controlled_run(self, settings, *, output, runtime=None):
         calls.append((settings, output, runtime))
         return {"execution_status": "REJECTED", "responses": {}, "checks": [],
                 "diagnostics": {"test_only": True, "decision": "NOT_RELEASED"}}
-    monkeypatch.setattr(FrozenFemCalculixAdapter, "run", controlled_run)
+    monkeypatch.setattr(adapter_type, "run", controlled_run)
     # This is the same evaluation.run used by Workbench's frozen 'run' path;
     # no invented declared-model/domain/solve methods are added to the adapter.
     output = tmp_path / "evaluation"

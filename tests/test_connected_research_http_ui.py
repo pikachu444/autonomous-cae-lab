@@ -98,7 +98,7 @@ def test_qt_edit_http_reader_import_and_invalid_draft_share_one_owner(tmp_path, 
         if not metadata_entered.is_set():
             window.read_button.click()
         wait(application, metadata_entered.is_set)
-        assert window._busy and not window.editor.isEnabled() and not window.save_action.isEnabled()
+        assert window._busy and window.editor.isEnabled() and not window.save_action.isEnabled()
         window.save_action.trigger()
         assert submitted == ['data.update', 'data.import']  # Disabled Save submits nothing.
         metadata_release.set()

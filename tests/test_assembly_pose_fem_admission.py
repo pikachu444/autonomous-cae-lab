@@ -125,8 +125,16 @@ def test_damaged_or_nonready_pose_blocks_generic_mesh_run_and_both_direct_export
     assert saved['path'] and c.owner.read_metadata()['preserved_results'] == before['preserved_results']
 
 
-def test_complete_ready_pose_uses_existing_generic_mesh_and_run_admission(candidate):
+def test_complete_ready_pose_uses_existing_generic_mesh_and_run_admission(candidate, monkeypatch):
     c = candidate
+    from apps.desktop_pre import native_calculix
+    c.solver.Proxy = NS(Type='Fem::SolverCcxTools')
+    # This test owns pose/mesh admission; official writer checks have their own native boundary tests.
+    def validated(analysis, solver):
+        assert analysis is c.analysis and solver is c.solver
+        require_ready_model(analysis.Document)
+        return c.mesh, NS()
+    monkeypatch.setattr(native_calculix, 'validate_analysis', validated)
     assert require_ready_model(c.owner.doc, owner=c.owner)['state'] == 'READY'
     # Direct exporter reads metadata without constructing an Owner or assigning IDs.
     before, count = c.owner.read_metadata(), c.owner.doc.recomputes

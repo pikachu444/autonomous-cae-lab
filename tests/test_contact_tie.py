@@ -37,7 +37,7 @@ def test_tie_requires_explicit_tolerance_and_no_contact_surrogates(model):
     assert '*CONTACT PAIR' not in cards and '*FRICTION' not in cards
     text = render(model)
     assert '*CONTACT FILE' not in text and '*CONTACT PRINT' not in text
-    assert '*NODE FILE\nU,RF\n*EL FILE\nS' in text
+    assert '*NODE FILE,GLOBAL=YES\nU,RF\n*EL FILE\nS' in text
     pair['draft'] = dict(default_contact(), normal_law='linear', tangential_law='coulomb',
                          normal_stiffness_MPa_per_mm='1e5', friction_coefficient='.2', stick_stiffness_MPa_per_mm='5e4')
     assert contact_cards(pair) == linear

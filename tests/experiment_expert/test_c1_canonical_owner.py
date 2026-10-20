@@ -21,6 +21,8 @@ from ._c1_canonical_support import (
 
 
 def canonical_candidate(host, monkeypatch):
+    from caelab import backends
+    monkeypatch.setattr(backends, '_registry', dict(backends._registry))
     register_backend(BACKEND, SyntheticPoint, roles=('model',), replace=True)
     SyntheticPoint.calls=[]; SyntheticPoint.outcome='SUCCEEDED'
     bundle=make_processed_plan(host.core)

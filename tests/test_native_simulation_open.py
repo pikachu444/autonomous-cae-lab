@@ -29,6 +29,60 @@ def completed_export(wb, native):
             'generation': 3, 'view_generation': 0}})
 
 
+@pytest.mark.parametrize('reopened', [False, True])
+def test_discussion_plan_refreshes_edited_native_input_without_running(native, tmp_path, monkeypatch, reopened):
+    from caelab.numerical_document import request_draft
+    monkeypatch.setattr('caelab.workbench.run', lambda *args, **kwargs: {
+        'execution_status': 'REJECTED', 'responses': {}, 'checks': [], 'diagnostics': {'reason': 'TEST_ONLY no physics'}})
+    wb = Workbench(tmp_path / 'workspace')
+    try:
+        completed_export(wb, native)
+        submitted = wb.desktop.submit_frozen('Cfreeze')
+        import time
+        until = time.monotonic() + 5
+        while wb.manager.status(submitted['job']['id'])['state'] not in {'SUCCEEDED', 'FAILED'}:
+            assert time.monotonic() < until
+            time.sleep(.01)
+        discussion = wb.desktop.selection_discussion(job_id=submitted['job']['id'],
+            session_id=wb.session_id, command_id='Cdiscuss')['document']
+        plan = wb.document_open(kind='numerical', draft=request_draft({
+            'purpose': 'Revise the original model', 'operation': 'evaluate',
+            'inputs': {'backend': 'structure.calculix.frozen', 'settings': {'data_id': submitted['input']['id']}},
+            'budget': {'evaluations': 1}}, source={'discussion_id': discussion['id']}))
+        host, session, owner_id = 'Hpre', 'Snative', 'Pdesign'
+        auth = wb.native_commands._hosts[host]
+        if reopened:
+            wb.native_commands.event(host, session_id=session, host_token=auth['host_token'], event='closed')
+            host, session, owner_id = 'Hreopened', 'Sreopened', 'Pretained'
+            descriptor = {'id': owner_id, 'kind': 'pre', 'generation': 3, 'view_generation': 0,
+                'title': 'Reopened editable input', 'capabilities': ['pre.freeze'],
+                'project': {'opened_source': wb.native_input(submitted['input']['id'])['editable_path']}}
+            auth = wb.native_commands.register(host_id=host, session_id=session, application='freecad',
+                version='TEST_ONLY', execution_mode='headless', documents=[descriptor], registration_nonce='r'*32)
+        arguments = dict(session_id=wb.session_id, expected_generation=plan['generation'], command_id='Crefresh')
+        first = wb.desktop.native_plan_input(plan['id'], **arguments)
+        assert first == {'status': 'PREPARING', 'executed': False}
+        assert wb.desktop.native_plan_input(plan['id'], **arguments) == first
+        queued = wb.native_commands.next(host, session_id=session, host_token=auth['host_token'])
+        assert queued['command']['arguments']['_public_arguments'] == {'analysis_id': native.analysis.Name, 'solver_id': native.solver.Name}
+        path = freeze_analysis(native.analysis, native.solver, wb.desktop.root / owner_id)
+        descriptor = {'id': owner_id, 'kind': 'pre', 'generation': 3, 'view_generation': 0,
+                      'title': 'Edited native model', 'capabilities': ['pre.freeze']}
+        if reopened:
+            descriptor['project'] = {'opened_source': wb.native_input(submitted['input']['id'])['editable_path']}
+        wb.native_commands.event(host, session_id=session, host_token=auth['host_token'], event='finished',
+            command_id='Crefresh', documents=[descriptor], outcome={'state': 'SUCCEEDED', 'result': {'status': 'COMPLETED',
+                'result': {'snapshot_relative': path.relative_to(wb.desktop.root).as_posix()}}})
+        updated = wb.desktop.native_plan_input(plan['id'], **arguments)
+        assert updated['status'] == 'READY' and updated['executed'] is False
+        assert updated['settings']['data_id'] != submitted['input']['id']
+        assert updated['origin']['document_id'] == owner_id
+        assert len(wb.manager.list()) == 1
+        assert wb.document_read(plan['id'])['draft']['request']['inputs']['settings'] == {'data_id': submitted['input']['id']}
+    finally:
+        assert wb.shutdown()['joined']
+
+
 def allow_routing_profile(monkeypatch):
     # The existing native pre.freeze workflow runs directly. Supply only a
     # document declaration double so these tests isolate handoff identity.
@@ -158,17 +212,26 @@ def test_simulation_validates_the_public_input_before_resolving_it_once(native, 
         return {'execution_status': 'SUCCEEDED', 'backend': backend, 'settings': settings,
                 'responses': {}, 'checks': []}
     monkeypatch.setattr(research_execution.evaluation, 'run', evaluate)
+    if operation == 'evaluate':
+        # A standalone native Plan uses the shared native run/publication path.
+        monkeypatch.setattr('caelab.workbench.run', evaluate)
     wb = Workbench(tmp_path/'workspace')
     try:
         completed_export(wb, native)
         opened = wb.desktop.open_frozen_simulation('Cfreeze')
         draft = opened['document']['draft']
         result = wb._execute(operation, draft, 'Jexplicit')
-        assert result['execution_status'] == 'SUCCEEDED'
+        if operation == 'evaluate':
+            # This input-routing double supplies no Post artifact: preserve that
+            # publication failure rather than claiming the result can be opened.
+            assert result['execution_status'] == 'FAILED'
+            assert result['native_execution_status'] == 'SUCCEEDED'
+        else:
+            assert result['execution_status'] == 'SUCCEEDED'
         assert calls == [('structure.calculix.frozen', {
             'data_id': opened['input']['id'],
             'snapshot_path': str(wb.input_path(opened['input']['id']))})]
-        with pytest.raises(ValueError, match='public declaration'):
+        with pytest.raises(ValueError, match='public declaration' if operation == 'simulation.run' else 'registered data_id'):
             wb._execute(operation, {'backend': draft['backend'],
                 'settings': calls[0][1]}, 'Jinvalid')
         assert len(calls) == 1
@@ -191,3 +254,63 @@ def test_editable_input_open_uses_the_exact_registered_source_without_running(mo
         with pytest.raises(ValueError, match='입력 모델'):
             desktop.open_native_input(client, 'Dconnector')
     assert len(calls) == 1
+
+
+def test_native_plan_retains_output_for_save_and_reopen(native, tmp_path, monkeypatch):
+    from caelab.evaluation import file_hash
+    from caelab.numerical_document import request_draft
+    import time
+
+    def execution_double(backend, settings, *, output, **options):
+        output = Path(output)
+        output.mkdir(parents=True)
+        (output / 'calculation.frd').write_bytes(b'TEST_ONLY native output\n')
+        (output / 'calculation.cvg').write_bytes(b'TEST_ONLY convergence history\n')
+        return {'execution_status': 'SUCCEEDED', 'responses': {'value': {
+            'kind': 'scalar', 'value': 2.0, 'unit': 'mm'}}, 'checks': [],
+            'artifacts': [{'relative': path.name, 'sha256': file_hash(path)}
+                          for path in output.iterdir()]}
+
+    monkeypatch.setattr('caelab.workbench.run', execution_double)
+    store = tmp_path / 'workspace'
+    wb = Workbench(store)
+    try:
+        completed_export(wb, native)
+        frozen = wb.desktop.submit_frozen('Cfreeze')
+        plan = wb.document_open(kind='numerical', draft=request_draft({
+            'purpose': 'Retain the complete native calculation', 'operation': 'evaluate',
+            'inputs': {'backend': 'structure.calculix.frozen', 'settings': {'data_id': frozen['input']['id']}},
+            'budget': {'evaluations': 1}}))
+        started = wb.document_command(plan['id'], 'numerical.run', {},
+            session_id=plan['session_id'], expected_generation=plan['generation'])
+        job = started['job']['id']
+        until = time.monotonic() + 10
+        while wb.manager.status(job)['state'] not in {'SUCCEEDED', 'FAILED'}:
+            assert time.monotonic() < until
+            time.sleep(.01)
+        assert wb.manager.status(job)['state'] == 'FAILED'  # Double has no Post field.
+        result = wb.document_result(plan['id'], job)
+        assert result['native_execution_status'] == 'SUCCEEDED'
+        current = wb.document_read(plan['id'])
+        saved = wb.document_command(plan['id'], 'document.save', {},
+            session_id=current['session_id'], expected_generation=current['generation'])['document']
+        assert saved['saved_revision']
+    finally:
+        assert wb.shutdown()['joined']
+    wb = Workbench(store)
+    try:
+        reopened = wb.document_read(plan['id'])
+        assert reopened['saved_revision'] == saved['saved_revision']
+        result = wb.document_result(plan['id'], job)
+        assert result['responses']['value']['value'] == 2.0
+        assert {row['path'] for row in result['artifacts']} == {
+            'calculation/calculation.frd', 'calculation/calculation.cvg'}
+        before = wb.manager.list()
+        retained = wb.numerical_documents._folder(plan['id']) / 'revisions' / saved['saved_revision'] / 'results' / job
+        assert (retained / 'calculation/calculation.frd').read_bytes() == b'TEST_ONLY native output\n'
+        (retained / 'calculation/calculation.frd').write_bytes(b'changed')
+        with pytest.raises(ValueError, match='changed or is missing'):
+            wb.document_result(plan['id'], job)
+        assert wb.manager.list() == before
+    finally:
+        assert wb.shutdown()['joined']

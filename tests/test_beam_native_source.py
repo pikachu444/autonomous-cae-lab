@@ -6,6 +6,7 @@ A full checkout without the supplied reference source skips only these checks.
 import ast
 import io
 import math
+import os
 from pathlib import Path
 from types import SimpleNamespace as NS
 import pytest
@@ -13,7 +14,8 @@ from test_beam_support import model
 from caelab.beam_model import native_axis_formula
 from caelab.beam_deck import section_card
 
-ROOT=Path(__file__).resolve().parents[1]/'reference_FreeCAD_1.1.4'/'Fem'
+ROOT=Path(os.environ.get('CAELAB_FREECAD_REFERENCE_FEM',
+    str(Path(__file__).resolve().parents[1]/'reference_FreeCAD_1.1.4'/'Fem')))
 
 
 def test_example_solver_factory_exists_in_installed_freecad_source():

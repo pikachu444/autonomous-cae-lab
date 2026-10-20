@@ -138,6 +138,14 @@ def handle(handler,method,path,query):
             if set(body)!={'reference'}:
                 raise ServiceError(400,'Select the exact saved evidence reference')
             return handler._json(200,workbench.research_reference(body['reference']))
+        if path=='/api/workbench/native-plan-input':
+            if set(body) != {'plan_id','session_id','expected_generation','command_id'}:
+                raise ServiceError(400,'Choose the current Plan and its model input command')
+            return handler._json(200,workbench.desktop.native_plan_input(**body))
+        if path=='/api/workbench/selection-discussion':
+            if set(body)-{'session_id','command_id','document_id','job_id','expected_generation'}:
+                raise ServiceError(400,'Unknown discussion selection')
+            return handler._json(200,workbench.desktop.selection_discussion(**body))
         if path=='/api/workbench/domain-plan':
             if set(body)!={'document_id','session_id','expected_generation','command_id'}:
                 raise ServiceError(400,'Select the exact source owner generation')
@@ -401,6 +409,20 @@ def handle(handler,method,path,query):
         if not cursor.isascii() or not cursor.isdigit():
             raise ServiceError(400,'File cursor must be a nonnegative integer')
         return handler._json(200,workbench.local_inputs(root,relative,cursor=int(cursor)))
+    match=re.fullmatch(r'/api/workbench/jobs/([^/]+)/context',path)
+    if match:
+        if query:
+            raise ServiceError(400,'Job context takes no file paths or query options')
+        return handler._json(200,workbench.engineering_context(match.group(1)))
+    match=re.fullmatch(r'/api/workbench/jobs/([^/]+)/monitor',path)
+    if match:
+        if set(query)-{'log','offset','limit'} or any(len(values)!=1 for values in query.values()):
+            raise ServiceError(400,'Unknown job monitor query')
+        values={key:query.get(key,[default])[0] for key,default in (('offset','0'),('limit','65536'))}
+        if any(not value.isascii() or not value.isdigit() or len(value)>12 for value in values.values()):
+            raise ServiceError(400,'Log offsets and limits must be bounded nonnegative integers')
+        return handler._json(200,workbench.job_monitor(match.group(1),log=query.get('log',[None])[0],
+            offset=int(values['offset']),limit=int(values['limit'])))
     match=re.fullmatch(r'/api/workbench/jobs/([^/]+)',path)
     if match:
         return handler._json(200,workbench.desktop.job_record(match.group(1)))
@@ -415,9 +437,10 @@ def handle(handler,method,path,query):
         return handler._json(200,workbench.result(match.group(1),selection=selection))
     match=re.fullmatch(r'/api/workbench/inputs/([^/]+)/native',path)
     if match:
-        if query:
-            raise ServiceError(400,'Native input lookup does not accept query arguments')
-        return handler._json(200,workbench.native_input(match.group(1)))
+        if set(query)-{'static'} or any(len(values)!=1 for values in query.values()):
+            raise ServiceError(400,'Unknown native input query')
+        options={'static':json.loads(query['static'][0])} if 'static' in query else {}
+        return handler._json(200,workbench.native_input(match.group(1),**options))
     match=re.fullmatch(r'/api/workbench/inputs/([^/]+)',path)
     if match:
         return handler._json(200,workbench.input_preview(match.group(1)))

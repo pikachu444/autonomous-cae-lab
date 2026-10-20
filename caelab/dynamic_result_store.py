@@ -351,7 +351,8 @@ def read_attempt(attempt, *, metadata_only=False, verification='selected',
     required += [pin, *artifact_references(result)]
     for item in required:
         expected = {k: item[k] for k in ('relative', 'bytes', 'sha256')}
-        if entries.get(item['relative']) != expected:
+        retained = entries.get(item['relative'], {})
+        if {key: retained.get(key) for key in expected} != expected:
             raise ValueError('Dynamic result is not pinned by this exact attempt: ' + item['relative'])
         (verify_pin if verification == 'full' else admit_pin)(attempt, expected)
     if (record.get('snapshot_id') != result.get('snapshot_id') or

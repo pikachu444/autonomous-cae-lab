@@ -1043,6 +1043,11 @@ class NumericalWindow(QMainWindow):
         if self.study_splitter.orientation()!=orientation:
             self.study_splitter.setOrientation(orientation)
             self.study_splitter.setSizes([430,940] if mode=='fit' else [340,540])
+        comparison_orientation=Qt.Orientation.Vertical if mode=='fit' else Qt.Orientation.Horizontal
+        if self.candidate_comparison_splitter.orientation()!=comparison_orientation:
+            self.candidate_comparison_splitter.setOrientation(comparison_orientation)
+            self.candidate_comparison_splitter.setStretchFactor(1,0 if mode=='fit' else 1)
+            self.candidate_comparison_splitter.setSizes([430,180] if mode=='fit' else [430,540])
         self.curve_selector.setVisible(mode=='fit')
         self.plot_axis.setVisible(mode=='fit')
         self.curve_summary.setVisible(mode=='fit')

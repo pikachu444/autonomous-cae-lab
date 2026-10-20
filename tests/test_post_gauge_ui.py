@@ -135,8 +135,9 @@ def test_settings_keep_undecided_conditions_visible_and_no_implicit_direction(ap
     assert '두 개 선택 필요' in window.gauge_points.text()
     assert not window.findChild(QPushButton, 'swapGaugePoints').isHidden()
     before = deepcopy(recipe)
-    window.findChild(__import__('PySide6.QtWidgets', fromlist=['QToolButton']).QToolButton, 'gaugeConditionsToggle').click()
-    assert window.edited_draft() == before
+    for index in range(window.settings_pages.count()):
+        window.settings_pages.setCurrentIndex(index)
+        assert window.edited_draft() == before
     assert window.new_gauge() is False  # Existing unsaved draft is still protected.
 
 
@@ -371,7 +372,7 @@ def test_surface_association_commit_uses_the_same_name_exact_location_descriptor
         {'name':'U','association':'CELLS','components':6})
     assert window.fields[('component',)][0].findData('projection') >= 0
     association = window.fields[('association',)][0]
-    association.setCurrentText('CELLS'); association.activated.emit(association.currentIndex())
+    association.setCurrentIndex(association.findData('CELLS')); association.activated.emit(association.currentIndex())
     combo = window.fields[('component',)][0]
     assert [combo.itemData(i) for i in range(combo.count())] == [None,0,1,2,3,4,5]
 

@@ -166,10 +166,12 @@ def test_three_objective_axes_keep_actual_candidate_identity(windows):
                   if getattr(artist, '_candidate_ids', []) == ['C2'])
     assert list(artist.get_offsets()[0]) == [3., 90.]
     first._candidate_plot_picked(SimpleNamespace(artist=artist, ind=[0])); app.processEvents()
-    assert first.candidates.item(first.candidates.currentRow(), 0).text() == 'C2'
+    assert first.candidates.item(first.candidates.currentRow(), 0).text() == '후보 2'
+    assert first._selected_actual_candidate()['candidate_id'] == 'C2'
     first._draw_result(); app.processEvents()
     assert first.pareto_y.currentData() == 2
-    assert first.candidates.item(first.candidates.currentRow(), 0).text() == 'C2'
+    assert first.candidates.item(first.candidates.currentRow(), 0).text() == '후보 2'
+    assert first._selected_actual_candidate()['candidate_id'] == 'C2'
     assert first.document['draft'] == document['draft'] and not first.local_dirty
 
 

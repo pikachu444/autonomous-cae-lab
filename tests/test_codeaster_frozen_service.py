@@ -6,7 +6,7 @@ import pytest
 
 from test_pre_frozen_analysis import native
 from test_codeaster_frozen import raw_result
-from apps.desktop_pre.freeze_analysis import freeze_analysis
+from apps.desktop_pre.freeze_analysis import _freeze_legacy_analysis as freeze_analysis
 from caelab.adapters import codeaster_frozen as adapter
 from caelab.backends import get_backend
 from caelab.workbench import Workbench

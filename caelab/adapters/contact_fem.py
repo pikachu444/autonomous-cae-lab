@@ -28,6 +28,9 @@ def validate_snapshot(path):
     manifest = json.loads(raw)
     if manifest.get('kind') != 'freecad-contact-frozen' or manifest.get('schema_version') != '1':
         raise ValueError('Select the separate-body contact snapshot capability')
+    if manifest.get('backend') == 'structure.codeaster.contact':
+        from .contact_aster_model import validate_snapshot as validate_aster
+        return validate_aster(path)
     check_id(manifest['id'])
     entry = _relative(manifest['input_file'])
     if entry != 'contact.inp':
@@ -58,7 +61,12 @@ def validate_snapshot(path):
     if model.get('restart'):
         from ..dynamic_restart import validate_members
         validate_members(path.parent, model, pins)
-    if _read(path.parent / entry) != render(model).encode('ascii'):
+    rendered = render(model).encode('ascii')
+    # Retained inputs written before explicit GLOBAL=YES remain immutable and
+    # readable. Only that exact output-card spelling may differ; every original
+    # mesh, condition, step and byte pin is still checked above.
+    legacy_rendered = rendered.replace(b'*NODE FILE,GLOBAL=YES', b'*NODE FILE')
+    if _read(path.parent / entry) not in (rendered, legacy_rendered):
         raise ValueError('Contact deck differs from the admitted body/material/surface/DOF definitions')
     if {row['body_id'] for row in manifest['bodies']} != set(bodies):
         raise ValueError('Snapshot body identities differ from the retained mesh')
@@ -97,8 +105,11 @@ class ContactFemCalculixAdapter:
 
     def run(self, settings, *, output, runtime=None):
         if (not isinstance(settings, dict) or set(settings)-{'snapshot_path', 'data_id'} or
-                not isinstance(settings.get('snapshot_path'), str) or runtime):
+                not isinstance(settings.get('snapshot_path'), str)):
             raise ValueError('Contact run requires the registered snapshot and configured CalculiX runtime')
+        if runtime and (not isinstance(runtime, dict) or set(runtime) != {'freecad_executable'}
+                        or not isinstance(runtime['freecad_executable'], str)):
+            raise ValueError('Native CalculiX accepts only the configured FreeCAD installation')
         if 'data_id' in settings:
             check_id(settings['data_id'])
         output = Path(output).absolute()
@@ -118,6 +129,8 @@ class ContactFemCalculixAdapter:
         try:
             source = Path(settings['snapshot_path'])
             manifest, model, pins, gates = validate_snapshot(source)
+            if manifest.get('backend') == 'structure.codeaster.contact':
+                raise ValueError('비관통 입력은 Code_Aster 접촉 해석에서 실행하세요.')
             tie_connected = not any(p['draft']['normal_law'] == 'tie' for p in model['contacts'])
             retained = output / 'frozen_input'
             retained.mkdir()
@@ -135,13 +148,11 @@ class ContactFemCalculixAdapter:
                           checks=[{'name': 'contact_mesh_and_deck', 'status': 'PASS', **gates}])
             result['execution_status'] = 'FAILED'
             check_cancelled()
-            command = shutil.which('ccx')
-            if not command:
-                raise RuntimeError('CalculiX requires ccx on configured PATH')
-            executable = Path(command).resolve(strict=True)
+            from ..native_tools import calculix_executable
+            executable, configuration = calculix_executable(runtime)
             executable_sha = _sha(executable)
             result['runtime'] = {'executable': str(executable), 'sha256': executable_sha,
-                                 'configuration': 'configured PATH', 'build_identity': 'UNKNOWN'}
+                                 'configuration': configuration, 'build_identity': 'UNKNOWN'}
             native = output / 'solver'
             native.mkdir()
             from ..contact_execution_extensions import require_runtime
@@ -305,6 +316,8 @@ class ContactFemCalculixAdapter:
                 contact_outputs={'raw_frd':'solver/contact.frd','raw_dat':'solver/contact.dat',
                     'pair_table':'pair_resultants.csv','pair_detail':'pair_resultants.json',
                     'body_map':('dynamic-post' if dynamic else 'post')+'/body_map.json','frame_count':len(frames),'active_state':'UNKNOWN'})
+            from .initial_field_results import augment
+            augment(result, output, model, frames)
         except ExecutionCleanupFailed:
             raise
         except ExecutionCancelled as error:

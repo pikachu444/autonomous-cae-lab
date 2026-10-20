@@ -71,11 +71,21 @@ def native_owner(tmp_path, document):
     def transaction(title, action):
         action(); owner.generation += 1
     owner._transaction = transaction
-    owner.Gui = NS(getDocument=lambda name: NS(getInEdit=lambda: False))
+    owner.Gui = NS(getDocument=lambda name: NS(getInEdit=lambda: False),
+                   Selection=NS(getSelectionEx=lambda name: []))
     owner.find_owner = lambda doc: None
     owner.App = NS(openDocument=lambda path: NS(Name='OpenedDesign', FileName=str(path), UndoMode=0))
     owner.project = Project(owner)
     return owner
+
+
+def test_reopened_import_keeps_its_exact_selected_source_for_plan_navigation(tmp_path):
+    source = fcstd(tmp_path / 'retained.FCStd')
+    owner = native_owner(tmp_path, NativeDoc('Retained', source))
+    OPENED[owner.doc.Name] = (owner.doc, {'kind': 'native-import'}, str(source))
+    owner.project.attach_opened()
+    assert owner.project.descriptor()['opened_source'] == str(source)
+    assert owner.project.last_save is None
 
 
 def graph(tmp_path):
@@ -116,7 +126,8 @@ def test_real_zip_graph_working_copy_relocates_colliding_filenames_without_chang
     assert len(manifest['source_files']) == 3
 
 
-def test_registered_fcstd_graph_opens_verified_private_working_copy_and_can_be_saved(tmp_path):
+@pytest.mark.parametrize('with_selection', [True, False])
+def test_registered_fcstd_graph_opens_verified_private_working_copy_and_can_be_saved(tmp_path, with_selection):
     root, main, dependency, a, b = graph(tmp_path)
     originals = {path: path.read_bytes() for path in (main, dependency)}
     workbench = tmp_path / 'workbench'
@@ -124,6 +135,8 @@ def test_registered_fcstd_graph_opens_verified_private_working_copy_and_can_be_s
         relative='assembly.FCStd', limit=1024 * 1024)
     receipt = service_receipt(workbench, registered)
     owner = native_owner(tmp_path, a)
+    if not with_selection:
+        del owner.Gui.Selection
     opened = owner.project.open(receipt)
     entry = Path(opened['working_file'])
     copied_dependency = entry.parent / native_cad.xlinks(entry)[0]['file']
@@ -137,6 +150,7 @@ def test_registered_fcstd_graph_opens_verified_private_working_copy_and_can_be_s
     saved = owner.project.save()
     manifest, restored = native_cad.unpack_project(saved['path'], tmp_path / 'restored')
     assert manifest['metadata']['links'] == [{'job_id': 'Joriginal', 'state': 'SUCCEEDED'}]
+    assert manifest['native_selection'] == []
     assert native_cad.xlinks(restored)[0]['file'] == 'Component.FCStd'
     assert_native_members_preserved(main, restored)
     assert_native_members_preserved(dependency, restored.parent / 'Component.FCStd')

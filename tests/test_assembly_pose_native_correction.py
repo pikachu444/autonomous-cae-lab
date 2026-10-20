@@ -104,7 +104,7 @@ def test_post_edit_allows_current_geometry_but_never_updates_fem_fingerprints(mo
     condition.References=[(body,['Face1'])]
     target=_target(body,['Face1'])
     condition_data={'conditions':[{'object_id':condition.Name,'targets':[target],'direction_target':None}]}
-    inspector=NS(owner=owner)
+    inspector=FEMEditor(owner)
     assert not FEMEditor._condition_errors(inspector,condition,condition_data)
     source.Shape.size=(14.,8.,6.)
     assert validate_model(owner)['errors']  # stale binder, not yet recomputed by user

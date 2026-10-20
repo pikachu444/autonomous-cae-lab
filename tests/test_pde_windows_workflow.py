@@ -92,6 +92,7 @@ def run_workflow(folder, *, resume=False):
 
     def edit(path, value):
         # Use the existing tree and actual typed editor, including selection/focus.
+        window.activateWindow(); window.raise_(); app.processEvents()
         parent = max((p for p in window._nodes if path[:len(p)] == p), key=len)
         window.tree.setCurrentItem(window._nodes[parent]); app.processEvents()
         widget = window.fields[path][0]

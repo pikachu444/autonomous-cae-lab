@@ -36,7 +36,7 @@ jobs:
       - name: Focused non-native integration and real Qt checks
         run: |
           mkdir -p artifacts
-          python -m pytest tests/test_calculix_material.py tests/test_ns1_*.py tests/test_contact.py tests/test_contact_execution.py tests/test_contact_native_export.py tests/test_contact_steps.py tests/test_contact_steps_ui.py tests/test_contact_tie.py tests/test_frozen_fem.py tests/test_pre_fem_edit.py tests/test_pre_fem_panel_ui.py tests/test_contact_inspection.py -q --junitxml=artifacts/focused-tests.xml
+          python -m pytest tests/test_calculix_material.py tests/test_ns1_*.py tests/test_contact.py tests/test_contact_execution.py tests/test_contact_native_export.py tests/test_contact_steps.py tests/test_contact_steps_ui.py tests/test_contact_tie.py tests/test_frozen_fem.py tests/test_pre_fem_edit.py tests/test_contact_inspection.py -q --junitxml=artifacts/focused-tests.xml
       - name: Retain exact source; no native solver-completion claim
         if: always()
         run: |

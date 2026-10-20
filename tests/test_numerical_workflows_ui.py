@@ -121,12 +121,14 @@ def test_candidate_plot_labels_keep_exact_units_mask_and_user_axis():
 def test_pareto_projection_labels_and_candidate_selection_do_not_change_result(monkeypatch,repeat_component):
     from caelab.storage import canonical_hash
     app=QApplication.instance() or QApplication([])
-    definitions=[dict(response=name,unit='N',component=name if repeat_component else 'scalar',location='model',reduction='none',direction='minimize') for name in ('사용자 힘 A','사용자 힘 B')]
+    definitions=[dict(response=name,unit='N',component=name if repeat_component else 'scalar',location='model',reduction='none',direction=direction)
+        for name,direction in (('사용자 힘 A','minimize'),('사용자 힘 B','maximize'))]
     draft=request('epsilon',dict(objectives=definitions))
     result={'kind':'epsilon_optimization','variables':[dict(id='x',unit='mm')],
         'pareto':{'nondominated_ids':['Cfixture2']},'children':[],
         'candidates':[dict(candidate_id='Cfixture'+str(i),execution_status='SUCCEEDED',values={'x':i},
-            responses={name:dict(kind='scalar',unit='N',component=name if repeat_component else 'scalar',location='model',value=float(i)) for name in ('사용자 힘 A','사용자 힘 B')}) for i in (1,2)]}
+            responses={name:dict(kind='scalar',unit='N',component=name if repeat_component else 'scalar',location='model',value=value)
+                for name,value in (('사용자 힘 A',float(i)),('사용자 힘 B',float(10-i)))}) for i in (1,2)]}
     original=deepcopy(result);w=RequestPlanWindow(None,auto_open=False,poll_interval=0)
     w.document=dict(id='Nfixture',session_id='Sfixture',draft=draft,runs=[dict(job_id='Jfixture',draft=draft)])
     monkeypatch.setattr(w,'selected_job',lambda:'Jfixture');monkeypatch.setattr(w,'_update_actions',lambda:None)
@@ -134,12 +136,25 @@ def test_pareto_projection_labels_and_candidate_selection_do_not_change_result(m
     try:
         w._draw_result();w.candidates.selectRow(1);app.processEvents()
         axis=w.figure.axes[0]
-        assert axis.get_xlabel()=='사용자 힘 A [N]' and axis.get_ylabel()=='사용자 힘 B [N]'
+        assert axis.get_xlabel()=='사용자 힘 A [N] 최소화' and axis.get_ylabel()=='사용자 힘 B [N] 최대화'
         assert axis.get_title()=='다목적 후보 / 선택 후보 2'
         assert '사용자 힘 A 사용자 힘 A' not in w.pareto_x.itemText(0)
         assert w._selected_actual_candidate()['candidate_id']=='Cfixture2'
         assert canonical_hash(result)==canonical_hash(original)
         assert w.candidates.item(1,2).data(Qt.ItemDataRole.UserRole)==2
+        def plotted_points():
+            return {identifier:tuple(point) for artist in w.figure.axes[0].collections
+                if hasattr(artist,'_candidate_ids')
+                for identifier,point in zip(artist._candidate_ids,artist.get_offsets())}
+        assert plotted_points()=={'Cfixture1':(1.,9.),'Cfixture2':(2.,8.)}
+        w.pareto_x.setCurrentIndex(w.pareto_x.findData(1))
+        w.pareto_y.setCurrentIndex(w.pareto_y.findData(0))
+        app.processEvents()
+        axis=w.figure.axes[0]
+        assert axis.get_xlabel()=='사용자 힘 B [N] 최대화' and axis.get_ylabel()=='사용자 힘 A [N] 최소화'
+        assert plotted_points()=={'Cfixture1':(9.,1.),'Cfixture2':(8.,2.)}
+        assert w._selected_actual_candidate()['candidate_id']=='Cfixture2'
+        assert result==original
         from matplotlib.layout_engine import TightLayoutEngine
         for width,height in ((1440,900),(1100,780)):
             w.resize(width,height);w.show();w.work_pages.setCurrentWidget(w.results_panel);app.processEvents()
@@ -509,10 +524,16 @@ def test_independent_plan_selects_real_saved_material_and_runs_existing_adapter(
     assert w.edited_draft()['source']['document_id']==model['id']
     job,result=execute(app,wb,w)
     assert len(result['candidates'])==2
+    original_result=deepcopy(result)
     previews=[]
     monkeypatch.setattr(w,'_review_pde_changes',lambda preview:(previews.append(deepcopy(preview)) or False))
+    w.work_pages.setCurrentWidget(w.results_panel)
+    wait(app,lambda:not w._busy and not w._callbacks and not getattr(w,'_retained_labels_scheduled',False)
+         and w.candidates.rowCount()==2,w)
     w.candidates.selectRow(0);app.processEvents()
-    w.review_pde_candidate()
+    wait(app,w.pde_adopt_button.isEnabled,w)
+    assert w._selected_actual_candidate()['candidate_id']==result['candidates'][0]['candidate_id']
+    w.pde_adopt_button.click()
     wait(app,lambda:not w._busy and bool(previews),w)
     assert previews[0]['target_document_id']==model['id']
     assert previews[0]['source']==w.edited_draft()['model_source']
@@ -526,10 +547,13 @@ def test_independent_plan_selects_real_saved_material_and_runs_existing_adapter(
     assert wb.document_read(model['id'])['draft']==model_before
     # Explicit adoption uses the same reviewed actual B candidate; no new solve.
     reopened.retry_result();wait(app,lambda:not reopened._busy and job in reopened._result_cache,reopened)
+    wait(app,lambda:not reopened._callbacks and not getattr(reopened,'_retained_labels_scheduled',False),reopened)
     reopened.candidates.selectRow(0);app.processEvents()
     monkeypatch.setattr(reopened,'_review_pde_changes',lambda preview:True)
     jobs=len(wb.manager.list())
-    reopened.review_pde_candidate()
+    wait(app,reopened.pde_adopt_button.isEnabled,reopened)
+    assert reopened._selected_actual_candidate()['candidate_id']==result['candidates'][0]['candidate_id']
+    reopened.pde_adopt_button.click()
     expected=deepcopy(model_before)
     expected['settings']['parameters'].update(result['candidates'][0]['values'])
     wait(app,lambda:not reopened._busy and wb.document_read(model['id'])['draft']==expected,reopened)
@@ -540,6 +564,7 @@ def test_independent_plan_selects_real_saved_material_and_runs_existing_adapter(
         expected_generation=adopted['generation'])['document']
     assert adopted['saved_revision']!=model['saved_revision'] and not adopted['dirty']
     assert len(wb.manager.list())==jobs
+    assert wb.document_result(reopened.document['id'],job)==original_result
 
 
 def test_changed_variable_list_cannot_relabel_retained_correlation(environment):

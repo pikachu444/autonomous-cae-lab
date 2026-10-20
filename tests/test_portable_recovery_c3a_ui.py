@@ -138,7 +138,9 @@ def test_actual_menu_read_keeps_dirty_delegate_and_backward_selection(app,backen
     table=window.coefficients;table.setCurrentCell(0,1);table.editItem(table.item(0,1))
     application.processEvents()
     editor=next(e for e in table.findChildren(QLineEdit) if e.isVisible())
+    wait(application,editor.hasFocus)
     editor.selectAll();QTest.keyClicks(editor,'1e');editor.setSelection(2,-1)
+    assert editor.text()=='1e' and editor.selectedText()=='e' and editor.cursorPosition()==1
     before=material_raw_snapshot(window);seen=[]
     def inspect(dialog):
         owned.append(dialog);dialog.show()
@@ -149,7 +151,8 @@ def test_actual_menu_read_keeps_dirty_delegate_and_backward_selection(app,backen
         return dialog.result()
     monkeypatch.setattr(PortableRecoveryReadDialog,'exec',inspect)
     window.portable_recovery_action.trigger()
-    wait(application,lambda:seen and window._recovery_review is None)
+    # activateWindow/setFocus on modal exit completes on the next Qt event turn.
+    wait(application,lambda:seen and window._recovery_review is None and editor.hasFocus())
     after=material_raw_snapshot(window)
     assert after['cells']==before['cells'] and after['focus']==before['focus']
     assert editor.hasFocus() and editor.selectedText()=='e' and editor.cursorPosition()==1

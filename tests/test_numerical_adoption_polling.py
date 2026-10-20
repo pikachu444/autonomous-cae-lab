@@ -242,14 +242,19 @@ def test_confirmation_never_applies_after_selection_or_edit_changes(app, monkeyp
 
 def test_material_change_during_confirmation_uses_original_guard(app, monkeypatch):
     client = RetainedClient()
+    original_draft = deepcopy(client.material['draft'])
     window = make_window(client)
     dialog_answer(monkeypatch, window, answer=QMessageBox.StandardButton.Yes,
                   in_dialog=lambda: client.material.update(generation=1))
     try:
         window.adopt_button.click()
-        wait(app, lambda: bool(client.adoption_attempts) and not window._busy)
+        # Polling resumes after the refusal and its read is deliberately held
+        # by this fixture. close_window releases that read before checking idle.
+        wait(app, lambda: bool(client.adoption_attempts)
+             and 'Target Material generation changed' in window.message.toolTip())
         assert 'Target Material generation changed' in window.message.toolTip()
         assert client.material['generation'] == 1 and not client.adoptions
+        assert client.material['draft'] == original_draft
         assert len(client.adoption_attempts) == 1
         assert client.adoption_attempts[0][3]['expected_generation'] == 0
         assert window.selected_candidate() == 'C000015'

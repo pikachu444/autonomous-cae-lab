@@ -97,13 +97,14 @@ def test_native_region_apply_import_stale_and_new_owner_metadata(editor):
 def reference_writers(monkeypatch):
     root=Path(os.environ.get('CAELAB_FREECAD_REFERENCE_FEM',
         str(Path(__file__).resolve().parents[1]/'reference_FreeCAD_1.1.4/Fem')))
-    expected={'write_constraint_pressure':'98b9c4685192cec7f598bbdfbc7762308880ff4b3edf785a81d297d5384e5b3d',
-        'write_femelement_geometry':'f6467a93995006ba823c4d299ed44d33486085fc72f30d474438a04867b1eb09',
-        'write_femelement_material':'d43222cf2a529bab5d8d5c270c96f1e4a2e72f8909adf17ede794ec5473cb878'}
+    expected={'write_constraint_pressure':'3feb8913d0146c5434a09e27bf64f926023e10c5108ff019596a95872eaf96c7',
+        'write_femelement_geometry':'d18c36cee7a297f23195d46a0f695d025b67770a390b08bc979a9baed5dd7af4',
+        'write_femelement_material':'3e056939b6d465079ec79a3fcdd1157bf3bff8b2f9a7b52bc415bacc4dcf20fa'}
     for leaf,digest in expected.items():
         path=root/'femsolver/calculix'/f'{leaf}.py'
         assert path.is_file(), 'Set CAELAB_FREECAD_REFERENCE_FEM to the exact FreeCAD 1.1.4 Mod/Fem source'
-        assert hashlib.sha256(path.read_bytes()).hexdigest()==digest, f'FreeCAD 1.1.4 source changed: {path}'
+        # Release ZIP and official Git source differ only in line endings.
+        assert hashlib.sha256(path.read_bytes().replace(b'\r\n', b'\n')).hexdigest()==digest, f'FreeCAD 1.1.4 source changed: {path}'
     for name in ('FreeCAD','femtools','femtools.constants','femsolver','femsolver.calculix'):
         mod=ModuleType(name);mod.__path__=[];monkeypatch.setitem(sys.modules,name,mod)
     sys.modules['FreeCAD'].Units=NS(Quantity=Quantity)

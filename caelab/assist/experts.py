@@ -254,6 +254,35 @@ _TOOL_INPUTS['calculations.plan'] = calculation_request_schema()
 _TOOL_INPUTS['calculations.submit'] = calculation_request_schema(submission=True)
 
 
+def _proposal_fields(request):
+    if isinstance(request, dict):
+        for key in ('request', 'editable_request'):
+            if isinstance(request.get(key), dict):
+                return request[key]
+    return request
+
+
+def editable_proposal(action):
+    """Read an unexecuted proposal without treating completeness as authority."""
+    if not isinstance(action, dict) or action.get('executed') is not False:
+        raise ValueError('Choose an unexecuted proposal')
+    if action.get('status') not in {'PLANNED', 'INVALID_PLAN', 'PROPOSED'}:
+        raise ValueError('This reply has no editable proposal')
+    request = action.get('plan', action.get('proposal'))
+    candidate = _proposal_fields(request)
+    if not isinstance(candidate, dict) or not ({'operation', 'inputs'} & candidate.keys()):
+        raise ValueError('Choose a calculation proposal to complete in the editor')
+    return deepcopy(request)
+
+
+def proposal_request(action):
+    """Seed missing fields in a separate draft; the original reply stays intact."""
+    request = _proposal_fields(editable_proposal(action))
+    defaults = {'purpose': '', 'operation': 'evaluate', 'inputs': {}, 'budget': {'evaluations': 1}}
+    return {key: deepcopy(request[key]) if isinstance(request.get(key), type(value)) else value
+            for key, value in defaults.items()}
+
+
 def validate_plan_request(request, *, describe_inputs=None, submission=False):
     """Reuse the actual Expert calculation contract without inference or execution."""
     if not isinstance(request, dict):
@@ -826,7 +855,7 @@ class ExpertRuntime:
                         result = {key: value for key, value in result.items() if key in {'id', 'job_id', 'state', 'status', 'phase', 'result_refs', 'error', 'resources', 'execution_status'}}
                 if name == 'calculations.status':
                     # A status permission never discloses the job's questions, documents or observation inputs.
-                    result = {key: value for key, value in result.items() if key in {'id', 'job_id', 'state', 'status', 'phase', 'result_refs', 'error', 'execution_status', 'cancel_requested'}}
+                    result = {key: value for key, value in result.items() if key in {'id', 'job_id', 'state', 'status', 'phase', 'result_refs', 'error', 'execution_status', 'cancel_requested', 'engineering_context'}}
                 returned_references = referenced_results(result)
                 if not returned_references.issubset(allowed_result_ids):
                     raise PermissionError('Callback returned a result outside the selected access scope')
@@ -967,7 +996,11 @@ class ExpertRuntime:
                                    'error': type(exc).__name__, 'reason': str(exc)})
                     raise
             return call
-        for name in definition.get('tools', []):
+        available_tools = list(definition.get('tools', []))
+        if (_binding is None and context.get('engineering_context') and 'results.read' in available_tools
+                and 'calculations.status' in self.callbacks and 'calculations.status' not in available_tools):
+            available_tools.append('calculations.status')
+        for name in available_tools:
             if name not in installed:
                 continue
             schema = _TOOL_INPUTS.get(name)
@@ -1007,6 +1040,8 @@ class ExpertRuntime:
                   'For local citations copy document_id, revision and the exact locator from source_segments or a returned segment. '
                   'Never invent or translate a locator. If knowledge_source returns no segments, omit locator to read the permitted document. '
                   'A submitted job is a receipt; use calculations_status and results_read on a later turn after completion. '
+                  'calculations_status includes the selected model settings, actual solver log tails and result summary; '
+                  'read them before diagnosing convergence. Cite the returned job marker and distinguish unavailable evidence. '
                   'For job results, copy a returned citation_marker object exactly into sources; never cite JSON field '
                   'paths as response_selection. response_selection: [] identifies the whole metadata/status returned '
                   'when no response channel was selected, and does not mean there is no observed evidence. '

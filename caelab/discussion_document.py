@@ -231,6 +231,11 @@ class DiscussionDocuments(MaterialDocuments):
             if turn.get('round_id') == round_record['id'] and turn.get('author') != 'user']
         context['discussion']['turns'] = [{key: deepcopy(turn.get(key)) for key in
             ('id', 'author', 'text', 'status', 'topic_id', 'reply_to', 'classification', 'knowledge_sources')} for turn in history]
+        for entry, turn in zip(context['discussion']['turns'], history):
+            if turn.get('status') == 'FAILED':
+                response = turn.get('response') or {}
+                entry['failure'] = {key: deepcopy(response[key]) for key in ('error', 'reason')
+                                    if response.get(key) is not None}
         return {'expert_id': role, 'question': composer['text'], 'context': context,
                 'session_id': round_record['sessions'][role], 'budget': deepcopy(snapshot['budget'])}
 

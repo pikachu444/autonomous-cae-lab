@@ -37,6 +37,105 @@ def reseal(field):
     return old.seal_field(field)
 
 
+def _hex8_temperature_receiver():
+    from caelab.law_native_thermal_regions import reference_start_settings
+    result = reference_start_settings(length_mm=8., width_mm=2., thicknesses_mm=[.5,.5], counts=[4,2,1,1],
+        regions=[{'id':'elastic','label':'사용자 탄성층','model':'linear_elastic','parameters':{'E':1000.,'nu':.3},
+                  'cte_per_K':1e-5,'reference_temperature_K':300.},
+                 {'id':'relaxing','label':'사용자 완화층','model':'single_branch_maxwell',
+                  'parameters':{'K0':400.,'G0':200.,'K1':400.,'G1':200.,'tau':10.},
+                  'cte_per_K':3e-5,'reference_temperature_K':300.}],
+        time_s=[0.,1.,2.], temperature_K=[300.,300.,300.], time_origin='test_origin',
+        boundary_mode='free', reference_start_confirmed=True)
+    result['thermal_regions']['temperature'] = {'mode':'port_history','unit':'K','values':[None]*3,
+        'extrusion':{'axis':'z','invariant':True,'statement':'선택한 단면 온도는 수신체의 z 방향으로 일정하다.'}}
+    return result
+
+
+@pytest.mark.parametrize('affine', [False, True])
+@pytest.mark.parametrize('celsius', [False, True])
+def test_hex8_bridge_reuses_p1_spatial_and_time_weights_without_reference_subtraction(affine, celsius, tmp_path):
+    from caelab.temperature_receiver_3d import map_temperature
+    from caelab.law_native_thermal_regions import bind_temperature_slot
+    from caelab.storage import canonical_hash
+    source0 = settings(cells=(2,1), instant=0.)
+    source2 = settings(cells=(3,2), instant=2.)
+    for source in (source0, source2): source['domain']['lengths'] = [.008,.002]
+    fn = (lambda x,y:300.+400*x-200*y) if affine else (lambda x,y:300.)
+    first = analytic_field(source0, lambda x,y:fn(x,y)-273.15, unit='degC') if celsius else analytic_field(source0,fn)
+    fields = [first, analytic_field(source2, lambda x,y:fn(x,y)+20.)]
+    receiver = _hex8_temperature_receiver()
+    opts = t.default_options('Heat0', receiver_time={'value':1.,'unit':'s','origin':'test_origin'})
+    opts['time'].update(mode='linear',sources=[{'stage':'Heat0','output':'temperature'},{'stage':'Heat2','output':'temperature'}])
+    refs = [{'stage':name,'output':'temperature','capture_sha256':field['capture_sha256'],
+             'test_scope':'CONTROLLED_FIELDS_NOT_SOLVER_EVIDENCE'} for name,field in zip(('Heat0','Heat2'),fields)]
+    before = deepcopy((receiver, fields, opts, refs))
+    field, receipt = map_temperature(fields, receiver, opts, source_refs=refs)
+    assert (receiver, fields, opts, refs) == before
+    assert field['basis'] == 'Hex8_nodal_samples' and field['unit'] == 'K'
+    assert field['coordinates'] == (np.asarray(receiver['mesh']['points'])/1000).tolist()
+    expected = [fn(x,y)+10. for x,y,z in field['coordinates']]
+    np.testing.assert_allclose(field['value'], expected, atol=1e-10, rtol=0.)
+    assert receipt['clock']['weights'] == [.5,.5]
+    assert receipt['coverage']['covered'] == len(receiver['mesh']['points'])
+    assert receipt['temperature']['reference_subtractions_in_mapping'] == 0
+    assert receipt['temperature']['source_offsets_K'] == [273.15 if celsius else 0., 0.]
+    assert receipt['conservative'] is False and receipt['extrusion']['invariant'] is True
+    assert receipt['sources'] == fields and receipt['source_refs'] == refs
+    assert old.seal_field(field) == field
+    assert old.digest({k:v for k,v in receipt.items() if k!='capture_sha256'}) == receipt['capture_sha256']
+    # Existing consumer binding and plain saved JSON are reusable without a solve.
+    bound = bind_temperature_slot(receiver, field)
+    archive = tmp_path/'사용자 온도 슬롯.json'
+    archive.write_text(json.dumps({'settings':bound,'receipt':receipt},ensure_ascii=False),encoding='utf-8')
+    reopened = json.loads(archive.read_text(encoding='utf-8'))
+    assert reopened['settings']['thermal_regions']['temperature']['values'][1] == field['value']
+    assert reopened['settings']['thermal_regions']['temperature']['source'][0]['source_refs'] == refs
+    assert canonical_hash(reopened['settings']['mesh']) == field['receiver_mesh_sha256']
+    with pytest.raises(ValueError,match='already bound'):bind_temperature_slot(bound, field)
+
+
+@pytest.mark.parametrize('fault', ['extrusion_missing','extrusion_axis','extrusion_not_confirmed',
+    'uncovered','source_mask','source_origin','source_time','unbracketed_time',
+    'receiver_origin','receiver_time','delta_receiver','occupied_slot'])
+def test_hex8_bridge_retains_failure_without_mutation_or_extrapolation(fault):
+    from caelab.temperature_receiver_3d import map_temperature
+    source = settings(instant=1.)
+    source['domain']['lengths'] = [.008,.002]
+    fields = [analytic_field(source)]
+    receiver = _hex8_temperature_receiver()
+    opts = t.default_options('Heat', receiver_time={'value':1.,'unit':'s','origin':'test_origin'})
+    if fault=='extrusion_missing':receiver['thermal_regions']['temperature'].pop('extrusion')
+    elif fault=='extrusion_axis':receiver['thermal_regions']['temperature']['extrusion']['axis']='x'
+    elif fault=='extrusion_not_confirmed':receiver['thermal_regions']['temperature']['extrusion']['invariant']=False
+    elif fault=='uncovered':
+        source['domain']['lengths'] = [.004,.002]
+        fields = [analytic_field(source)]
+    elif fault=='source_mask':
+        fields[0]['valid_mask'][0]=False;fields[0]=old.seal_field(fields[0])
+    elif fault=='source_origin':
+        fields[0]['time_origin']='another_test_origin';fields[0]=old.seal_field(fields[0])
+    elif fault=='source_time':
+        fields[0]['time']=2.;fields[0]=old.seal_field(fields[0])
+    elif fault=='unbracketed_time':
+        fields[0]['time']=0.;fields[0]=old.seal_field(fields[0])
+        later=deepcopy(fields[0]);later['time']=.5;later=old.seal_field(later);fields.append(later)
+        opts['time'].update(mode='linear',sources=[{'stage':'Heat0','output':'temperature'},{'stage':'HeatHalf','output':'temperature'}])
+    elif fault=='receiver_origin':opts['time']['receiver']['origin']='another_test_origin'
+    elif fault=='receiver_time':opts['time']['receiver']['value']=1.5
+    elif fault=='delta_receiver':opts.update(target_quantity=t.DIFFERENCE,target_unit='delta_K')
+    elif fault=='occupied_slot':receiver['thermal_regions']['temperature']['values'][1]=[300.]*len(receiver['mesh']['points'])
+    before=deepcopy((fields,receiver,opts))
+    with pytest.raises(t.TransferError) as caught:map_temperature(fields,receiver,opts)
+    assert caught.value.receipt['status']=='FAILED'
+    assert (fields,receiver,opts)==before
+    if fault=='uncovered':
+        receipt=caught.value.receipt
+        assert receipt['invalid_receiver_ids'] and receipt['coverage']['covered']<receipt['coverage']['required']
+        assert receipt['mapped_field'] is None
+    json.dumps(caught.value.receipt,allow_nan=False)
+
+
 def test_three_pure_capabilities_and_windows_are_separate(monkeypatch):
     original_import = builtins.__import__
     def guard(name, *args, **kwargs):

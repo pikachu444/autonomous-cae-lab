@@ -200,78 +200,6 @@ def restore_visibility():
     record('restore_visibility', document=doc.Name)
 
 
-class Inspector(QtWidgets.QDockWidget):
-    """Only inspect the selection. Never walk/tessellate every face on selection."""
-    def __init__(self):
-        super().__init__('선택 검사', Gui.getMainWindow())
-        self.setObjectName('CaeSelectionInspector')
-        self.setMinimumWidth(230)
-        box = QtWidgets.QWidget()
-        layout = QtWidgets.QVBoxLayout(box)
-        layout.setContentsMargins(6, 6, 6, 6)
-        self.summary = QtWidgets.QLabel('3D 화면 또는 모델 트리에서 개체를 선택하세요.')
-        self.summary.setWordWrap(True)
-        layout.addWidget(self.summary)
-        self.table = QtWidgets.QTableWidget(0, 2)
-        self.table.setHorizontalHeaderLabels(['항목', '현재 선택'])
-        self.table.verticalHeader().hide()
-        self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        self.table.horizontalHeader().setStretchLastSection(True)
-        self.table.setColumnWidth(0, 95)
-        layout.addWidget(self.table)
-        note = QtWidgets.QLabel('치수·배치·재료·조건은 왼쪽 속성 편집기에서 수정합니다.\nSpace: 표시 전환 · Ctrl+Z: 실행 취소')
-        note.setWordWrap(True)
-        layout.addWidget(note)
-        self.setWidget(box)
-        self.timer = QtCore.QTimer(self)
-        self.timer.setSingleShot(True)
-        self.timer.timeout.connect(self.safe_refresh)
-        Gui.Selection.addObserver(self)
-        App.addDocumentObserver(self)
-
-    def addSelection(self, *args): self.timer.start(60)
-    def removeSelection(self, *args): self.timer.start(60)
-    def clearSelection(self, *args): self.timer.start(60)
-    def setSelection(self, *args): self.timer.start(60)
-    def slotRecomputedObject(self, obj): self.timer.start(60)
-    def slotDeletedObject(self, obj): self.timer.start(60)
-    def slotDeletedDocument(self, doc): ISOLATION.pop(doc.Name, None)
-    def slotUndoDocument(self, doc): self.timer.start(60)
-    def slotRedoDocument(self, doc): self.timer.start(60)
-
-    def safe_refresh(self):
-        try:
-            self.refresh()
-        except Exception:
-            self.table.setRowCount(0)
-            self.summary.setText('선택 정보를 읽지 못했습니다. 개체를 다시 선택하세요.')
-            record('inspection_error', error=traceback.format_exc())
-
-    def refresh(self):
-        entries = Gui.Selection.getSelectionEx()
-        rows = []
-        for entry in entries[:32]:
-            obj = entry.Object
-            rows.extend([('개체', obj.Label), ('내부 ID', obj.Name), ('유형', obj.TypeId)])
-            if entry.SubElementNames:
-                rows.append(('선택 영역', ', '.join(entry.SubElementNames[:16])))
-            if hasattr(obj, 'FemMesh'):
-                rows.extend([('절점 수', str(obj.FemMesh.NodeCount)), ('체적 요소 수', str(obj.FemMesh.VolumeCount))])
-            if hasattr(obj, 'Shape') and hasattr(obj.Shape, 'BoundBox'):
-                # Bounding box is a native cached operation; no Python triangle copy.
-                bounds = obj.Shape.BoundBox
-                rows.append(('외곽 [mm]', f'{bounds.XLength:.4g} × {bounds.YLength:.4g} × {bounds.ZLength:.4g}'))
-            for sub in list(entry.SubObjects)[:4]:
-                if hasattr(sub, 'Area'):
-                    rows.append(('면적 [mm²]', f'{sub.Area:.6g}'))
-        self.summary.setText(f'{len(entries)}개 개체 선택' if entries else '선택 없음')
-        self.table.setRowCount(len(rows))
-        for i, (key, value) in enumerate(rows):
-            self.table.setItem(i, 0, QtWidgets.QTableWidgetItem(key))
-            self.table.setItem(i, 1, QtWidgets.QTableWidgetItem(value))
-        record('selection', entries=[{'object': e.ObjectName, 'subelements': list(e.SubElementNames)} for e in entries[:32]])
-
-
 def _quality_mesh():
     from apps.desktop_pre.fem_edit import _native_type
     if CONNECTION is None:
@@ -310,12 +238,6 @@ def inspect_mesh_quality():
 
 def add_toolbar():
     main = Gui.getMainWindow()
-    bar = QtWidgets.QToolBar('CAE 작업', main)
-    bar.setObjectName('CaeMainOperations')
-    bar.setIconSize(QtCore.QSize(20, 20))
-    bar.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-    main.addToolBar(QtCore.Qt.TopToolBarArea, bar)
-    main.insertToolBarBreak(bar)
     menu = main.menuBar().addMenu('CAE 작업')
     actions = [
         ('모델 열기', 'document-open', open_model),
@@ -335,13 +257,11 @@ def add_toolbar():
     ]
     for item in actions:
         if item is None:
-            bar.addSeparator()
             menu.addSeparator()
             continue
         label, icon, fn = item
         action = QtGui.QAction(Gui.getIcon(icon), label, main)
         action.triggered.connect(guarded(fn))
-        bar.addAction(action)
         menu.addAction(action)
     menu.addSeparator()
     quality_action = menu.addAction('메시 품질 확인…')
@@ -350,7 +270,6 @@ def add_toolbar():
     compare_action = menu.addAction('메시 품질 비교…')
     compare_action.setObjectName('caeCompareMeshQuality')
     compare_action.triggered.connect(guarded(compare_mesh_quality))
-    KEEP.append(bar)
 
 
 def start(config_path):
@@ -365,10 +284,9 @@ def start(config_path):
                 App.ParamGet('User parameter:BaseApp/Preferences/Mod/Fem/Gmsh').SetString('gmshBinaryPath', CONFIG['gmsh'])
             App.ParamGet('User parameter:BaseApp/Preferences/View').SetBool('UseNewSelection', True)
             Gui.activateWorkbench('FemWorkbench')
+            from apps.desktop_pre.native_solver_guard import install as install_solver_guard
+            install_solver_guard()
             add_toolbar()
-            inspector = Inspector()
-            Gui.getMainWindow().addDockWidget(QtCore.Qt.RightDockWidgetArea, inspector)
-            KEEP.append(inspector)
             for dock in Gui.getMainWindow().findChildren(QtWidgets.QDockWidget):
                 if dock.objectName() in ('Python console', 'Report view'):
                     dock.hide()

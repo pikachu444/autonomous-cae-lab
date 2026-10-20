@@ -41,14 +41,6 @@ def _ready(connection,owner,analysis_id):
     if connection.pending or any(r['document_id']==owner.document_id for r in connection.native_requests.values()):
         raise ValueError('이 문서의 이전 작업을 먼저 완료하거나 취소하세요.')
     if pending_changes(connection,owner):raise ValueError('동해석 편집을 적용하거나 취소한 뒤 입력을 생성하세요.')
-    fem=getattr(connection,'panels',{}).get(owner.doc.Name,{}).get('fem')
-    page=fem.widget() if fem is not None else None
-    if page is not None:
-        steps=getattr(page,'steps_page',None);materials=getattr(page,'material_page',None);conv=getattr(page,'convergence_page',None)
-        if steps is not None and steps.modified:raise ValueError('기존 FEM 단계 편집을 먼저 적용하거나 취소하세요.')
-        if materials is not None and materials.pending_changes():raise ValueError('기존 재료/기하 편집을 먼저 저장·적용하거나 취소하세요.')
-        solver_id=owner.dynamic._get(analysis_id)['draft']['solver_id']
-        if conv is not None and conv.pending_changes(analysis_id,solver_id):raise ValueError('기존 수렴 편집을 먼저 저장·적용하거나 취소하세요.')
     owner.refresh();info=owner.dynamic.inspect(analysis_id)
     if not info['can_freeze']:
         errors=info.get('errors',[]);raise ValueError(errors[0]['message'] if errors else '동해석 설정을 명시적으로 적용하세요.')

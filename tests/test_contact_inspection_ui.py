@@ -105,7 +105,7 @@ def test_contact_pair_frame_save_and_existing_plan_review(attach, tmp_path, bund
         dialog.history.selectRow(1)
         wait(app, lambda: client.selection is not None and client.selection['frame_index'] == 1 and not post._busy)
         assert client.selection['side'] == 'b'
-        assert 'on A' in dialog.axes.get_ylabel()
+        assert dialog.axes.get_ylabel() == 'CFN Global Z [N]'
         assert dialog.history.item(1, 2).text() == '2'
         QTest.mouseClick(dialog.save_measurement, Qt.MouseButton.LeftButton)
         wait(app, lambda: dialog.saved_object == 'Ameasure' and not post._busy and post._pending is None,
@@ -127,8 +127,11 @@ def test_contact_pair_frame_save_and_existing_plan_review(attach, tmp_path, bund
         identifier = next(iter(receiver.pending))
         assert receiver.review_next()
         plan.timer.start(5)
-        wait(app, lambda: not receiver.reviewing and not plan._busy)
+        wait(app, lambda: not receiver.reviewing,
+             lambda: repr((receiver.reviewing, len(receiver.workers), plan._busy, plan.message.text(),
+                           plan.message.toolTip(), receiver.receipts)))
         plan.timer.stop()
+        wait(app, lambda: not plan._busy)
         assert receiver.receipts[identifier]['status'] == ('ATTACHED' if attach else 'CANCELLED')
         after = plan.edited_draft()
         assert after['request']['purpose'] == 'Keep my unapplied question'

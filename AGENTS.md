@@ -1,144 +1,136 @@
-# Autonomous CAE Lab — agent instructions
+# Autonomous CAE Lab — 에이전트 지침
 
-## Start from the current assignment
+이 파일은 기존 AGENTS.md를 통째로 교체합니다. 내용을 덧붙이지 않습니다.
 
-Read [CURRENT_STATE.md](CURRENT_STATE.md), [the product overview](docs/PRODUCT_PLAN.md)
-and [CODEX_WORKFLOW.md](docs/CODEX_WORKFLOW.md) before choosing work. Then read the
-relevant sections of [the detailed product plan](docs/PRODUCT_UI_MCP_PLAN.md),
-applicable contracts/ADRs, code and tests. Inspect Git status, source commits,
-the pinned submodule and evidence for the exact source under discussion.
+## 0. 우선순위
 
-CURRENT_STATE is the only current assignment/status/next-action record. HANDOFF
-and CODEX_START are short entry points. Dated logs, old SYSTEM plans, R1–R5/W1–W5
-instructions and PR comments are evidence or references, not competing current
-queues. Do not restart their old tasks or require a full historical audit before
-continuing. Preserve PROJECT_SCOPE's original requirements and read its relevant
-sections with REQUIREMENTS_VALIDITY_REVIEW; 52 section numbers are not 52 equal
-features or a completion percentage. Valid architecture and numerical contracts
-remain effective; do not dismiss every ADR as obsolete history.
+1. 사용자의 최신 지시
+2. 이 파일
+3. 그 밖의 문서(ADR, ARCHITECTURE, CURRENT_STATE, 설계·계획 문서)
 
-The latest direct user instruction controls scope and priority, including a new
-decision in Space before it is transferred to Git. Distinguish user decisions
-from Pro/Codex proposals. Recover missing context from the current records; never
-invent previous conversations or assume another machine's files are available.
+기존 문서가 위와 충돌하면 기존 문서를 고친다. 기존 문서와 타협하거나, 기존 문서를 이유로 사용자 지시의 범위를 줄이지 않는다.
 
-## Product and responsibilities
+## 1. 만드는 것
 
-The deliverable is a general-purpose engineering desktop product for user-provided
-models and data within its declared support. Examples and validation cases check
-that product; they do not define its runtime inputs, workflow or completion.
-Do not require test-case names, validation-case object names/IDs, sample paths or
-precomputed results for ordinary product use. Preserve real solver/physics compatibility
-limits and report unfinished support explicitly; a passing single-case bridge
-is not a completed general product feature.
+오픈소스 solver와 수치 도구를 **하나의 범용 인터페이스**로 쓰는 Windows 연구 환경을 만든다.
 
-Every assignment and follow-up, including after context compaction or handoff,
-must restate this product goal and specify the user task, variable inputs and
-support boundaries, existing tools to reuse, product completion conditions and
-the minimal relevant checks. Use the shared assignment format in CODEX_WORKFLOW.
-Before accepting a delivery, inspect its real input/selection/edit/run path for
-accidental dependence on the example. Tests passing cannot replace that check
-or justify another round of example-only work instead of finishing the product.
+- 엔지니어는 자기 모델, 메시, 입력 파일, 시험 데이터, 방정식으로 해석과 수치 연구를 한다.
+- 진행 중인 작업을 놓고 LLM과 토론하고 조언을 받는다.
+- AI 없이도 같은 기능을 쓸 수 있다.
 
-Build independently usable engineering research tools: FreeCAD CAD/FE, ParaView
-Post, Data, Material, PDE, Numerical, Runner, Expert and related research documents.
-Workbench is an optional connection view. Ordinary GUI, Python and CLI use must
-not require CAD, AI, OpenScience or MCP when the selected operation does not need
-them. Preserve material identification, CAD-free research, external results,
-structural/explicit analysis, numerical methods and expert consultation. LS-OPT
-is unavailable and must not become a prerequisite.
+예제와 벤치마크는 시험 입력일 뿐이다. 메뉴, 기본값, 개발 범위, 완료 기준을 정하지 않는다.
 
-The user's 2026-10-15 direction assigns Pro the whole product design, detailed
-specification and important design decisions. Sol implementers build substantial
-feature deliveries in parallel from the agreed specification; routine coding must
-not wait for another Pro response. Recover and reuse existing Pro implementations
-without interrupting active writing, and attribute each author's work accurately.
-Codex owns assignment, common integration, publication and current-state/document
-synchronization. Check necessary execution and units during development; perform
-independent review at a meaningful integrated feature boundary rather than after
-each small edit. Assign explicit file ownership and avoid concurrent shared edits.
-The lead owns common schema/Core/registry/provenance integration. Actual user
-model choices take precedence over old agent-model recommendations.
+## 2. 구조 해석 설계
 
-Complete the authorized outcome. Do not repeatedly stop at plans, transmission
-receipts, status reports or approval requests for routine steps already assigned.
-Settle material disagreements with Pro and apply the decision. Ask only for an
-unresolved user choice or genuinely missing authority; continue independent work.
-Do not start unassigned provider calls, native runs or unrelated implementation
-merely because an old prompt says to do so.
+- **공통 구조 해석 모델은 하나다.** 담는 것:
+  - 형상·메시, 이름 붙은 집합
+  - 재료, 단면(고체·셸·보·적층)
+  - 해석 단계: 선형 정적, 비선형 정적(재료·기하·접촉), 고유진동·좌굴·과도 동해석, 열·열-구조, explicit 낙하·충돌
+  - 하중·구속, 접촉·연결, 초기조건, 출력
+- **기준 어휘:** FreeCAD FEM 객체 체계와 Abaqus 형식 inp 키워드를 따른다. 새로 발명하지 않는다.
+- **solver는 변환기다.** 각 변환기는 지원표(요소·재료·접촉·단계)를 선언한다.
+  - CalculiX: inp
+  - OpenRadioss: inp → inp2rad
+  - Code_Aster: MED + .comm
+- **기능은 해석 종류가 아니라 옵션이다.** 볼트 예하중, 적층 셸, 스프링, 접촉은 모델 안의 옵션이다. 기능이나 예제를 이유로 새 해석 종류, 새 백엔드 키, 새 창을 만들지 않는다.
+- **요소:** 메셔(Gmsh, Netgen)가 만들고 solver가 지원하는 요소를 전부 받는다(사면체·육면체·쐐기 저차·고차, 셸, 보). 기존 작성기와 결과 변환 도구를 쓴다.
+- **구조 해석이 아닌 것:** 사용자 방정식(PDE), 재료점, 외부 계산기는 각자의 형식을 쓴다.
 
-## User-facing desktop interaction
+## 3. 허용 원칙
 
-For GUI design and visual implementation, give the assigned desktop specialist
-the project skill [.agents/skills/cae-desktop-ux/SKILL.md](.agents/skills/cae-desktop-ux/SKILL.md).
-The specialist retrieves relevant official references, owns visual design and
-scoped Qt implementation, and inspects actual windows before the user has to
-identify obvious defects. Reuse the assigned specialist across related work;
-do not substitute a role name or a loaded skill for demonstrated design quality.
-Each GUI assignment must name this skill's relevant reference sections, the
-adopted application's specific screen/interaction and the user's complete task.
-Assign design and scoped Qt implementation together, before a generic form is
-built; the specialist is not a final text-clipping checker. Compare actual windows
-with the reference at the same data/state and window size, including the main
-view, selection, commands, contextual settings, Korean/units and narrow layout.
-Record an unseen reference as unverified. Skill loading, readable text, working
-buttons and reviewer agreement do not establish overall GUI quality acceptance.
+- **입력 검사만 한다.** 재료 누락, 단위 불일치, 빈 선택, solver가 지원하지 않는 요소·조건이 대상이다. 문제가 있으면 해당 객체를 가리키는 메시지로 알린다.
+- **검증 사례가 없다는 이유로 막지 않는다.**
+  - solver와 작성기가 지원하면 실행을 허용한다. 필요한 입력·메시·조건·결과 처리를 구현하고, 제한 검사만 삭제하는 것으로 끝내지 않는다.
+  - 결과에는 "검증 사례 있음/없음"을 표시한다.
+  - solver의 경고와 오류는 그대로 보여 준다.
+- **결과를 꾸미지 않는다.**
+  - 계산값을 꾸며내지 않는다.
+  - 실패와 누락은 그대로 남긴다.
+  - 벤치마크 수치 기준을 바꿔 통과시키지 않는다.
 
-Use familiar engineering application menus and natural task language. Users should
-be able to open their data/model, select or edit it, run the intended operation,
-inspect the result and save/reopen without understanding our internal architecture.
-Keep internal IDs, hashes, schema names, raw JSON and developer status codes in
-optional diagnostic details, not the primary work area. Preserve necessary physical
-terms, units, limitations and actionable errors; do not hide them with vague labels.
-Follow the adopted application references in PRODUCT_PLAN. Do not replace working
-selection/editing flows with helper paragraphs, long forms or decorative summaries.
-Use concise names without appended revision tokens or bullet separators. Review
-the actual rendered window and task flow before claiming GUI completion, including
-readable Korean fonts, focus/selection and recovery. Apply this to every GUI change;
-the user must not have to repeat this requirement in each task.
+## 4. 개발이 아닌 것
 
-## Technical boundaries
+다음은 개발 산출물이 아니다. 만들지 않고, 진행 보고에도 넣지 않는다.
 
-- OpenScience/Expert plans, asks, retrieves and interprets; deterministic numerical
-  libraries generate DOE/search candidates and solvers perform physics.
-- Core owns shared records, schemas, mappings, execution gates, artifacts, evidence
-  and provenance. Domain plugins own engineering rules; adapters own native syntax
-  and paths. Reuse pinned `plugins/fixture_design/upstream` through adapters.
-- Reuse the existing readers, numerical engines, JobManager and document owners.
-  GUI/CLI/Python/MCP must address the same document/revision/result and commands.
-  Preserve editable CAD and exact saved source/result relationships.
-- Invalid drafts may remain editable/saveable, but invalid required parameters or
-  CAD block export and downstream execution. New runs use new IDs/stores; preserve
-  old results, failed metrics and original inputs.
-- A validation verdict is distinct from its evidence. Unknown machine/material/
-  strength/physical/durability requirements remain UNKNOWN and prevent applicable
-  engineering release. CI, solver exit success and expert agreement are not approval.
-- Never weaken a numerical threshold, replace the requested response or relabel a
-  failure to obtain a pass. State supported scope and unverified behavior honestly.
-- Before new infrastructure, inspect existing code and maintained tools. Record
-  material architectural decisions and their contract/requirement impact; small
-  fixes do not require new ceremonies, frameworks or duplicated reports.
+- 기능마다 새로 만드는 예제·검증 스크립트(verify_*, check_*, acceptance 스크립트, oracle·manifest JSON)
+- 수용·근거·packet 문서, PASS 개수, 해시·receipt·cold reopen 기록
+- 인도할 때마다 갱신하는 상태 문서
+- 사용자 기능이 바뀌지 않는 정리·이름 변경·기록 커밋
 
-## Integrate, record and finish
+**검증 방법**
+- 검증은 tests/ 아래의 자동 테스트와, CI에서 도는 작은 표준 벤치마크 모음 하나로만 한다.
+- 기존 CI·테스트 목록에서 수정 영향 범위를 고르고, 해당 개별 검사와 직접 관련된 회귀 검사를 먼저 실행한다.
+- 실패를 수집할 때 첫 실패에서 중단해 뒤쪽 검사를 누락하지 않는다. 수정 중에는 실패한 검사와 직접 관련된 검사만 반복한다.
+- GitHub 개별 검사는 제품 회귀 `caelab-ci.yml`에서 pytest는 `mode=selected`, `test_selection`, `test_platform`으로, 제품 작업은 `mode=job`, `job_selection`으로 고른다. 솔버 수치 검증은 `solver-verification.yml`에서 `mode=job`, `job_selection`으로 고르고 Code_Aster는 `codeaster_check`로 기존 검사 하나를 고를 수 있다. 검증용 브랜치에서 실행해 최종 전체 CI와 분리한다.
+- 개별 검사가 모두 통과한 뒤 변경을 모아 반영하고 최종 전체 CI를 실행한다. 수정 하나마다 전체 CI를 재시작하지 않는다.
+- 기능 하나를 고칠 때마다 벤치마크 캠페인을 다시 돌리지 않는다.
+- 진행 보고는 확인한 사용자 동작과 남은 결함을 중심으로 한다. CI 단계 이름을 실패 원인처럼 설명하지 않는다. 실행 종료, 결과 읽기, 수치 비교를 실제 로그로 구분한 뒤 원인·수정·개별 검사 결과를 보고한다.
 
-Verify the behavior affected by the change, including real user workflows when
-claiming GUI completion and reference comparisons when claiming numerical validity.
-Do not rerun unchanged full suites or native campaigns without a concrete reason.
-Close FreeCAD, ParaView and other programs opened for tests when each check ends,
-including failures and timeouts. Track the exact launched process and clean it up
-in a finally block; do not accumulate test windows or kill unrelated user sessions.
-Keep a window open only when the user asked to inspect that particular result.
-Keep product implementation, actual execution, usability and engineering qualification
-as separate claims. C3D10/F05 work is not the default prerequisite for product work.
+**예제 분리**
+- 제품 코드는 examples/, scripts/, tests/를 import하지 않는다.
+- 제품 코드에 예제 이름, 경로, 고정 값을 넣지 않는다. 이는 CI 검사로 막는다.
+- 예제는 '도움말 ▸ 예제 열기'와 CI 벤치마크에만 둔다.
 
-Preserve user edits and untracked files. Review the staged diff, commit meaningful
-verified units, use authorized Git access and confirm remote publication. Never
-force-push, bypass branch protection or erase history. If publication is blocked,
-retain the local commit and record that it is unpushed. This public repository must
-not contain credentials, company CAD/data or environment secrets.
+## 5. 진행 순서
 
-At a meaningful checkpoint, update CURRENT_STATE and the affected design/usage or
-acceptance record. Update requirement status only when it changes. HANDOFF links
-to that state instead of duplicating it. Codex updates the relevant Space summary
-and links for material decisions; no automatic Git–Space synchronization is assumed.
-See CODEX_WORKFLOW for ownership, document roles and fresh-session instructions.
+1. **처음부터 끝까지 한 줄로 연결한다.**
+   - 흐름: 사용자 FreeCAD 모델 → CalculiX 선형·비선형 정적·접촉 → ParaView 결과 → LLM이 설정·로그·결과를 읽고 토론 → 제안 → 계획 수정 → 재실행 → 같은 대화로 결과 반환 → 저장 → 다시 열기
+   - 이 흐름이 연결되기 전에는 개별 항목을 다듬지 않는다.
+   - 연결 중 발견한 결함은 같은 작업 안에서 고친다.
+2. **공통 구조 해석 모델로 내부를 교체한다.**
+   - CalculiX 전 기능(동해석, 모드, 좌굴, 열 연성)을 붙인다.
+   - 기능별 백엔드를 통합한다.
+3. **solver를 확장한다.** OpenRadioss(explicit 낙하·충돌)와 Code_Aster를 지원표로만 붙인다.
+4. **연구 기능을 일반화한다.**
+   - Material: 임의 법칙의 계수를 맞추고 그대로 해석 재료로 쓴다.
+   - Numerical: 모델의 어떤 값이든 변수로 쓴다.
+   - Data, PDE: 사용자 입력 위에서 동작하게 한다.
+5. **기존 명세의 나머지**를 위 구조 위에서 진행한다.
+
+## 6. 완료의 정의
+
+다음 세 가지가 **모두** 참일 때만 완료다.
+
+1. 구현에 쓰지 않은 저장소 밖 사용자 입력으로, GUI만 써서 해당 작업을 처음부터 끝까지 수행할 수 있다.
+2. 바뀐 화면을 실제로 띄워 확인했다(같은 데이터, 같은 창 크기).
+3. 관련 자동 테스트와 CI 검사가 통과한다.
+
+**완료로 치지 않는 것**
+- 테스트 개수, 검토자 승인, 문서 작성은 완료가 아니다.
+- 비공개 함수를 직접 호출하거나 내부 구조를 주입하는 테스트는 단위 테스트일 뿐, 사용자 동작의 확인이 아니다.
+
+## 7. 화면
+
+- **파일:** 파일 ▸ 열기는 디스크의 파일을 연다. 최근 파일, 다른 이름으로 저장을 지원한다.
+- **새로 만들기:** 사용자 모델·파일·수식에서 시작한다. 예제 목록을 새로 만들기의 기본 선택지로 두지 않는다.
+- **내부 정보:** 내부 ID, 해시, 버전 번호, 요청 상태는 도움말 ▸ 진단 정보에만 둔다.
+- **오류 메시지:** "무엇이 안 됐나 한 줄 + 고칠 위치로 이동"으로 쓴다.
+- **동기화 처리:** 동기화, 재시도, 충돌 처리는 공통 코드 안에서 처리하고 사용자 작업 화면에 드러내지 않는다.
+
+## 8. LLM 토론·조언
+
+- **질문 시작:** 어느 작업면에서나 선택한 대상으로 질문을 시작한다. 결과에 원 대화가 있으면 그 연구를 이어 가는 것을 기본으로 한다.
+- **읽기 도구:** 기본으로 허용한다. 모델 요약, solver 로그·수렴 이력, 메시 품질, 결과 요약, 지식 검색(solver 매뉴얼 색인).
+- **맥락 유지:** 이전 반론, 사용자 제약, 실패 이유를 다음 입력에 유지한다. 새 결과를 붙일 때 기존 선택을 지우지 않는다.
+- **변경과 실행:**
+  - 변경은 제안(전/후 비교)으로만 한다.
+  - 적용과 실행은 사용자가 누른다.
+  - LLM이 계산값을 만들지 않는다.
+- **연결:** OpenAI 호환 연결(로컬 LLM 포함)과 기존 ChatGPT 로그인 경로를 지원한다.
+- **검증:** 조언 기능은 실제 모델 호출로 확인한다. 고정 답변 테스트는 완료 근거가 아니다.
+
+## 9. 문서
+
+- **CURRENT_STATE:** 100줄 이하. 현재 목표, 진행 단계, 막힌 문제, 담당만 쓰고 주 1회 요약한다.
+- **사용자 문서(docs/user/):** 작업 안내와 참조만 쓴다. 커밋, 해시, PASS 수, 요청 ID를 넣지 않는다.
+- **ADR:** 공통 모델, 변환기 지원표, 허용 원칙을 바꿀 때만 짧게 쓴다.
+- **과거 기록(docs/history/, benchmarks/records/):** 필요할 때만 검색해서 읽는다. 그 문체와 어휘를 코드와 문서로 옮기지 않는다.
+
+## 10. 유지하는 기술 경계
+
+- **역할 분리:** LLM은 질문·계획·해석, 수치 엔진은 후보 생성, solver는 물리 계산을 맡는다.
+- **재사용 우선:**
+  - 기존 reader, 수치 엔진, JobManager, FreeCAD·ParaView 기능을 재사용한다.
+  - 같은 기능을 새로 만들기 전에 기존 오픈소스로 되는지 먼저 확인한다.
+- **테스트 정리:** 테스트로 연 FreeCAD·ParaView 프로세스는 직접 추적해서 닫는다.
+- **보안:** 자격증명과 회사 CAD·시험 데이터를 커밋하지 않는다.

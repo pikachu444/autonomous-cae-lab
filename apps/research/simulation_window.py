@@ -601,7 +601,7 @@ class SimulationWindow(PDEWindow):
 
     def reprocess_impact(self):
         run = self._impact_source_run()
-        if not run or self._busy or self.conflict:
+        if not run or self._busy or self.conflict or self._pending_command:
             return False
         key = (self.document['id'], self.document['session_id'], run['job_id'])
         request = self._impact_read_requests.get(key)
@@ -695,7 +695,7 @@ class SimulationWindow(PDEWindow):
             source = self._impact_source_run()
             key = (self.document['id'], self.document['session_id'], source['job_id']) if source else None
             uncertain = key in self._impact_read_requests
-            self.reprocess_impact_action.setEnabled(bool(source) and not self._busy and not self.conflict
+            self.reprocess_impact_action.setEnabled(bool(source) and not self._busy and not self.conflict and not self._pending_command
                                                    and (not self.local_dirty or uncertain))
             self.reprocess_impact_action.setText('결과 읽기 상태 확인…' if uncertain else '보존 결과 다시 읽기…')
         if hasattr(self, 'interface_history_action'):
@@ -724,6 +724,7 @@ class SimulationWindow(PDEWindow):
             self.issue_summary.setText('지원 모델과 조건 값을 확인하세요. 원 입력은 보관할 수 있습니다.')
 
     def new_document(self):
+        if self._pending_command or self._busy:return False
         keys = list(self.model_backends)
         labels = [MODELS.get(key, (key, ''))[0] for key in keys]
         selected, ok = QInputDialog.getItem(self, '새 해석 모델', '지원 모델', labels, 0, False)
@@ -737,6 +738,8 @@ class SimulationWindow(PDEWindow):
         self.open_document(title=self.document['title'] + ' 편집본', draft=self.edited_draft())
 
     def _abandon(self, after):
+        if self._pending_command:
+            return super()._abandon(after)
         if not self.local_dirty and not (self.document and self.document.get('dirty')):
             after(); return True
         answer = QMessageBox.question(self, self.tool_label + ' 모델', '다른 모델로 이동하거나 닫기 전에 현재 모델을 저장할까요?',
@@ -753,6 +756,8 @@ class SimulationWindow(PDEWindow):
             self._call(lambda: self.client.document_read(self.document['id']), self._opened)
 
     def closeEvent(self, event):
+        if self._pending_command and not self._allow_close:
+            return super().closeEvent(event)
         if self._allow_close:
             event.accept()
         elif self._busy:
@@ -775,6 +780,7 @@ class SimulationWindow(PDEWindow):
             event.accept()
 
     def choose_document(self):
+        if self._pending_command or self._busy:return False
         def accepted(documents):
             if isinstance(documents, dict): documents = documents.get('documents', [])
             rows = [row for row in documents if row.get('kind') == self.document_kind]

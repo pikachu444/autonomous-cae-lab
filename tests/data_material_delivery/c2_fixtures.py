@@ -38,7 +38,9 @@ class SyntheticPoint:
             'axes': [{'name': 'time', 'unit': 's', 'values': list(settings['time'])}]}},
             'diagnostics': {'execution_kind': 'SYNTHETIC_TEST_ONLY; NOT_FELUPE'}}
 
-def make_workbench(path):
+def make_workbench(path, monkeypatch):
+    from caelab import backends
+    monkeypatch.setattr(backends, '_registry', dict(backends._registry))
     register_backend(BACKEND, SyntheticPoint, roles=('model',), replace=True)
     return Workbench(path, configuration={'workers': 1, 'cpu_budget': 1})
 

@@ -109,6 +109,9 @@ class Native:
     def ColorBy(self, display, selection):
         self.selection = selection
 
+    def HideUnusedScalarBars(self, view):
+        assert view in self.views
+
     def PassArrays(self, registrationName, Input):
         return Source("PassArrays", [])
 
@@ -193,7 +196,7 @@ def test_temporal_open_selection_save_restore_and_dependency_guards(native, tmp_
     frame = entry.parent / "frames/one.vtu"
     frame.write_text("changed frame", encoding="utf-8")
     fake.loaded = False
-    with pytest.raises(RuntimeError, match="retained data changed"):
+    with pytest.raises(ValueError, match="CONTENT_CHANGED"):
         commands.restore_workspace()
     assert not fake.loaded
 
@@ -228,7 +231,7 @@ def test_dependencies_unsupported_and_registered_pins(native, tmp_path):
     with pytest.raises(ValueError, match="Supported result inputs"):
         external.source_files(unsupported)
     entry.write_text('<VTKFile type="Collection"><Collection><DataSet timestep="0" file="../outside.vtu"/></Collection></VTKFile>')
-    with pytest.raises(ValueError, match="relative local VTU"):
+    with pytest.raises(ValueError, match="contained relative local paths"):
         external.source_files(entry)
 
 
@@ -260,15 +263,15 @@ def test_unsafe_pvd_references_rejected_before_frame_access(native, tmp_path, re
     # Even the first legal reference is missing: all paths must be admitted before access.
     entry.write_text('<VTKFile type="Collection"><Collection><DataSet timestep="0" file="missing.vtu"/>'
                      f'<DataSet timestep="1" file="{reference}"/></Collection></VTKFile>', encoding="utf-8")
-    with pytest.raises(ValueError, match="relative local VTU"):
+    with pytest.raises(ValueError, match="contained relative local paths"):
         external.source_files(entry)
 
 
 @pytest.mark.parametrize("payload, message", [
-    (b'<!DOCTYPE VTKFile><VTKFile type="Collection"/>', "declarations and entities"),
-    (b'<!ENTITY injected "value"><VTKFile type="Collection"/>', "declarations and entities"),
-    (b'<VTKFile type="Collection"><Collection>', "Invalid PVD collection XML"),
-    (b'<VTKFile type="Collection">\xff</VTKFile>', "utf-8"),
+    (b'<!DOCTYPE VTKFile><VTKFile type="Collection"/>', "declarations/entities"),
+    (b'<!ENTITY injected "value"><VTKFile type="Collection"/>', "declarations/entities"),
+    (b'<VTKFile type="Collection"><Collection>', "Invalid native XML metadata"),
+    (b'<VTKFile type="Collection">\xff</VTKFile>', "Invalid native XML metadata"),
 ])
 def test_pvd_xml_admission(native, tmp_path, payload, message):
     _, _, external = native
@@ -283,12 +286,12 @@ def test_pvd_metadata_and_dataset_limits(native, tmp_path):
     entry = tmp_path / "oversized.pvd"
     with entry.open("wb") as stream:
         stream.truncate(8 * 1024 * 1024 + 1)
-    with pytest.raises(ValueError, match="exceeds 8 MiB"):
+    with pytest.raises(ValueError, match="exceeds its size limit"):
         external.source_files(entry)
     entry.write_text('<VTKFile type="Collection"><Collection>'
                      + '<DataSet timestep="0" file="missing.vtu"/>' * 1025
                      + '</Collection></VTKFile>', encoding="utf-8")
-    with pytest.raises(ValueError, match="at most 1024 datasets"):
+    with pytest.raises(ValueError, match="1..1024 frame datasets"):
         external.source_files(entry)
 
 

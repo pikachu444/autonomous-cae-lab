@@ -106,7 +106,7 @@ def test_exact_node_or_gauss_channel_reads_actual_bounded_candidate_curve_withou
     window = open_window(app, client)
     try:
         assert window.stages.rowCount() == 0
-        assert 'No stage graph was retained' in window.message.text()
+        assert '보존된 채널을 읽습니다' in window.message.text()
         assert 'stage calls' not in window.evaluations.currentText()
         window.native_location.setCurrentIndex(window.native_location.findData(selector))
         window.curve_start.setValue(1); window.curve_count.setValue(2)
@@ -120,14 +120,14 @@ def test_exact_node_or_gauss_channel_reads_actual_bounded_candidate_curve_withou
         assert window.curve_values.item(0, 0).text() == '104'
         assert window.curve_values.item(0, 1).text() == '0.125'
         assert window.curve_values.item(0, 2).text() == '20.0'
-        assert window.curve_values.item(0, 3).text() == 'excluded'
+        assert window.curve_values.item(0, 3).text() == '제외'
         assert list(window.curve_axes.lines[0].get_xdata()) == [.125, .25]
         plotted = list(window.curve_axes.lines[0].get_ydata())
         assert math.isnan(plotted[0]) and plotted[1] == 30.
         assert '[s]' in window.curve_axes.get_xlabel()
         assert 'retained/native.csv' in window.curve_metadata.toPlainText()
         assert not window.curve_metadata.isVisible()
-        assert 'No evaluation or adoption was executed' in window.message.text()
+        assert '계산이나 채택은 실행하지 않았습니다' in window.message.text()
         assert window.stages.rowCount() == 0
     finally:
         close(app, window, client)

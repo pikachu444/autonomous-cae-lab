@@ -31,6 +31,32 @@ def fragments(document):
         block = block.next()
 
 
+def test_conversation_resize_preserves_reading_turn_and_selection(app):
+    from apps.research.discussion_view import ConversationList
+    from PySide6.QtWidgets import QAbstractItemView
+    view = ConversationList()
+    turns = [{'id': 'T'+str(i), 'author': 'user', 'status': 'AUTHORED',
+              'text': ('Reading long original passage '+str(i)+' ') * 120} for i in range(4)]
+    try:
+        view.resize(1050, 600); view.show(); view.set_turns(turns)
+        for _ in range(4): app.processEvents()
+        view.setCurrentRow(3)
+        view.scrollToItem(view.item(1), QAbstractItemView.ScrollHint.PositionAtTop)
+        view.verticalScrollBar().setValue(view.verticalScrollBar().value()+27)
+        for _ in range(2): app.processEvents()
+        previous_top = view.visualItemRect(view.item(1)).top()
+        assert previous_top < 0
+        view.resize(680, 600)
+        for _ in range(5): app.processEvents()
+        assert view.currentRow() == 3
+        assert abs(view.visualItemRect(view.item(1)).top()-previous_top) <= 1
+        assert view._snapshot[0] == turns
+    finally:
+        view.close()
+        view.deleteLater()
+        app.processEvents()
+
+
 def test_markdown_math_copy_code_and_unsupported_original(app):
     source = r'**Measured** \(E=\frac{17}{0.004}\,\text{MPa}\) [17]' + '\n\n' + r'\[\unsupported{[17]}\]'
     source += '\n\n`[17] <a> & \\(x\\)`\n\n```python\na < b && c > d\n[17]\n```'

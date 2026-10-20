@@ -157,7 +157,10 @@ class MaterialPlanPanel(QWidget):
         law.addWidget(material.model,1);coefficient_layout.addLayout(law)
         self.bind_material_button=QPushButton('피팅 모델로 설정…')
         self.bind_material_button.clicked.connect(self.bind_current_material)
-        law.addWidget(self.bind_material_button)
+        if compact:
+            coefficient_layout.addWidget(self.bind_material_button,0,Qt.AlignmentFlag.AlignRight)
+        else:
+            law.addWidget(self.bind_material_button)
         self.coefficient_tabs=QTabWidget();self.coefficient_tabs.tabBar().hide()
         self.stack=QStackedWidget();self.empty=QLabel('계획을 만들거나 선택하세요.')
         self.stack.addWidget(self.empty);self.coefficient_tabs.addTab(self.stack,'시작값과 범위')
@@ -195,10 +198,8 @@ class MaterialPlanPanel(QWidget):
         self.restore_related_save_context(context_for(material,material.document['id']))
 
     def prepare_data(self):
-        from .data_window import DataWindow
-        window=DataWindow(self.client)
-        self.material.__dict__.setdefault('_data_windows',[]).append(window)
-        window.show()
+        from .desktop import launch_tool
+        launch_tool(self.client, 'data')
         self.message.setText('Data에서 파일의 열·단위를 확인하고 가져온 뒤, 이 창의 시험 추가를 누르세요.')
 
     def _whole_trial_row(self,row):
@@ -848,7 +849,9 @@ class MaterialPlanPanel(QWidget):
                 signature=candidate_signature
                 role='별도 확인' if curve.get('role')=='holdout' else '피팅'
                 pair=plot_fit_trial(figure,result,curve,show_residual=self.material.curve_view.currentData(),
-                    axes_pair=pair,observation_label='관측 ('+role+')',prediction_label='최종 예측 ('+role+')')
+                    axes_pair=pair,observation_label='관측 ('+role+')',
+                    prediction_label='최종 예측 ('+role+')' if result.get('execution_status')=='SUCCEEDED'
+                    and curve.get('execution_status')=='SUCCEEDED' else None)
             prediction_ax,residual_ax=pair
             name=self._source_titles.get(frozen['source'].get('document_id'),'시험 '+str(row+1))
             stale=run.get('draft')!=document['draft']

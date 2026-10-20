@@ -7,7 +7,7 @@ import os
 import tempfile
 
 from PySide6.QtCore import QByteArray, QUrl, QSizeF
-from PySide6.QtGui import QFont, QImage, QTextCharFormat, QTextCursor, QTextDocument, QTextImageFormat, QTextTableFormat, QPageSize
+from PySide6.QtGui import QFont, QImage, QTextCharFormat, QTextCursor, QTextDocument, QTextDocumentFragment, QTextImageFormat, QTextTableFormat, QPageSize
 from PySide6.QtPrintSupport import QPrinter
 from .experiment_labels import sample_reason, REDUCTIONS
 
@@ -289,7 +289,8 @@ def plot_bytes(curve):
 
 
 def compose(draft, assets, font):
-    document = QTextDocument()
+    from .readable_text import ReadingDocument, markdown_document
+    document = ReadingDocument()
     document.setDefaultFont(font)
     document.setPageSize(QSizeF(595, 842)); document.setDocumentMargin(36)
     document.section_positions = {}
@@ -298,8 +299,17 @@ def compose(draft, assets, font):
     heading = QTextCharFormat(normal); heading.setFontPointSize(18); heading.setFontWeight(QFont.Weight.Bold)
     subheading = QTextCharFormat(normal); subheading.setFontPointSize(13); subheading.setFontWeight(QFont.Weight.Bold)
     table_heading = QTextCharFormat(normal); table_heading.setFontWeight(QFont.Weight.Bold)
-    def paragraph(text, style=normal):
-        cursor.insertText(str(text), style); cursor.insertBlock()
+    def paragraph(text, style=normal, *, rich=False):
+        if rich and str(text).strip():
+            # The same safe Markdown renderer is used by reading windows. Keep
+            # equations literal here; report assets own all printable images.
+            fragment = markdown_document(str(text), font, math_images=False)
+            cursor.insertFragment(QTextDocumentFragment(fragment))
+            cursor.movePosition(QTextCursor.MoveOperation.End)
+            cursor.setCharFormat(normal)
+        else:
+            cursor.insertText(str(text), style)
+        cursor.insertBlock()
     paragraph(draft['title'], heading)
     images = 0
     for section in draft['sections']:
@@ -307,7 +317,7 @@ def compose(draft, assets, font):
             continue
         document.section_positions[section['id']] = cursor.position()
         paragraph(section['title'], subheading)
-        paragraph(section['text'])
+        paragraph(section['text'], rich=True)
         asset = assets.get((section.get('asset') or {}).get('id'))
         if section.get('asset') and (not asset or 'content' not in asset):
             paragraph('보존 자료를 읽지 못했습니다. 이 섹션의 원자료를 확인하세요.')
@@ -319,7 +329,7 @@ def compose(draft, assets, font):
             paragraph(availability_message(asset))
         for kind, value in blocks(asset['content']):
             if kind == 'paragraph':
-                paragraph(value)
+                paragraph(value, rich=True)
             elif kind == 'image':
                 from .report_image_pages import insert_image
                 insert_image(document, cursor, value, section, 'report-image:' + str(images))

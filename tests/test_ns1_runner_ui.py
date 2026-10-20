@@ -6,7 +6,7 @@ from copy import deepcopy
 from types import SimpleNamespace as NS
 import pytest
 W=pytest.importorskip('PySide6.QtWidgets')
-from test_pre_fem_panel_ui import app
+from test_pre_fem_edit import app
 from apps.research.contact_run_dialog import ContactRunDialog
 
 

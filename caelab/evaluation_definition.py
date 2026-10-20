@@ -203,8 +203,14 @@ def compile_definition(draft, snapshots):
         ports = adapter.describe_ports(model['settings']) if callable(getattr(adapter, 'describe_ports', None)) else {'inputs': {}, 'outputs': {}}
         if draft['iteration']['enabled'] and not getattr(adapter, 'restart_safe', False):
             raise ValueError(stage['id'] + ': this adapter has no stateless iteration restart contract')
+        if model['backend'] == 'structure.calculix.conservative_load' and 'nodal_load' in model['settings']:
+            raise ValueError('A conservative load must come from this evaluation transfer, not a prebound draft')
         compiled[stage['id']] = {'model': model, 'ports': ports}
     for row in draft['transfers']:
+        if row['mapping'] == 'tri6_conservative_load':
+            from .evaluation_load_mapping import compile_transfer
+            compile_transfer(row, compiled)
+            continue
         if row['mapping'] == 'p1_temperature':
             from .evaluation_temperature_mapping import compile_transfer
             compile_transfer(row, compiled)
@@ -384,6 +390,11 @@ def execute(compiled, output, run_stage, *, values=None, reuse_result=None, reus
                     source_set = previous if transfer['lag'] else current
                     if transfer['lag'] and iteration == 0:
                         continue  # Adapter explicitly declares an optional, domain-owned initial seed.
+                    if transfer['mapping'] == 'tri6_conservative_load':
+                        from .evaluation_load_mapping import bind_transfer
+                        model['settings'] = bind_transfer(transfer, model, source_set, result, iteration, output, definition['stages'])
+                        progress('TRANSFER_VALIDATED', active_attempt=attempt_id)
+                        continue
                     if transfer['mapping'] == 'p1_temperature':
                         from .evaluation_temperature_mapping import bind_transfer
                         model['settings'] = bind_transfer(transfer, model, source_set, result, iteration, output, definition['stages'])

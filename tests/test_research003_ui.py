@@ -72,7 +72,7 @@ def test_native_material_source_editor_contract_without_simulation_changes(servi
     try:
         wait(lambda:window.document and not window._busy,app)
         assert window.new_action.text()=='새 구성식…'
-        assert window.evaluate_button.text()=='빌드만 실행'
+        assert window.evaluate_button.text()=='모델 평가'
         window.tree.setCurrentItem(window._nodes[('settings','source')]);app.processEvents()
         assert ('settings','source') not in window.fields # source editor is separate, not a giant inline field
         assert window.edited_draft()==draft and not service[0].manager.list()

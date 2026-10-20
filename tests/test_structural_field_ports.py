@@ -353,6 +353,21 @@ def test_source_static_location_uses_retained_step_local_coordinate(tmp_path):
     with pytest.raises(ValueError,match='step location'):read(paths)
 
 
+def test_receiver_uses_body_local_sparse_native_ids_without_reordering(tmp_path):
+    _, _, _, mesh, _ = fixture(tmp_path)
+    for row in mesh['nodes']:
+        row.update(body_id='UserSolid', native_node_id=500 + row['node_id'] * 7)
+    for row in mesh['elements']:
+        row.update(body_id='UserSolid', native_node_id=73)
+        row['native_node_ids'] = [500 + n * 7 for n in row['native_node_ids']]
+    original = deepcopy(mesh)
+    receiver = receiver_from_capture(mesh, [[1, 1]], [1], coordinate_frame='receiver_global')
+    assert receiver['node_ids'] == list(range(1, 11)) and mesh == original
+    mesh['elements'][0]['native_node_ids'][0] += 1
+    with pytest.raises(ValueError, match='body-local connectivity'):
+        receiver_from_capture(mesh, [[1, 1]], [1], coordinate_frame='receiver_global')
+
+
 def test_snapshot_preserves_an_unrelated_support_with_the_imported_boundary(tmp_path):
     from test_structural_transfer_binding import captured_case
     from caelab.evaluation import file_hash

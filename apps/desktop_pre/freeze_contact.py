@@ -52,9 +52,26 @@ def _native_force_table(node_load_table):
     return table
 
 
-def collect(analysis, solver, fem, *, capture_only=False, for_displacement_transfer=False):
+def collect(analysis, solver, fem, *, capture_only=False, for_displacement_transfer=False,
+            for_initial_fields=False, _aster_hard=False, _implicit_interface=False):
     if type(for_displacement_transfer) is not bool or (for_displacement_transfer and not capture_only):
         raise ValueError('Displacement transfer preparation requires an explicit read-only capture')
+    if type(for_initial_fields) is not bool or (for_initial_fields and not capture_only):
+        raise ValueError('Initial-field preparation requires an explicit read-only capture')
+    if type(_aster_hard) is not bool or (_aster_hard and (for_initial_fields or for_displacement_transfer)):
+        raise ValueError('Aster contact requires its own capture profile')
+    if (type(_implicit_interface) is not bool or (_implicit_interface and
+            (_aster_hard or for_initial_fields or for_displacement_transfer))):
+        raise ValueError('Aster interfaces require their own capture profile')
+    aster_mesh = _aster_hard or _implicit_interface
+    if aster_mesh:
+        from caelab.adapters.contact_aster_model import (assemble, surface_union as union,
+            validate_model as validate, mesh_quality, BACKEND)
+        if _implicit_interface:
+            from caelab.implicit_interface import BACKEND
+            from caelab.adapters.implicit_interface_aster import validate_model as validate
+    else:
+        assemble, union, validate = separate_meshes, surface_union, validate_model
     from caelab.material_fe_transfer import guard_other_export
     guard_other_export(fem.owner, analysis.Name)
     if threading.current_thread() is not threading.main_thread():
@@ -78,7 +95,7 @@ def collect(analysis, solver, fem, *, capture_only=False, for_displacement_trans
     dynamic_record = owner.read_metadata().get('dynamic_programs', {}).get(analysis.Name)
     if for_displacement_transfer and dynamic_record:
         raise ValueError('Displacement transfer currently supports one linear STATIC stage without dynamic state')
-    program = None if capture_only and not for_displacement_transfer else (deepcopy(dynamic_record['draft']['program']) if dynamic_record else
+    program = None if capture_only and not (for_displacement_transfer or for_initial_fields or _implicit_interface) else (deepcopy(dynamic_record['draft']['program']) if dynamic_record else
                                          deepcopy(programs[0]['draft']) if programs else None)
     procedure = program.get('procedure') if program else 'static'
     if procedure not in ('static', 'dynamic', 'mixed'):
@@ -109,7 +126,9 @@ def collect(analysis, solver, fem, *, capture_only=False, for_displacement_trans
         raise ValueError('소성 객체의 기본 재료가 이 해석의 활성 고체 재료가 아닙니다.')
     if solver.MaterialNonlinearity != ('nonlinear' if nonlinear else 'linear'):
         raise ValueError('재료 비선형 설정과 활성 소성 재료가 일치하지 않습니다. 재료를 명시 적용하세요.')
-    allowed = [solver, *meshes, *nonlinear, *[owner._object(row['object_id']) for row in records]]
+    from .initial_field_native import allowed_members as initial_members
+    allowed = [solver, *meshes, *nonlinear, *initial_members(fem,analysis,capture_only=capture_only),
+               *[owner._object(row['object_id']) for row in records]]
     for group in (members.mats_linear, members.cons_fixed, members.cons_displacement, members.cons_force):
         allowed.extend(row['Object'] for row in group)
     if any(obj not in allowed for obj in active):
@@ -121,7 +140,7 @@ def collect(analysis, solver, fem, *, capture_only=False, for_displacement_trans
                 len(source.Shape.Solids) != 1 or source.Name in bodies):
             raise ValueError('Use one native mesh per distinct valid solid body')
         binding = owner.mesh_bindings.validate(mesh)
-        quality = fem.quality(mesh, offset=0, limit=1)
+        quality = ({'bad_element_count':0, 'gate':'CHECKED_AFTER_ASSEMBLY'} if aster_mesh else fem.quality(mesh, offset=0, limit=1))
         if quality['bad_element_count'] or not mesh.FemMesh.Volumes:
             raise ValueError(mesh.Label + ': repair failed C3D10 quality rows and regenerate')
         local_member = membertools.AnalysisMember(analysis)
@@ -132,23 +151,26 @@ def collect(analysis, solver, fem, *, capture_only=False, for_displacement_trans
             raise ValueError(mesh.Label + ': native whole-solid mapping does not cover this mesh')
         nodes = [{'node_id': int(n), 'position_mm': [number(p.x), number(p.y), number(p.z)]}
                  for n, p in sorted(mesh.FemMesh.Nodes.items())]
-        elements = [{'element_id': int(e), 'type': 'C3D10',
+        elements = [{'element_id': int(e), 'type': ({10:'C3D10',8:'C3D8'}.get(len(mesh.FemMesh.getElementNodes(e)), 'UNSUPPORTED') if aster_mesh else 'C3D10'),
                      'native_node_ids': list(map(int, mesh.FemMesh.getElementNodes(e)))} for e in sorted(ids)]
         bodies[source.Name] = {'object': source, 'mesh': mesh, 'getter': getter, 'binding': binding,
                                'quality': quality, 'target': _target(source, ['Solid1'])}
         source_rows.append({'body_id': source.Name, 'nodes': nodes, 'elements': elements})
-    if not records and len(source_rows) != 1:
+    if not records and not _implicit_interface and len(source_rows) != 1:
         raise ValueError('무접촉 첫 지원은 하나의 고체 body와 메시입니다.')
-    assembled = separate_meshes(source_rows, minimum_bodies=2 if records else 1)
+    assembled = assemble(source_rows, minimum_bodies=2 if records or _implicit_interface else 1)
     for row in assembled['nodes']:
         row['native_position_mm'] = row['position_mm']
         row['position_mm'] = [float(format(v, '.13G')) for v in row['position_mm']]
-    for row in assembled['elements']:
-        row['type'] = 'C3D10'
+    if not aster_mesh:
+        for row in assembled['elements']:
+            row['type'] = 'C3D10'
     model = dict(assembled, kind='freecad-contact-mesh', schema_version='1', units=dict(UNITS),
                  materials=[], contacts=[], boundary_dofs=[], loads=[], conditions=[],
                  output={'frequency': 1, 'nodal': ['U', 'CDIS', 'CSTR'], 'pair': ['CF', 'CFN', 'CFS']})
-    if not records:
+    if aster_mesh:
+        model['backend'] = BACKEND
+    if not records and not _implicit_interface:
         model['analysis_scope'] = 'single_solid_static'
     mappings = assembled['body_maps']
     for record in records:
@@ -165,7 +187,7 @@ def collect(analysis, solver, fem, *, capture_only=False, for_displacement_trans
                 if not is_sub:
                     raise ValueError('Contact must map each CAD face to volume element faces')
                 mapped_faces.append({'face': face['name'], 'element_faces': [(int(e), int(f)) for e, f in entries]})
-            pair[side] = surface_union(target['object_id'], mapped_faces, mappings)
+            pair[side] = union(target['object_id'], mapped_faces, mappings)
             pair[side]['source_target'] = deepcopy(target)
         model['contacts'].append(pair)
     for row in members.mats_linear:
@@ -323,10 +345,16 @@ def collect(analysis, solver, fem, *, capture_only=False, for_displacement_trans
     freeze_periodic(fem, analysis, bodies, model)
     from .pretension_native import freeze as freeze_pretension
     freeze_pretension(fem, analysis, bodies, model)
+    from .implicit_interface_native import freeze as freeze_interface
+    freeze_interface(fem, analysis, bodies, model, capture_only=capture_only)
+    from .initial_field_native import freeze as freeze_initial
+    freeze_initial(fem, analysis, bodies, model, capture_only=capture_only)
+    if aster_mesh:
+        model['source_bodies'] = deepcopy(identity)
     if for_displacement_transfer:
         validate_model(model, allow_unrestrained_capture=True)
     else:
-        validate_model(model)
+        validate(model)
     return model, identity
 
 

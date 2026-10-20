@@ -64,7 +64,7 @@ def test_delayed_interface_requires_exact_existing_pair_and_clock_not_event(app)
     try:
         dialog.mode.setCurrentIndex(dialog.mode.findData('DELAYED_TYPE24_REQUIRE_DELETION'))
         dialog.pair.setCurrentIndex(dialog.pair.findData(0));dialog.check();assert '활성 시각' in dialog.status.text()
-        dialog.start.setText('.001');dialog.check();assert '확인됨' in dialog.status.text()
+        dialog.start.setText('.001');dialog.check();assert '입력의 대응면과 정책을 확인했습니다' in dialog.status.text()
         dialog.apply();row=dialog.applied['interface_controls'][0]
         assert row['contact_index']==0 and row['contact_start_s']==.001
         assert row['compression']=='INTACT_COMPRESSION_ISYM0'
@@ -92,7 +92,7 @@ def test_native_rad_keeps_b_unavailable_without_erasing_draft(app):
     settings['bulk_damage']=[impact_bulk.default_law('UNSUPPORTED_NATIVE')];original=deepcopy(settings);editor=ImpactEditor(settings)
     try:
         assert editor.bulk_page.native and all(not button.isEnabled() for button in editor.bulk_page.actions.values())
-        assert '지원하지 않습니다' in editor.bulk_page.note.text()
+        assert '재료·이력 출력 카드가 없어' in editor.bulk_page.note.text()
         assert editor.edited()['bulk_damage']==original['bulk_damage']
     finally:release(app,editor)
 
@@ -182,7 +182,7 @@ def test_task_labels_and_optional_support_keep_physical_contract_visible(app,mon
         bulk.support.click();interface.support.click();editor.bulk_page.support.click()
         assert len(opened)==3 and 'EPSD/SR_REF' in opened[0][1] and 'DPLA/dt' in opened[0][1]
         assert '솔버 실행·교정 유효성·공학 승인' in opened[0][1]
-        assert '자동 요소 삭제 이벤트가 아닙니다' in opened[1][1] and '압축 이중계상' in opened[1][1]
+        assert '자동 삭제 감지가 아닙니다' in opened[1][1] and 'OFF가 정확히 0' in opened[1][1]
         assert '공학 승인' not in editor.bulk_page.note.text()
         bulk.check();assert '시험 중인' in bulk.status.text() and '공학 승인' not in bulk.status.text()
         bulk.fields['gf'].setText('1e');bulk.check();assert 'Gf' in bulk.status.text() and 'UNKNOWN' not in bulk.status.text()

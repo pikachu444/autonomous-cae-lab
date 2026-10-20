@@ -72,6 +72,9 @@ def inspect_retained(wb,document_id,job_id,folder,frozen,progress,read_stage,
     declaration=_one(declarations,lambda row:row['id']==transfer_id,'보존 정의에 없는 전달입니다.')
     for key in ('from_stage','to_stage','input','mapping'):
         if receipt[key]!=declaration[key]: raise ValueError('전달 기록과 보존 정의가 다릅니다.')
+    if declaration['mapping']=='tri6_conservative_load':
+        from .load_transfer_inspection import inspect_mapped
+        return inspect_mapped(wb,document_id,job_id,result,declaration,receipt,frozen,progress,start=start,count=count,folder=folder,read_stage=read_stage)
     if declaration['mapping']=='p1_temperature':
         from .temperature_transfer_inspection import inspect_mapped
         return inspect_mapped(wb,document_id,job_id,result,declaration,receipt,frozen,progress,start=start,count=count,folder=folder,read_stage=read_stage)

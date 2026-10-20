@@ -10,7 +10,7 @@ def show_input(manifest, W, C, *, parent=None):
     if data.get('kind')=='freecad-contact-frozen':
         from caelab.adapters.contact_fem import validate_snapshot
         validate_snapshot(manifest)
-    entries=[r for r in data.get('files',[]) if str(r.get('relative','')).lower().endswith('.inp')]
+    entries=[r for r in data.get('files',[]) if Path(str(r.get('relative',''))).suffix.lower() in ('.inp', '.comm', '.mail')]
     if not entries:
         raise ValueError('보존된 입력 파일을 찾지 못했습니다')
     G=importlib.import_module(W.__package__+'.QtGui')
@@ -39,7 +39,8 @@ def show_input(manifest, W, C, *, parent=None):
         except Exception as error: status.setText(str(error)); text.clear()
     def save():
         source,raw=read()
-        selected,_=W.QFileDialog.getSaveFileName(dialog,'입력 파일 저장',source.name,'CalculiX (*.inp)')
+        file_filter = 'Code_Aster (*.comm *.mail)' if source.suffix.lower() in ('.comm', '.mail') else 'CalculiX (*.inp)'
+        selected,_=W.QFileDialog.getSaveFileName(dialog,'입력 파일 저장',source.name,file_filter)
         if not selected: return
         target=Path(selected).resolve()
         if target.is_relative_to(manifest.parent):

@@ -7,7 +7,7 @@ from types import SimpleNamespace as NS
 
 import pytest
 
-from apps.desktop_pre.freeze_analysis import freeze_analysis, _serialized_coordinate_close
+from apps.desktop_pre.freeze_analysis import _freeze_legacy_analysis as freeze_analysis, _serialized_coordinate_close
 
 
 class Quantity:
@@ -26,6 +26,7 @@ def native(monkeypatch, tmp_path):
     source = tmp_path / "original.FCStd"
     source.write_bytes(b"original document")
     doc = NS(Name="UserDocument", FileName=str(source), Objects=[], touched=False)
+    doc.getObject = lambda name: next((obj for obj in doc.Objects if obj.Name == name), None)
     doc.isTouched = lambda: doc.touched
     copies, writes = [], []
     def save_copy(path):

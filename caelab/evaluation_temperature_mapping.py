@@ -14,6 +14,9 @@ ROW_KEYS = {'id', 'from_stage', 'output', 'to_stage', 'input', 'mapping', 'lag'}
 
 
 def validate_row(row, stage_ids):
+    if isinstance(row, dict) and row.get('mapping') == 'tri6_conservative_load':
+        from .evaluation_load_mapping import validate_row as validate_load
+        return validate_load(row, stage_ids)
     if not isinstance(row, dict):
         raise ValueError('Transfer must be an explicit object')
     if row.get('mapping') == 'exact_same_mesh':
@@ -41,6 +44,14 @@ def compile_transfer(row, compiled):
         raise ValueError(row['id'] + ': receiving port does not advertise scalar P1 temperature mapping')
     if target.get('quantity') != options['target_quantity'] or target.get('unit') != options['target_unit']:
         raise ValueError(row['id'] + ': mapping quantity/unit must equal the explicit receiver port')
+    hex8 = target.get('receiver_geometry') == 'Hex8'
+    if hex8:
+        if (compiled[row['to_stage']]['model']['backend'] != 'structure.felupe.law_native'
+                or target.get('basis') != 'Hex8_nodal_samples'
+                or not isinstance(target.get('clock'), dict)
+                or target['clock'].get('origin') != options['time']['receiver']['origin']
+                or transfer.clock(target['clock']) != transfer.clock(options['time']['receiver'])):
+            raise ValueError(row['id'] + ': choose the exact declared Hex8 temperature history slot')
     for snapshot in options['time']['sources']:
         source = compiled[snapshot['stage']]['ports']['outputs'].get(snapshot['output'])
         if not source or source.get('quantity') != transfer.ABSOLUTE or source.get('unit') not in transfer.ABS_UNITS:
@@ -51,6 +62,8 @@ def compile_transfer(row, compiled):
             if source.get(key) != value:
                 raise ValueError(row['id'] + ': incompatible source ' + key)
         for key in ('kind', 'association', 'component', 'location', 'frame', 'coordinate_units', 'coordinate_frame', 'basis'):
+            if hex8 and key == 'basis':
+                continue
             if target.get(key) != source.get(key):
                 raise ValueError(row['id'] + ': incompatible receiver ' + key)
     if row['lag'] and target.get('required'):
@@ -82,7 +95,11 @@ def bind_transfer(row, model, source_set, run_result, iteration, output, stages)
                 'source_response_sha256': canonical_hash(response),
                 'capture_sha256': response.get('capture_sha256') if isinstance(response, dict) else None})
             fields.append(response)
-        mapped, receipt = transfer.map_temperature(fields, model['settings'], row['options'], source_refs=references)
+        if model['backend'] == 'structure.felupe.law_native':
+            from .temperature_receiver_3d import map_temperature
+        else:
+            map_temperature = transfer.map_temperature
+        mapped, receipt = map_temperature(fields, model['settings'], row['options'], source_refs=references)
         # The receiver's own capability/clock/material binding remains final.
         settings = get_backend(model['backend']).bind_port(model['settings'], row['input'], mapped)
         receipt['receiver_bound_settings_sha256'] = canonical_hash(settings)

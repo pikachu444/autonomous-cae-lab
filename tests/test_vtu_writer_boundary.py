@@ -1,5 +1,6 @@
 """Byte parity with the writer retained from 9c001eb before extraction."""
 import math
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -40,7 +41,13 @@ class WriterBoundaryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             actual = Path(directory) / 'result.vtu'
             write_vtu(actual, raw, extra)
-            self.assertEqual(actual.read_bytes(), expected.read_bytes())
+            # The retained Windows output has a CRLF XML declaration. Both the
+            # original and extracted ElementTree writers use the host newline;
+            # preserve every array byte and adapt only that declaration break.
+            retained = expected.read_bytes()
+            self.assertEqual(retained.count(b'\r\n'), 1)
+            host_bytes = retained.replace(b'?>\r\n<VTKFile', b'?>' + os.linesep.encode('ascii') + b'<VTKFile', 1)
+            self.assertEqual(actual.read_bytes(), host_bytes)
 
 
 if __name__ == '__main__':

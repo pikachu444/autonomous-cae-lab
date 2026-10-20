@@ -68,3 +68,84 @@ diff --git a/src/frontend/MainWin.cpp b/src/frontend/MainWin.cpp
 +    if (auto* bridge = CaelabDataBridge::from(this); bridge && bridge->requiresCoreSave())
 +        return bridge->saveConnected(fileName);
  	DEBUG(Q_FUNC_INFO << ", file name = " << fileName.toStdString())
+diff --git a/src/backend/spreadsheet/SpreadsheetModel.cpp b/src/backend/spreadsheet/SpreadsheetModel.cpp
+--- a/src/backend/spreadsheet/SpreadsheetModel.cpp
++++ b/src/backend/spreadsheet/SpreadsheetModel.cpp
+@@ -226,2 +226,12 @@ QVariant SpreadsheetModel::headerData(int section, Qt::Orientation orientation, int role) const {
+ 	case Qt::Horizontal:
++        // Only linked source columns use compact name/unit/role presentation.
++        // Values, edit identity and independent LabPlot columns stay unchanged.
++        if (const auto* column = m_spreadsheet->child<Column>(section); column->property("caelab_source_header").isValid()) {
++            if (role == Qt::DisplayRole)
++                return column->property("caelab_source_header");
++            if (role == Qt::ToolTipRole)
++                return column->property("caelab_source_tooltip");
++            if (role == Qt::DecorationRole)
++                return {};
++        }
+ 		switch (role) {
+diff --git a/src/frontend/spreadsheet/SpreadsheetView.cpp b/src/frontend/spreadsheet/SpreadsheetView.cpp
+--- a/src/frontend/spreadsheet/SpreadsheetView.cpp
++++ b/src/frontend/spreadsheet/SpreadsheetView.cpp
+@@ -1124,2 +1124,6 @@
+ void SpreadsheetView::handleHorizontalSectionMoved(int index, int from, int to) {
++    // A bound source table reorders only its view. Its logical columns are
++    // indexed by the Core mapping and must never move with a header drag.
++    if (m_spreadsheet->property("caelab_source_view_order").toBool())
++        return;
+ 	static bool inside = false;
+@@ -1181,5 +1185,15 @@ void SpreadsheetView::handleHeaderDataChanged(Qt::Orientation orientation, int first, int last) {
+ 	if (orientation != Qt::Horizontal)
+ 		return;
++    // Mapping labels can change without a user resizing the raw table. Keep
++    // the source column width instead of shrinking it to a short numeric cell.
++    if (m_spreadsheet->property("caelab_source_view_order").toBool()) {
++        for (int index = first; index <= last; ++index) {
++            const auto width = m_spreadsheet->column(index)->width();
++            if (width > 0)
++                m_tableView->setColumnWidth(index, width);
++        }
++        return;
++    }
+ 
+ 	for (int index = first; index <= last; ++index)
+ 		m_tableView->resizeColumnToContents(index);
+diff --git a/src/frontend/spreadsheet/SpreadsheetHeaderView.cpp b/src/frontend/spreadsheet/SpreadsheetHeaderView.cpp
+--- a/src/frontend/spreadsheet/SpreadsheetHeaderView.cpp
++++ b/src/frontend/spreadsheet/SpreadsheetHeaderView.cpp
+@@ -17,2 +17,3 @@
+ #include <QPainter>
++#include <QStyleOptionHeader>
+ #include <QHelpEvent>
+@@ -173,3 +174,17 @@ void SpreadsheetHeaderView::paintSection(QPainter* painter, const QRect& rect, int logicalIndex) const {
+ 	painter->save();
+-	QHeaderView::paintSection(painter, master_rect, logicalIndex);
++    const auto caption = m_spreadsheet->column(logicalIndex)->property("caelab_source_header");
++    if (caption.isValid()) {
++        QStyleOptionHeader option;
++        initStyleOption(&option);
++        initStyleOptionForIndex(&option, logicalIndex);
++        option.rect = master_rect;
++        const auto lines = caption.toString().split(QLatin1Char('\n'));
++        // Elide the name separately: a long name must not consume the unit
++        // line. The model and tooltip retain the complete original captions.
++        option.text = fontMetrics().elidedText(lines.value(0), Qt::ElideRight, qMax(1, master_rect.width() - 12));
++        if (lines.size() > 1)
++            option.text += QLatin1Char('\n') + lines.mid(1).join(QLatin1Char('\n'));
++        style()->drawControl(QStyle::CE_Header, &option, painter, this);
++    } else
++        QHeaderView::paintSection(painter, master_rect, logicalIndex);
+ 	painter->restore();
+diff --git a/src/frontend/ActionsManager.cpp b/src/frontend/ActionsManager.cpp
+--- a/src/frontend/ActionsManager.cpp
++++ b/src/frontend/ActionsManager.cpp
+@@ -1216,3 +1216,3 @@
+ 		auto* toolbar = qobject_cast<QToolBar*>(factory->container(QStringLiteral("worksheet_toolbar"), m_mainWindow));
+-		toolbar->setVisible(true);
++		toolbar->setVisible(!toolbar->property("caelab_default_collapsed").toBool());
+ 		toolbar->setEnabled(true);
+@@ -1222,3 +1222,3 @@
+ 		toolbar = qobject_cast<QToolBar*>(factory->container(QStringLiteral("cartesian_plot_toolbar"), m_mainWindow));
+-		toolbar->setVisible(true);
++		toolbar->setVisible(!toolbar->property("caelab_default_collapsed").toBool());
+ 		toolbar->setEnabled(true);

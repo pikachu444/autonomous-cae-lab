@@ -20,6 +20,11 @@ HOST_LOCALAPPDATA = os.environ.get('LOCALAPPDATA')
 
 @pytest.fixture(autouse=True)
 def isolated(tmp_path, monkeypatch):
+    # These fixtures create Windows .exe installations on every test host.
+    # Keep real file discovery, with explicit platform overrides still honored.
+    discover = native_tools.discover
+    monkeypatch.setattr(native_tools, 'discover',
+        lambda key, **kwargs: discover(key, **{'platform': 'win32', **kwargs}))
     for key in ('CAELAB_FREECAD_EXE','CAELAB_PARAVIEW_EXE','CAE_POST_EXIT_PLUGIN',
                 'CAE_POST_PARAVIEW_ROOT','ProgramFiles','ProgramFiles(x86)','LOCALAPPDATA'):
         monkeypatch.delenv(key, raising=False)
@@ -28,12 +33,15 @@ def isolated(tmp_path, monkeypatch):
     monkeypatch.setattr(native_tools, 'saved_executable', lambda key: None)
     preference_file = tmp_path / 'preferences.ini'
     monkeypatch.setattr(desktop, '_native_settings', lambda: QSettings(str(preference_file), QSettings.Format.IniFormat))
+    monkeypatch.setattr(desktop, '_choose_file', lambda *args: pytest.fail('Unexpected file picker for this installed-file fixture'))
 
 
 def installed(tmp_path, name='FreeCAD.exe'):
     path = tmp_path / name
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(b'TEST_ONLY_NOT_AN_EXECUTABLE')
+    if os.name != 'nt':
+        path.chmod(0o755)
     return path.resolve()
 
 
@@ -82,9 +90,9 @@ def test_windows_bounded_folders_app_paths_path_and_sdk_deduplicate_without_vers
     sdk=installed(tmp_path/'sdk'/'bin','paraview.exe')
     monkeypatch.setattr(native_tools,'_windows_app_paths',lambda name:[])
     env={'PATH':'','CAE_POST_PARAVIEW_ROOT':str(sdk.parent.parent)}
-    assert native_tools.discover('paraview_executable',environment=env)['status']=='NOT_FOUND'
+    assert native_tools.discover('paraview_executable',environment=env,platform='win32')['status']=='NOT_FOUND'
     env['CAE_POST_EXIT_PLUGIN']='explicit-plugin-path'
-    assert native_tools.discover('paraview_executable',environment=env)['path']==str(sdk)
+    assert native_tools.discover('paraview_executable',environment=env,platform='win32')['path']==str(sdk)
 
 
 def test_non_windows_uses_explicit_or_path_without_windows_registry(tmp_path,monkeypatch):

@@ -257,6 +257,7 @@ def test_registered_role_details_keep_selection_question_and_actual_model(tmp_pa
             index = next(i for i in range(window.roles.count())
                          if window.roles.item(i).data(Qt.ItemDataRole.UserRole) == 'testing')
             window.roles.setCurrentRow(index)
+            selected_item = window.roles.currentItem()
             assert '(예제)' in window.roles.currentItem().text()
             populated = []
             original_populate = window._populate_roles
@@ -264,9 +265,10 @@ def test_registered_role_details_keep_selection_question_and_actual_model(tmp_pa
                 original_populate(selected)
                 populated.append(True)
             monkeypatch.setattr(window, '_populate_roles', observed)
-            # A real clean-document poll rebuilds roles; preserve exact selection.
+            # A clean poll keeps the checkbox item alive while users interact.
             wait(app, lambda: bool(populated) and not window._busy)
             assert window.roles.currentItem().data(Qt.ItemDataRole.UserRole) == 'testing'
+            assert window.roles.currentItem() is selected_item
             window.question.setPlainText('Keep my unsaved question while reading this role.')
             before = deepcopy(window.edited_draft())
             remote = deepcopy(wb.document_read(window.document['id'])['draft'])

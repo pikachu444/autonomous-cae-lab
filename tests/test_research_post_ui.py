@@ -305,7 +305,8 @@ def test_comparison_declarations_preview_apply_actual_sample_callbacks(app, wind
     assert window._object_ref == 'A1' and window.apply_button.isEnabled()
     window.apply_button.click()
     wait(app, lambda: window._pending is None and not window._busy)
-    assert window.client.calls[-1][1:] == ('post.apply', {'object_ref': 'A1'})
+    assert window.client.calls[-2][1:] == ('post.apply', {'object_ref': 'A1'})
+    assert window.client.calls[-1][1] == 'post.sample'
     window.point_index.setText('4')
     window.read_samples()
     wait(app, lambda: window._samples is not None and window._pending is None and not window._busy)
@@ -451,7 +452,8 @@ def test_exact_native_view_selection_apply_show_overlay_source_and_disappeared_v
     wait(app, lambda: not window._busy and window._pending is None and len(window.client.calls) == 2)
     window.apply_button.click()
     wait(app, lambda: not window._busy and window._pending is None)
-    assert window.client.calls[-1][1:] == ('post.apply', {'object_ref': 'A1', 'view_id': '302'})
+    assert window.client.calls[-2][1:] == ('post.apply', {'object_ref': 'A1', 'view_id': '302'})
+    assert window.client.calls[-1][1] == 'post.sample'
     edit(window, ('array',), 'unfinished new local array')
     snapshot = window.edited_draft()
     assert window.show_applied_button.isEnabled()

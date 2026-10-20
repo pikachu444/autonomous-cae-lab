@@ -121,12 +121,12 @@ class CaelabDataBridge : public QObject {
     QJsonObject pendingApply;
     QMenu* menu;
     QAction *readAction, *excludeAction;
-    QAction *applyAction, *saveAction, *prepareAction, *materialAction, *retryAction;
+    QAction *applyAction, *saveAction, *prepareAction, *materialAction, *retryAction, *discussAction;
     QAction *settingsAction, *tableAction, *curveAction;
     QWidget* channelPane{nullptr};
     QLabel* channelSummary{nullptr};
     QComboBox* channelChoices{nullptr};
-    bool updatingChannelPane{false}, sourceEditQueued{false}, analysisLayout{false}, narrowLayout{false};
+    bool updatingChannelPane{false}, sourceEditQueued{false}, analysisLayout{false}, narrowLayout{false}, compactToolsPrepared{false};
     CaelabDataSettingsDialog::Section nextMappingSection{CaelabDataSettingsDialog::Section::All}, sourceColumnSection{CaelabDataSettingsDialog::Section::Channel};
     QString prepareJob;
     QJsonObject lastPrepareJob;
@@ -324,6 +324,7 @@ class CaelabDataBridge : public QObject {
         saveAction->setEnabled(ready);
         prepareAction->setEnabled(ready && draft == baseline.value(text("draft")).toObject() && baseline.value(text("diagnostics")).toArray().isEmpty());
         materialAction->setEnabled(ready && !importedReference.value(text("job_id")).toString().isEmpty());
+        discussAction->setEnabled(ready && draft == baseline.value(text("draft")).toObject());
         retryAction->setEnabled(!pendingApply.isEmpty() || pendingView() || !prepareJob.isEmpty());
     }
     bool eventFilter(QObject* watched, QEvent* event) override {
@@ -393,6 +394,14 @@ class CaelabDataBridge : public QObject {
         const auto document = preparedDocument.isEmpty() ? request(documentPath()) : preparedDocument;
         if (!lease) lease = prepareActivation(document);
         if (lease->forwarded) return;
+        auto* explorerTree = window->m_projectExplorer->findChild<QTreeView*>();
+        const bool animated = explorerTree && explorerTree->isAnimated();
+        // Expansion animations cache the old names/columns while the source
+        // workbook is being assembled. User-initiated expansion stays animated.
+        if (explorerTree) explorerTree->setAnimated(false);
+        const auto restoreAnimation = qScopeGuard([explorerTree, animated] {
+            if (explorerTree) explorerTree->setAnimated(animated);
+        });
         baseline = document; draft = baseline.value(text("draft")).toObject(); ++loadEpoch;
         importedReference = {}; savedAck = {};
         inputConflict = false;
@@ -466,14 +475,18 @@ class CaelabDataBridge : public QObject {
             worksheet->setLayout(Worksheet::Layout::VerticalLayout);
             worksheet->setProperty("caelab_data_analysis", true);
             plot->setRect(QRectF(150, 100, 1800, 1120));
-            plot->setHorizontalPadding(240); plot->setVerticalPadding(180);
-            plot->title()->setText(TextLabel::TextWrapper(text("<p align=\"center\">원자료 응답 (배율·오프셋 적용 전)<br/><span style=\"font-size:9pt\"><span style=\"color:#0071bc\">○ 선택</span>　<span style=\"color:#aa3228\">× 계산 제외</span>　<span style=\"color:#b57900\">□ 품질 확인 필요</span></span></p>"), TextLabel::Mode::Text, true));
+            plot->setHorizontalPadding(190); plot->setVerticalPadding(150);
+            plot->title()->setText(TextLabel::TextWrapper(text("<p align=\"center\" style=\"font-size:8pt\">원자료 응답 (배율·오프셋·교정 적용 전)<br/><span style=\"font-size:7pt\"><span style=\"color:#0071bc\">○ 선택</span>　<span style=\"color:#aa3228\">× 계산 제외</span>　<span style=\"color:#b57900\">□ 품질 확인 필요</span></span></p>"), TextLabel::Mode::Text, true));
             const auto axisSpec = spec.value(text("axis")).toObject();
-            const QString xLabel = axisSpec.value(text("name")).toString() + text(" (") + axisSpec.value(text("unit")).toString() + text(")");
-            const QString yLabel = text("Stress (") + spec.value(text("unit")).toString() + text(")");
+            const QString xLabel = axisSpec.value(text("name")).toString() + text(" (") + rawUnitLabel(axisSpec) + text(")");
+            const QString yLabel = channel + text(" (") + rawUnitLabel(spec) + text(")");
             for (auto* axis : plot->children<Axis>()) {
                 axis->title()->setText(TextLabel::TextWrapper(axis->orientation() == WorksheetElement::Orientation::Horizontal ? xLabel : yLabel));
-                if (axis->orientation() == WorksheetElement::Orientation::Vertical) axis->setTitleOffsetX(-80);
+                auto font = axis->labelsFont(); font.setPointSizeF(Worksheet::convertToSceneUnits(9, Worksheet::Unit::Point)); axis->setLabelsFont(font);
+                font.setPointSizeF(8); axis->title()->setFont(font);
+                axis->setMajorTicksAutoNumber(false); axis->setMajorTicksNumber(5);
+                axis->setMinorTicksDirection(Axis::noTicks);
+                if (axis->orientation() == WorksheetElement::Orientation::Vertical) axis->setTitleOffsetX(-65);
             }
             auto* curve = new XYCurve(channel); sourceCurve = curve; plot->addChild(curve);
             if (x >= 0) curve->setXColumn(created->column(x)); if (y >= 0) curve->setYColumn(created->column(y));
@@ -483,15 +496,22 @@ class CaelabDataBridge : public QObject {
         }
         attachInteraction(); writeSourceOrder(); refreshEngineeringView();
         analysisLayout = true; arrangeAnalysisWorkspace(true);
+        foldNativeTools();
         window->m_projectExplorer->setDataWorkspaceMode(true);
-        window->m_propertiesDock->dockAreaWidget()->setMinimumWidth(260);
+        QTimer::singleShot(0, this, [this] { refreshExplorerNames(); });
+        window->m_propertiesDock->dockAreaWidget()->setMinimumWidth(220);
         if (newNativeDocument) QTimer::singleShot(0, this, [this] {
             if (!connected()) return;
             auto* area = window->m_projectExplorerDock->dockAreaWidget(); auto* splitter = area->parentSplitter();
             if (!splitter) return;
             auto sizes = splitter->sizes(); const int explorer = splitter->indexOf(area); int content = -1;
             for (int index = 0; index < sizes.size(); ++index) if (index != explorer && (content < 0 || sizes[index] > sizes[content])) content = index;
-            if (explorer >= 0 && content >= 0) { sizes[content] += sizes[explorer] - 210; sizes[explorer] = 210; window->m_dockManagerMain->setSplitterSizes(area, sizes); }
+            if (explorer >= 0 && content >= 0) { sizes[content] += sizes[explorer] - 170; sizes[explorer] = 170; window->m_dockManagerMain->setSplitterSizes(area, sizes); }
+            auto* properties = window->m_propertiesDock->dockAreaWidget(); auto* propertySplitter = properties->parentSplitter();
+            if (!propertySplitter) return;
+            auto widths = propertySplitter->sizes(); const int propertyIndex = propertySplitter->indexOf(properties); int center = -1;
+            for (int index = 0; index < widths.size(); ++index) if (index != propertyIndex && (center < 0 || widths[index] > widths[center])) center = index;
+            if (propertyIndex >= 0 && center >= 0) { widths[center] += widths[propertyIndex] - 220; widths[propertyIndex] = 220; window->m_dockManagerMain->setSplitterSizes(properties, widths); }
         });
         showChannelPane();
         const auto runs = baseline.value(text("runs")).toArray();
@@ -528,6 +548,19 @@ class CaelabDataBridge : public QObject {
         window->statusBar()->showMessage(text("Local calculation exclusions changed. Core is unchanged until Apply."));
     }
     QJsonObject channelSpec() const { return draft.value(text("mapping")).toObject().value(text("columns")).toObject().value(channel).toObject(); }
+    static QString rawUnitLabel(const QJsonObject& spec) {
+        // The reader's unit describes transformed values. Only calibration
+        // declares a separate raw unit; affine coefficients cannot prove it.
+        if (spec.contains(text("calibration"))) {
+            const auto unit = spec.value(text("calibration")).toObject().value(text("input_unit")).toString();
+            return unit.isEmpty() ? text("원단위 미지정") : unit;
+        }
+        const auto scale = spec.value(text("scale")), offset = spec.value(text("offset"));
+        const bool identity = (scale.isUndefined() || (scale.isDouble() && scale.toDouble() == 1))
+            && (offset.isUndefined() || (offset.isDouble() && offset.toDouble() == 0));
+        const auto unit = spec.value(text("unit")).toString();
+        return identity && !unit.isEmpty() ? unit : text("원단위 미지정");
+    }
     bool rowUsed(int source) const {
         const auto selection = channelSpec().value(text("row_selection")).toObject();
         auto within = [source](const QJsonArray& ranges) { for (const auto value : ranges) { const auto range = value.toArray(); if (range.size() == 2 && range[0].toInt() <= source && source <= range[1].toInt()) return true; } return false; };
@@ -541,6 +574,97 @@ class CaelabDataBridge : public QObject {
         if (value.isDouble()) return value.toDouble();
         bool valid = false; const auto number = value.toString().toDouble(&valid);
         return valid ? number : std::numeric_limits<double>::quiet_NaN();
+    }
+    // Presentation is derived from the current mapping, never from a column's
+    // spelling. Keep raw keys/values and all alternate mappings intact.
+    void refreshSourceHeaders() {
+        if (!sheet) return;
+        const auto columns = draft.value(text("mapping")).toObject().value(text("columns")).toObject();
+        const auto active = columns.value(channel).toObject(), axis = active.value(text("axis")).toObject();
+        auto* view = dynamic_cast<SpreadsheetView*>(sheet->view());
+        auto* table = view ? view->findChild<QTableView*>() : nullptr;
+        for (int index = 0; index < sheet->columnCount(); ++index) {
+            auto* column = sheet->column(index); QString name, detail, tooltip;
+            if (index == 0) { name = text("원행"); detail = text("원자료 행"); tooltip = text("정렬·숨김 후에도 유지되는 원자료 행 번호"); }
+            else if (index > rawColumns.size()) {
+                name = index == rawColumns.size() + 1 ? text("계산") : text("품질");
+                detail = index == rawColumns.size() + 1 ? text("사용 여부") : text("확인 표시"); tooltip = name + text(" — 선택 채널에만 적용");
+            } else {
+                const auto descriptor = rawColumns[index - 1].toObject(); const auto key = descriptor.value(text("key"));
+                const auto original = descriptor.value(text("name")).toString();
+                QStringList bindings, names, units;
+                auto binding = [&](const QString& label, const QJsonObject& spec, const QString& role) {
+                    if (spec.value(text("column")) != key) return;
+                    const auto unit = rawUnitLabel(spec), output = spec.value(text("unit")).toString();
+                    if (!label.isEmpty() && !names.contains(label)) names.append(label);
+                    if (!unit.isEmpty() && !units.contains(unit)) units.append(unit);
+                    bindings.append(label + text(" — ") + role + text("\n  원값 단위: ") + unit
+                        + text("\n  준비 후 채널 단위: ") + (output.isEmpty() ? text("미지정") : output));
+                };
+                for (auto it = columns.begin(); it != columns.end(); ++it) {
+                    binding(it.key(), it.value().toObject(), text("응답"));
+                    const auto mappedAxis = it.value().toObject().value(text("axis")).toObject();
+                    binding(mappedAxis.value(text("name")).toString(), mappedAxis, it.key() + text(" 가로축"));
+                }
+                const bool isY = active.value(text("column")) == key, isX = axis.value(text("column")) == key;
+                // Generic reader labels have no engineering meaning. Show the
+                // explicitly declared active channel/axis without guessing units.
+                name = original;
+                if (original.isEmpty() || original == text("열 ") + QString::number(index)) {
+                    if (isY) name = channel;
+                    else if (isX && !axis.value(text("name")).toString().isEmpty()) name = axis.value(text("name")).toString();
+                    else if (!names.isEmpty()) name = names.join(text(" / "));
+                    else name = text("열 ") + QString::number(index);
+                }
+                detail = units.isEmpty() ? text("원단위 미지정") : units.join(text(" / "));
+                if (isX || isY) detail += isX && isY ? text(" · X/Y") : isX ? text(" · X") : text(" · Y");
+                if (isY && name != channel) detail += text(" · ") + channel;
+                else if (isX && name != axis.value(text("name")).toString()) detail += text(" · ") + axis.value(text("name")).toString();
+                tooltip = text("원열: ") + (original.isEmpty() ? text("이름 없음") : original) + text("\n열 위치: ") + QString::number(index)
+                    + text("\n원열 키: ") + key.toVariant().toString() + text("\n")
+                    + (bindings.isEmpty() ? text("연결된 채널 없음 — 단위·물리량을 추정하지 않습니다.") : bindings.join(text("\n")))
+                    + text("\n원자료 값 — 배율·오프셋·교정 적용 전");
+            }
+            column->setProperty("caelab_source_header", QString(name + text("\n") + detail));
+            column->setProperty("caelab_source_tooltip", tooltip);
+            column->setName(name);
+            if (table && !column->property("caelab_source_width_set").toBool()) {
+                const int width = index == 0 ? 76 : index > rawColumns.size() ? 88 : qBound(96, qMax(table->fontMetrics().horizontalAdvance(name), table->fontMetrics().horizontalAdvance(detail)) + 22, 176);
+                table->setColumnWidth(index, width); column->setProperty("caelab_source_width_set", true);
+            }
+        }
+        if (table) {
+            // Native header settings still apply to independent spreadsheets.
+            table->model()->headerDataChanged(Qt::Horizontal, 0, sheet->columnCount() - 1);
+            table->horizontalHeader()->setMinimumHeight(44);
+            table->horizontalHeader()->setTextElideMode(Qt::ElideRight);
+            auto* header = table->horizontalHeader();
+            header->setSectionsMovable(true);
+            if (!table->property("caelab_source_order_set").toBool()) {
+                // Initial view only: put the declared X/Y beside the row id.
+                // Logical columns and later user dragging remain unchanged.
+                int position = 1;
+                for (const auto key : {axis.value(text("column")), active.value(text("column"))}) {
+                    for (int index = 0; index < rawColumns.size(); ++index) {
+                        if (rawColumns[index].toObject().value(text("key")) != key) continue;
+                        const int visual = header->visualIndex(index + 1);
+                        if (visual >= position) header->moveSection(visual, position++);
+                        break;
+                    }
+                }
+                table->setProperty("caelab_source_order_set", true);
+            }
+            if (table->property("caelab_source_channel").toString() != channel) {
+                table->setProperty("caelab_source_channel", channel);
+                table->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
+                for (int index = 0; index < rawColumns.size(); ++index) if (rawColumns[index].toObject().value(text("key")) == active.value(text("column"))) {
+                    const int left = header->sectionViewportPosition(index + 1), width = header->sectionSize(index + 1);
+                    if (left < 0 || left + width > table->viewport()->width())
+                        table->horizontalScrollBar()->setValue(table->horizontalScrollBar()->value() + left + width / 2 - table->viewport()->width() / 2);
+                    break;
+                }
+            }
+        }
     }
     void arrangeAnalysisWorkspace(bool force = false) {
         if (!connected() || !sheet || !sourceWorksheet || !analysisLayout) return;
@@ -557,8 +681,8 @@ class CaelabDataBridge : public QObject {
             tableDock->setAsCurrentTab();
         } else {
             window->m_dockManagerContent->addDockWidget(ads::RightDockWidgetArea, curveDock, tableDock->dockAreaWidget());
-            window->m_dockManagerContent->setSplitterSizes(tableDock->dockAreaWidget(), {550, 450});
-            QTimer::singleShot(0, this, [this] { if (connected() && sheet && analysisLayout && !narrowLayout) window->m_dockManagerContent->setSplitterSizes(sheet->dockWidget()->dockAreaWidget(), {550, 450}); });
+            window->m_dockManagerContent->setSplitterSizes(tableDock->dockAreaWidget(), {600, 400});
+            QTimer::singleShot(0, this, [this] { if (connected() && sheet && analysisLayout && !narrowLayout) window->m_dockManagerContent->setSplitterSizes(sheet->dockWidget()->dockAreaWidget(), {600, 400}); });
             tableDock->setAsCurrentTab(); curveDock->setAsCurrentTab();
         }
         selectSources(chosenRows);
@@ -571,6 +695,37 @@ class CaelabDataBridge : public QObject {
             window->m_projectExplorer->setCurrentAspect(chosenAspect);
         }
     }
+    void foldNativeTools() {
+        if (compactToolsPrepared) return;
+        compactToolsPrepared = true;
+        QMenu* viewMenu = nullptr;
+        for (auto* action : window->menuBar()->actions()) {
+            auto label = action->text(); label.remove(QLatin1Char('&'));
+            if (label == text("보기")) viewMenu = action->menu();
+        }
+        auto* nativeMenu = viewMenu ? viewMenu->addMenu(text("기본 도구 모음")) : nullptr;
+        for (auto* toolbar : window->findChildren<QToolBar*>()) {
+            const auto name = toolbar->objectName();
+            if (name != text("mainToolBar") && name != text("main_toolbar") && name != text("worksheet_toolbar") && name != text("cartesian_plot_toolbar")) continue;
+            toolbar->setProperty("caelab_default_collapsed", true); toolbar->hide();
+            auto* toggle = toolbar->toggleViewAction();
+            if (nativeMenu) nativeMenu->addAction(toggle);
+            QObject::connect(toggle, &QAction::triggered, this, [toolbar](bool visible) {
+                // Explicitly restoring an original toolbar wins over the default.
+                if (visible) toolbar->setProperty("caelab_default_collapsed", false);
+            });
+        }
+    }
+    void refreshExplorerNames() {
+        if (!connected()) return;
+        auto* explorer = window->m_projectExplorer;
+        auto* tree = explorer->findChild<QTreeView*>(text("caelabDataExplorerTree"));
+        if (!tree) return;
+        // Reapply the existing name-first policy after source renaming and dock
+        // activation. Rebuild visual item geometry without resetting selection.
+        QMetaObject::invokeMethod(explorer, "resizeHeader", Qt::DirectConnection);
+        tree->doItemsLayout(); tree->viewport()->update();
+    }
     void showChannelPane() {
         if (!connected() || !channelPane) return;
         updatingChannelPane = true; channelChoices->clear();
@@ -580,6 +735,7 @@ class CaelabDataBridge : public QObject {
             channelChoices->addItem(it.key() + text(" (") + spec.value(text("unit")).toString() + text(")"), it.key());
         }
         channelChoices->setCurrentIndex(channelChoices->findData(channel)); updatingChannelPane = false;
+        channelChoices->setToolTip(channelChoices->currentText());
         const auto spec = columns.value(channel).toObject();
         QString rawName;
         for (const auto descriptor : rawColumns) if (descriptor.toObject().value(text("key")) == spec.value(text("column"))) rawName = descriptor.toObject().value(text("name")).toString();
@@ -594,12 +750,13 @@ class CaelabDataBridge : public QObject {
             else { const auto encoded = QJsonDocument(QJsonArray{value}).toJson(QJsonDocument::Compact); original = QString::fromUtf8(encoded.mid(1, encoded.size() - 2)); }
             return original + text(" (미완성)");
         };
-        channelSummary->setText(text("원열: ") + rawName + text("\n단위: ") + spec.value(text("unit")).toString()
+        channelSummary->setText(text("원열: ") + rawName + text("\n원값 단위: ") + rawUnitLabel(spec)
+            + text("\n준비 후 채널 단위: ") + spec.value(text("unit")).toString()
             + text("\n") + CaelabDataSettingsDialog::physicalLabel(text("measure"), spec.value(text("measure")).toString())
             + text("  ") + CaelabDataSettingsDialog::physicalLabel(text("component"), spec.value(text("component")).toString())
             + text("\n배율: ") + transformText(text("scale"), 1) + text("   오프셋: ") + transformText(text("offset"), 0)
             + text("\n계산 제외: ") + QString::number(excludedCount) + text("행")
-            + text("\n표와 곡선: 원값\n변환은 자료 준비에 적용"));
+            + text("\n표와 곡선: 교정·변환 전 원값\n변환은 자료 준비에 적용"));
         window->m_propertiesDock->setWindowTitle(text("채널과 계산 사용"));
         window->stackedWidget->setCurrentWidget(channelPane); channelPane->show();
     }
@@ -615,6 +772,7 @@ class CaelabDataBridge : public QObject {
     }
     void attachInteraction() {
         if (!connected() || !sheet || !sourceCurve || !sourcePlot || !sourceWorksheet) return;
+        sheet->setProperty("caelab_source_view_order", true);
         const bool wasUndoAware = connectedProject->isUndoAware(), wasChanged = connectedProject->isChanged(); connectedProject->setUndoAware(false);
         if (!displayCache || displayCache->project() != connectedProject) {
             auto* cache = new Spreadsheet(text("곡선 표시 자료"));
@@ -644,6 +802,15 @@ class CaelabDataBridge : public QObject {
         QObject::disconnect(xSourceConnection); QObject::disconnect(ySourceConnection);
         auto* view = dynamic_cast<SpreadsheetView*>(sheet->view());
         if (auto* table = view ? view->findChild<QTableView*>() : nullptr) {
+            if (!table->property("caelab_source_layout_connected").toBool()) {
+                const QPointer<Spreadsheet> source = sheet;
+                auto changed = [this, source] {
+                    if (!refreshingView && connected() && sheet == source) connectedProject->setChanged(true);
+                };
+                QObject::connect(table->horizontalHeader(), &QHeaderView::sectionMoved, this, changed);
+                QObject::connect(table->horizontalHeader(), &QHeaderView::sectionResized, this, changed);
+                table->setProperty("caelab_source_layout_connected", true);
+            }
             selectionConnection = QObject::connect(table->selectionModel(), &QItemSelectionModel::selectionChanged, this, [this, view] {
                 if (selecting || refreshingView) return;
                 if (!view->findChild<QTableView*>()->selectionModel()->selectedColumns().isEmpty()) return;
@@ -653,7 +820,7 @@ class CaelabDataBridge : public QObject {
             });
             headerConnection = QObject::connect(table->horizontalHeader(), &QHeaderView::sectionClicked, this, [this](int index) { selectSourceColumn(index); });
             headerEditConnection = QObject::connect(table->horizontalHeader(), &QHeaderView::sectionDoubleClicked, this, [this](int index) { selectSourceColumn(index); if (index > 0 && index <= rawColumns.size()) { nextMappingSection = sourceColumnSection; settingsAction->trigger(); } });
-            table->addActions({settingsAction, excludeAction, applyAction, prepareAction, materialAction});
+            table->addActions({settingsAction, excludeAction, applyAction, prepareAction, materialAction, discussAction});
             table->setContextMenuPolicy(Qt::ActionsContextMenu);
             table->horizontalHeader()->addAction(settingsAction); table->horizontalHeader()->setContextMenuPolicy(Qt::ActionsContextMenu);
         }
@@ -725,9 +892,9 @@ class CaelabDataBridge : public QObject {
         if (x >= 0) sheet->column(x + 1)->setPlotDesignation(AbstractColumn::PlotDesignation::X);
         if (y >= 0) sheet->column(y + 1)->setPlotDesignation(AbstractColumn::PlotDesignation::Y);
         displayCache->column(0)->setName(text("원행")); displayCache->column(0)->setPlotDesignation(AbstractColumn::PlotDesignation::NoDesignation);
-        displayCache->column(1)->setName(axisSpec.value(text("name")).toString(text("가로축")) + text(" (") + axisSpec.value(text("unit")).toString() + text(")"));
+        displayCache->column(1)->setName(axisSpec.value(text("name")).toString(text("가로축")) + text(" (") + rawUnitLabel(axisSpec) + text(")"));
         displayCache->column(1)->setPlotDesignation(AbstractColumn::PlotDesignation::X);
-        displayCache->column(2)->setName(channel + text(" (") + spec.value(text("unit")).toString() + text(")"));
+        displayCache->column(2)->setName(channel + text(" (") + rawUnitLabel(spec) + text(")"));
         displayCache->column(2)->setPlotDesignation(AbstractColumn::PlotDesignation::Y);
         QVector<double> identities, xs, ys;
         for (int row = 0; row < rows.size(); ++row) {
@@ -740,11 +907,12 @@ class CaelabDataBridge : public QObject {
         sourceCurve->setXColumn(displayCache->column(1)); sourceCurve->setYColumn(displayCache->column(2));
         if (sourcePlot) for (auto* axis : sourcePlot->children<Axis>()) {
             const QString label = axis->orientation() == WorksheetElement::Orientation::Horizontal
-                ? QString(axisSpec.value(text("name")).toString() + text(" (") + axisSpec.value(text("unit")).toString() + text(")"))
-                : QString(channel + text(" (") + spec.value(text("unit")).toString() + text(")"));
-            axis->title()->setText(TextLabel::TextWrapper(label));
+                ? QString(axisSpec.value(text("name")).toString() + text(" (") + rawUnitLabel(axisSpec) + text(")"))
+                : QString(channel + text(" (") + rawUnitLabel(spec) + text(")"));
+            axis->title()->setText(TextLabel::TextWrapper(QString(text("<span style=\"font-size:8pt\">") + label.toHtmlEscaped() + text("</span>")), TextLabel::Mode::Text, true));
         }
         auto* view = dynamic_cast<SpreadsheetView*>(sheet->view()); auto* table = view ? view->findChild<QTableView*>() : nullptr;
+        refreshSourceHeaders();
         for (int row = 0; row < sheet->rowCount(); ++row) {
             const int source = static_cast<int>(sheet->column(0)->valueAt(row));
             sheet->column(rawColumns.size() + 1)->setTextAt(row, rowUsed(source) ? text("포함") : text("제외"));
@@ -752,6 +920,7 @@ class CaelabDataBridge : public QObject {
             if (table) table->setRowHidden(row, selection.value(text("display_hidden_rows")).toArray().contains(source));
         }
         connectedProject->setUndoAware(undoAware); connectedProject->setChanged(dirty); refreshingView = false; drawOverlays();
+        QTimer::singleShot(0, this, [this] { refreshExplorerNames(); });
         if (channelPane && window->stackedWidget->currentWidget() == channelPane) showChannelPane();
     }
     void editSelectedRows(const QString& field, bool clear = false, bool all = false) {
@@ -893,6 +1062,9 @@ class CaelabDataBridge : public QObject {
         auto* owner = connectedProject.data();
         saveStateConnection = QObject::connect(owner, &Project::requestSaveState, this, [this, owner](QXmlStreamWriter* writer) {
             if (!serializing || owner != connectedProject || owner != window->project()) return;
+            auto* view = sheet ? dynamic_cast<SpreadsheetView*>(sheet->view()) : nullptr;
+            if (auto* table = view ? view->findChild<QTableView*>() : nullptr)
+                pendingBinding.insert(text("source_header_state"), QString::fromLatin1(table->horizontalHeader()->saveState().toBase64()));
             writer->writeTextElement(text("caelab_data_binding"), QString::fromLatin1(QJsonDocument(pendingBinding).toJson(QJsonDocument::Compact).toBase64()));
         });
     }
@@ -963,8 +1135,21 @@ class CaelabDataBridge : public QObject {
                     if ((!binding.value(text("curve_uuid")).toString().isEmpty() && curve->uuid().toString() == binding.value(text("curve_uuid"))) || binding.value(text("curve_uuid")).toString().isEmpty()) { sourceCurve = curve; sourcePlot = plot; }
             }
             analysisLayout = false;
-            attachInteraction(); refreshEngineeringView(); selectSources(selectedSources);
+            attachInteraction();
+            if (auto* view = dynamic_cast<SpreadsheetView*>(sheet->view())) if (auto* table = view->findChild<QTableView*>()) {
+                const QScopedValueRollback<bool> restoring(refreshingView, true);
+                const auto state = QByteArray::fromBase64(binding.value(text("source_header_state")).toString().toLatin1());
+                if (!state.isEmpty() && !table->horizontalHeader()->restoreState(state))
+                    throw std::runtime_error("The saved native source column layout could not be restored. The file remains unchanged.");
+                // Loaded native columns already retain widths. Old files have
+                // no visual-order state; keep their existing logical view.
+                table->setProperty("caelab_source_order_set", true);
+                for (int index = 0; index < sheet->columnCount(); ++index) sheet->column(index)->setProperty("caelab_source_width_set", true);
+            }
+            refreshEngineeringView(); selectSources(selectedSources);
+            foldNativeTools();
             window->m_projectExplorer->setDataWorkspaceMode(true);
+            QTimer::singleShot(0, this, [this] { refreshExplorerNames(); });
             window->statusBar()->showMessage(text("Saved Core input and native view reopened. No calculation was submitted."));
             commitActivation(std::move(lease));
         } catch (...) { connectedProject.clear(); service = oldService; identifier = oldIdentifier; throw; }
@@ -1165,6 +1350,33 @@ class CaelabDataBridge : public QObject {
         window->statusBar()->showMessage(text("Material window requested. Select a plan and review its test conditions; no fit or adoption has run."));
         return pid;
     }
+    void discussSelection() {
+        if (!connected() || draft != baseline.value(text("draft")).toObject()) throw std::runtime_error("편집한 열과 단위를 적용한 뒤 논의하세요.");
+        const auto context = request(text("/api/workbench/desktop"));
+        QJsonObject payload{
+            {text("session_id"), baseline.value(text("session_id"))},
+            {text("command_id"), QString(text("C") + QUuid::createUuid().toString(QUuid::Id128))}};
+        QString endpoint;
+        if (importedReference.value(text("job_id")).toString().isEmpty()) {
+            payload.insert(text("document_id"), identifier);
+            payload.insert(text("expected_generation"), baseline.value(text("generation")));
+            endpoint = text("/api/workbench/selection-discussion");
+        } else {
+            payload.insert(text("source"), retainedSource());
+            payload.insert(text("kind"), text("expert"));
+            endpoint = text("/api/workbench/data-followup");
+        }
+        const auto receipt = request(endpoint, &payload);
+        if (receipt.value(text("executed")).toBool(true)) throw std::runtime_error("토론 열기에 예상하지 않은 실행 상태가 있습니다.");
+        QProcess process; process.setProcessEnvironment(pythonEnvironment());
+        process.setWorkingDirectory(context.value(text("repo_root")).toString());
+        process.setProgram(context.value(text("python")).toString());
+        process.setArguments({text("-m"), text("apps.research.desktop"), text("--service"), service,
+            text("expert"), text("--document-id"), receipt.value(text("document")).toObject().value(text("id")).toString()});
+        qint64 pid = 0;
+        if (!process.startDetached(&pid)) throw std::runtime_error("토론 창을 열지 못했습니다. 선택 자료는 저장되어 있습니다.");
+        window->statusBar()->showMessage(text("선택한 자료로 토론을 열었습니다. 질문을 확인하고 보내세요."));
+    }
     qint64 launchDataTools(const QString& task) {
         if (!connected() || draft != baseline.value(text("draft")).toObject()) throw std::runtime_error("변경 적용 후 자료 도구를 여세요. 편집 중인 설정은 유지됩니다.");
         const auto current = request(documentPath());
@@ -1308,6 +1520,115 @@ class CaelabDataBridge : public QObject {
             {text("row_selection"), selection}, {text("document"), request(documentPath())}, {text("data_updates"), reopened ? 0 : 1},
             {text("scope"), reopened ? text("cold reopen preserves original-row selection, view sorting, settings and independent row states") : text("actual native settings dialog, table/point/range selection, duplicate coordinates, sorting/hiding, local Undo, one Apply and atomic Save")}};
     }
+    QJsonObject workspaceTrial(const QString& reportPath) {
+        load(); const auto before = baseline, original = draft;
+        auto settle = [] { QEventLoop loop; QTimer::singleShot(160, &loop, &QEventLoop::quit); loop.exec(QEventLoop::ExcludeUserInputEvents); QApplication::processEvents(QEventLoop::ExcludeUserInputEvents); };
+        selectSources(QSet<int>{rows.first().toInt()});
+        const auto chosen = selectedSources; const auto chosenChannel = channel;
+        auto* view = dynamic_cast<SpreadsheetView*>(sheet->view()); auto* table = view->findChild<QTableView*>();
+        QJsonArray headers, values;
+        for (int column = 0; column < sheet->columnCount(); ++column) headers.append(QJsonObject{
+            {text("logical_column"), column}, {text("native_name"), sheet->column(column)->name()},
+            {text("display"), table->model()->headerData(column, Qt::Horizontal, Qt::DisplayRole).toString()},
+            {text("tooltip"), table->model()->headerData(column, Qt::Horizontal, Qt::ToolTipRole).toString()}});
+        for (int row = 0; row < sheet->rowCount(); ++row) {
+            QJsonArray line; for (int column = 0; column <= rawColumns.size(); ++column) line.append(sheet->column(column)->valueAt(row)); values.append(line);
+        }
+        window->showNormal(); window->resize(1280, 820); QApplication::processEvents(); arrangeAnalysisWorkspace(true);
+        tableAction->trigger(); settle(); window->grab().save(reportPath + text(".1280.png"));
+        QJsonArray explorerItems, explorerColumns;
+        if (auto* tree = window->m_projectExplorer->findChild<QTreeView*>(text("caelabDataExplorerTree"))) {
+            for (int column = 0; column < tree->model()->columnCount(); ++column) explorerColumns.append(QJsonObject{{text("column"), column}, {text("hidden"), tree->isColumnHidden(column)}});
+            std::function<void(const QModelIndex&)> visit = [&](const QModelIndex& parent) {
+                for (int row = 0; row < tree->model()->rowCount(parent); ++row) {
+                    const auto index = tree->model()->index(row, 0, parent);
+                    explorerItems.append(QJsonObject{{text("name"), index.data().toString()}, {text("type"), index.siblingAtColumn(1).data().toString()}}); visit(index);
+                }
+            }; visit(QModelIndex());
+        }
+        const int tableWidth = table->width();
+        window->resize(1100, 820); QApplication::processEvents(); tableAction->trigger(); settle();
+        window->grab().save(reportPath + text(".1100-table.png"));
+        curveAction->trigger(); settle(); window->grab().save(reportPath + text(".1100-curve.png"));
+        auto* header = table->horizontalHeader(); const int moved = header->logicalIndex(2);
+        header->moveSection(2, header->count() - 1); refreshEngineeringView();
+        if (header->visualIndex(moved) != header->count() - 1) throw std::runtime_error("Channel refresh reset a user's view column order.");
+        QJsonArray afterMove;
+        for (int row = 0; row < sheet->rowCount(); ++row) {
+            QJsonArray line; for (int column = 0; column <= rawColumns.size(); ++column) line.append(sheet->column(column)->valueAt(row)); afterMove.append(line);
+        }
+        if (afterMove != values) throw std::runtime_error("Moving a source header changed logical columns or original values.");
+        header->moveSection(header->count() - 1, 2);
+        if (selectedSources != chosen || channel != chosenChannel || draft != original || request(documentPath()) != before)
+            throw std::runtime_error("Responsive source presentation changed input, channel or original-row selection.");
+        // Exercise the existing local command/Undo without submitting anything.
+        exclude(); connectedProject->undoStack()->undo();
+        if (draft != original || selectedSources != chosen || request(documentPath()) != before)
+            throw std::runtime_error("Presentation changed local exclusion Undo or Core input.");
+        for (int column = 0; column < sheet->columnCount(); ++column) if (sheet->column(column)->name() != headers[column].toObject().value(text("native_name")).toString())
+            throw std::runtime_error("Responsive view activation changed a native source column name.");
+        QJsonArray selected; for (int row : chosen) selected.append(row);
+        return QJsonObject{{text("status"), text("PASS")}, {text("headers"), headers}, {text("native_values"), values},
+            {text("raw_columns"), rawColumns}, {text("document"), before}, {text("selected_rows"), selected},
+            {text("channel"), channel}, {text("table_width_at_1280"), tableWidth},
+            {text("explorer_items_at_1280"), explorerItems}, {text("explorer_columns_at_1280"), explorerColumns},
+            {text("data_updates"), 0}, {text("imports"), 0}, {text("scope"), text("same applied input; compact native headers, responsive table/curve, local exclusion Undo; no save or computation")}};
+    }
+    QJsonObject unitLayoutTrial(const QString& reportPath, bool reopened) {
+        if (!reopened) load();
+        if (!connected() || !sheet || !displayCache) throw std::runtime_error("The exact native source is not open.");
+        const auto before = request(documentPath()), original = draft;
+        auto* table = dynamic_cast<SpreadsheetView*>(sheet->view())->findChild<QTableView*>();
+        auto* header = table->horizontalHeader();
+        auto values = [this] { QJsonArray rows;
+            for (int row = 0; row < sheet->rowCount(); ++row) { QJsonArray line;
+                for (int col = 0; col <= rawColumns.size(); ++col) line.append(sheet->column(col)->valueAt(row)); rows.append(line);
+            } return rows;
+        };
+        const auto originalValues = values();
+        if (!reopened) selectSources(QSet<int>{rows.first().toInt()});
+        const auto chosen = selectedSources;
+        if (chosen != QSet<int>{rows.first().toInt()}) throw std::runtime_error("The saved original-row selection was not restored.");
+        const auto columns = draft.value(text("mapping")).toObject().value(text("columns")).toObject();
+        QJsonObject channels;
+        for (auto it = columns.begin(); it != columns.end(); ++it) {
+            channel = it.key(); refreshEngineeringView(); showChannelPane(); QJsonArray headers, titles;
+            for (int col = 0; col < sheet->columnCount(); ++col) headers.append(QJsonObject{
+                {text("display"), table->model()->headerData(col, Qt::Horizontal).toString()},
+                {text("tooltip"), table->model()->headerData(col, Qt::Horizontal, Qt::ToolTipRole).toString()}});
+            for (auto* axis : sourcePlot->children<Axis>()) titles.append(axis->title()->text().text);
+            channels.insert(channel, QJsonObject{{text("headers"), headers}, {text("axis_titles"), titles},
+                {text("cache_x_name"), displayCache->column(1)->name()}, {text("cache_y_name"), displayCache->column(2)->name()},
+                {text("summary"), channelSummary->text()}});
+        }
+        channel = before.value(text("draft")).toObject().value(text("mapping")).toObject().value(text("columns")).toObject().contains(text("stress")) ? text("stress") : columns.keys().first();
+        refreshEngineeringView(); showChannelPane();
+        editSelectedRows(text("exclude_rows")); connectedProject->undoStack()->undo();
+        if (draft != original || values() != originalValues || selectedSources != chosen || request(documentPath()) != before)
+            throw std::runtime_error("Raw-unit display changed source values, selection, Undo or Core input.");
+        int y = -1;
+        for (int index = 0; index < rawColumns.size(); ++index) if (rawColumns[index].toObject().value(text("key")) == channelSpec().value(text("column"))) y = index + 1;
+        if (!reopened) {
+            connectedProject->setChanged(false);
+            header->moveSection(header->visualIndex(y), header->count() - 1); header->resizeSection(y, 300);
+            if (!connectedProject->isChanged()) throw std::runtime_error("View-only column edits did not mark the native project unsaved.");
+        }
+        if (header->visualIndex(y) != header->count() - 1 || header->sectionSize(y) != 300)
+            throw std::runtime_error("The user's saved visual column order or width was reset.");
+        QJsonArray layout;
+        for (int col = 0; col < header->count(); ++col) layout.append(QJsonObject{{text("logical_column"), col}, {text("visual_index"), header->visualIndex(col)}, {text("width"), header->sectionSize(col)}});
+        if (!reopened && !window->save(QString::fromUtf8(qgetenv("CAELAB_DATA_VIEW_PATH")))) throw std::runtime_error("Native layout Save failed.");
+        auto settle = [] { QEventLoop loop; QTimer::singleShot(160, &loop, &QEventLoop::quit); loop.exec(QEventLoop::ExcludeUserInputEvents); };
+        window->showNormal(); window->resize(1280, 820); tableAction->trigger(); settle(); window->grab().save(reportPath + text(".1280.png"));
+        window->resize(1100, 820); tableAction->trigger(); settle(); window->grab().save(reportPath + text(".1100-table.png"));
+        curveAction->trigger(); settle(); window->grab().save(reportPath + text(".1100-curve.png"));
+        if (values() != originalValues || selectedSources != chosen || draft != original) throw std::runtime_error("Saving or resizing changed the original input.");
+        const auto current = request(documentPath());
+        if (reopened && current != before) throw std::runtime_error("Cold layout read issued a Core mutation.");
+        return QJsonObject{{text("status"), text("PASS")}, {text("channels"), channels}, {text("layout"), layout},
+            {text("native_values"), originalValues}, {text("document"), current}, {text("selected_rows"), QJsonArray{rows.first()}},
+            {text("data_updates"), 0}, {text("document_saves"), reopened ? 0 : 1}, {text("scope"), text("raw-unit labels and native visual layout; exact Save then separate-process reopen")}};
+    }
     QJsonObject summaryTrial(const QString& reportPath) {
         load(); const auto before = request(documentPath()), original = draft;
         window->showNormal(); window->resize(920, 760); QApplication::processEvents();
@@ -1355,7 +1676,11 @@ class CaelabDataBridge : public QObject {
         QJsonObject report;
         try {
             const auto target = QString::fromUtf8(qgetenv("CAELAB_DATA_VIEW_PATH"));
-            if (phase == text("summary")) {
+            if (phase == text("unit_layout") || phase == text("unit_layout_reopen")) {
+                report = unitLayoutTrial(reportPath, phase == text("unit_layout_reopen"));
+            } else if (phase == text("workspace")) {
+                report = workspaceTrial(reportPath);
+            } else if (phase == text("summary")) {
                 report = summaryTrial(reportPath);
             } else if (phase.startsWith(text("tools_"))) {
                 load(); const auto before = request(documentPath());
@@ -1729,16 +2054,20 @@ public:
         auto* recovery = menu->addAction(text("중단된 작업 복구…"));
         auto* prepared = prepareAction = menu->addAction(text("자료 준비"));
         auto* material = materialAction = menu->addAction(text("재료에서 사용…"));
+        discussAction = menu->addAction(text("선택 대상으로 논의…"));
+        QObject::connect(discussAction, &QAction::triggered, this, [this] { guarded([this] { discussSelection(); }); });
         menu->addSeparator();
         auto* processing = menu->addAction(text("자료 처리…"));
         auto* acquisition = menu->addAction(text("자료 취득…"));
         documentActions = {sourceFile, coreFile, recovery};
         menu->addSeparator();
         tableAction = menu->addAction(text("원표 보기")); curveAction = menu->addAction(text("곡선 보기"));
-        channelPane = new QWidget(window->stackedWidget); channelPane->setObjectName(text("caelab-channel-properties")); channelPane->setMinimumWidth(260);
+        channelPane = new QWidget(window->stackedWidget); channelPane->setObjectName(text("caelab-channel-properties")); channelPane->setMinimumWidth(220);
         auto* channelLayout = new QVBoxLayout(channelPane);
         auto* heading = new QLabel(text("선택 채널"), channelPane); channelLayout->addWidget(heading);
-        channelChoices = new QComboBox(channelPane); channelChoices->setAccessibleName(text("선택 채널")); channelLayout->addWidget(channelChoices);
+        channelChoices = new QComboBox(channelPane); channelChoices->setAccessibleName(text("선택 채널"));
+        channelChoices->setMinimumContentsLength(12); channelChoices->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+        channelChoices->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed); channelLayout->addWidget(channelChoices);
         channelSummary = new QLabel(channelPane); channelSummary->setWordWrap(true); channelLayout->addWidget(channelSummary);
         auto* editChannel = new QToolButton(channelPane); editChannel->setDefaultAction(settings); editChannel->setToolButtonStyle(Qt::ToolButtonTextBesideIcon); channelLayout->addWidget(editChannel);
         QObject::connect(editChannel, &QToolButton::pressed, this, [this] { nextMappingSection = sourceColumnSection; });
@@ -1760,8 +2089,8 @@ public:
                 window->m_propertiesDock->setWindowTitle(properties->windowTitle());
             }
         });
-        QObject::connect(tableAction, &QAction::triggered, this, [this] { if (sheet) { const auto chosen = selectedSources; sheet->dockWidget()->setAsCurrentTab(); window->activateSubWindowForAspect(sheet); selectSources(chosen); showChannelPane(); } });
-        QObject::connect(curveAction, &QAction::triggered, this, [this] { if (sourceWorksheet) { const auto chosen = selectedSources; sourceWorksheet->dockWidget()->setAsCurrentTab(); window->activateSubWindowForAspect(sourceWorksheet); selectSources(chosen); showChannelPane(); } });
+        QObject::connect(tableAction, &QAction::triggered, this, [this] { if (sheet) { const auto chosen = selectedSources; sheet->dockWidget()->setAsCurrentTab(); window->activateSubWindowForAspect(sheet); selectSources(chosen); showChannelPane(); refreshExplorerNames(); } });
+        QObject::connect(curveAction, &QAction::triggered, this, [this] { if (sourceWorksheet) { const auto chosen = selectedSources; sourceWorksheet->dockWidget()->setAsCurrentTab(); window->activateSubWindowForAspect(sourceWorksheet); selectSources(chosen); showChannelPane(); refreshExplorerNames(); } });
         sourceFile->setShortcut(QKeySequence(text("Ctrl+Shift+O"))); settings->setShortcut(QKeySequence(text("Ctrl+M")));
         excludeAction->setShortcut(QKeySequence(text("Ctrl+E"))); applied->setShortcut(QKeySequence(text("Ctrl+Return")));
         prepared->setShortcut(QKeySequence(text("Ctrl+Shift+P"))); material->setShortcut(QKeySequence(text("Ctrl+Shift+M")));
@@ -1772,7 +2101,7 @@ public:
         prepared->setIcon(window->style()->standardIcon(QStyle::SP_MediaPlay));
         material->setIcon(window->style()->standardIcon(QStyle::SP_ArrowForward));
         auto* tools = new QToolBar(text("자료 작업"), window); tools->setObjectName(text("caelab-data-workspace"));
-        tools->setToolButtonStyle(Qt::ToolButtonTextBesideIcon); window->addToolBarBreak(); window->addToolBar(tools);
+        tools->setToolButtonStyle(Qt::ToolButtonTextBesideIcon); tools->setIconSize(QSize(16, 16)); window->addToolBar(tools);
         tools->addActions({sourceFile, saved});
         if (auto* undo = window->actionCollection()->action(text("edit_undo"))) { undo->setText(text("실행 취소")); menu->addAction(undo); tools->addAction(undo); }
         tools->addSeparator(); tools->addActions({settings, excludeAction, applied, prepared, material});

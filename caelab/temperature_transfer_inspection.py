@@ -91,8 +91,31 @@ def inspect_mapped(wb, document_id, job_id, result, declaration, record, frozen,
                                                 {'responses': [], 'include_settings': True})
             settings = downstream.get('settings', {})
             received = settings.get(declaration['input'])
+            hex8 = mapped is not None and mapped.get('basis') == 'Hex8_nodal_samples'
+            if hex8:
+                history = settings.get('thermal_regions', {})
+                slots = history.get('temperature', {})
+                names = ['temperature_' + str(i) for i in range(len(history.get('time_s', [])))]
+                if declaration['input'] not in names:
+                    raise ValueError('보존된 3D 온도 이력의 수신 슬롯이 다릅니다.')
+                slot = names.index(declaration['input'])
+                if (history['time_s'][slot] != mapped['time'] or history.get('time_origin') != mapped['time_origin']
+                        or canonical_hash(settings.get('mesh')) != mapped.get('receiver_mesh_sha256')):
+                    raise ValueError('보존된 3D 수신 메시·이력·적용 입력이 전달 기록과 다릅니다.')
+                matching = [source for source in slots.get('source', [])
+                            if source.get('time_s') == mapped['time'] and
+                            source.get('capture_sha256') == mapped['capture_sha256'] and
+                            source.get('receiver_mesh_sha256') == mapped['receiver_mesh_sha256'] and
+                            source.get('source_refs') == mapped.get('source_refs')]
+                values = slots.get('values')
+                if not isinstance(values,list) or slot >= len(values):
+                    raise ValueError('보존된 3D 온도 슬롯의 절점 값이 없습니다.')
+                value = values[slot]
+                if len(matching) != 1 or canonical_hash(value) != canonical_hash(mapped['value']):
+                    raise ValueError('보존된 3D 슬롯의 실제 절점 온도·원본 참조가 다릅니다.')
+                received = {**deepcopy(mapped), 'value':deepcopy(value)}
             if mapped is not None and (canonical_hash(received) != canonical_hash(mapped)
-                    or canonical_hash(settings) != receipt['receiver_bound_settings_sha256']):
+                    or (not hex8 and canonical_hash(settings) != receipt['receiver_bound_settings_sha256'])):
                 raise ValueError('보존된 수신 입력과 실제 전달 계산값이 다릅니다.')
         except ValueError as error:
             if str(error) != 'This stage has no completed retained result; inspect progress/failure':
@@ -129,13 +152,15 @@ def inspect_mapped(wb, document_id, job_id, result, declaration, record, frozen,
                   receiver_mesh=deepcopy(geometry), clock=deepcopy(receipt.get('clock')),
                   temperature=deepcopy(receipt.get('temperature')), rows=rows, receiver_rows=deepcopy(rows),
                   start=start, count=min(count, max(0, total - start)), total=total, receiver_total=len(ids),
-                  metadata_differences=[], coverage_policy='ALL_RECEIVER_P1_NODES_REQUIRED',
+                  metadata_differences=[], coverage_policy=('ALL_RECEIVER_HEX8_NODES_REQUIRED'
+                      if mapped and mapped.get('basis') == 'Hex8_nodal_samples' else 'ALL_RECEIVER_P1_NODES_REQUIRED'),
                   coverage=deepcopy(receipt.get('coverage')), invalid_receiver_ids=receipt.get('invalid_receiver_ids', []),
                   native_mask=mapped.get('valid_mask') if mapped else None,
                   unavailable=unavailable, reference_temperature=reference['value'] if reference else None,
                   reference_temperature_unit='K' if reference else None,
                   exact_values_match=mapped is not None and received is not None and canonical_hash(mapped) == canonical_hash(received),
                   conservative=False, original_source_and_receiver_are_different_meshes=True)
+    result['extrusion'] = deepcopy(receipt.get('extrusion'))
     # Do not call equal meshes different just because this policy was selected.
     result['original_source_and_receiver_are_different_meshes'] = bool(mapped and sources and all(
         isinstance(s, dict) and s.get('mesh_sha256') != mapped['mesh_sha256'] for s in sources))

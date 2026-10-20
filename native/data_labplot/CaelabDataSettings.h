@@ -101,11 +101,11 @@ public:
         m_valueColumn = sourceBox(QStringLiteral("coreValueColumn"), response);
         m_axisColumn = sourceBox(QStringLiteral("coreAxisColumn"), axis);
         labeled(responseGrid, 0, text("원자료 열"), m_valueColumn);
-        labeled(responseGrid, 1, text("단위 이름"), field("unit", false, "coreValueUnit", response));
+        labeled(responseGrid, 1, text("준비 후 단위"), field("unit", false, "coreValueUnit", response));
         numericPair(responseGrid, 2, false, response);
         labeled(axisGrid, 0, text("원자료 열"), m_axisColumn);
         labeled(axisGrid, 1, text("축 이름"), field("name", true, "coreAxisName", axis));
-        labeled(axisGrid, 2, text("단위 이름"), field("unit", true, "coreAxisUnit", axis));
+        labeled(axisGrid, 2, text("준비 후 단위"), field("unit", true, "coreAxisUnit", axis));
         numericPair(axisGrid, 3, true, axis);
         sources->addWidget(response, 1);
         sources->addWidget(axis, 1);
@@ -130,7 +130,7 @@ public:
         scroll->setWidget(body);
         layout->addWidget(scroll, 1);
 
-        auto* note = new QLabel(text("단위 이름을 바꿔도 수치는 변환되지 않습니다. 수치 변환은 배율·오프셋으로 따로 지정합니다.\n"
+        auto* note = new QLabel(text("준비 후 단위와 원값 단위는 다를 수 있습니다. 원표는 교정·변환 전 값을 표시합니다.\n"
                                     "미완성 입력도 초안으로 보존되며, 자료 준비 전 유효성을 검사합니다."), this);
         note->setWordWrap(true);
         layout->addWidget(note);

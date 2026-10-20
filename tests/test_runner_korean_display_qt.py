@@ -206,3 +206,32 @@ def test_primary_list_empty_reading_series_and_failure_keep_korean_and_raw_diagn
         until(app, lambda: not window._workers)
         window.close()
         app.processEvents()
+
+
+@pytest.mark.parametrize('width,height',[(980,650),(1420,900)])
+def test_monitor_raw_log_search_and_commands_fit_without_changing_the_selected_job(app,width,height):
+    from test_research_runner_ui import MonitorClient
+    from PySide6.QtCore import QPoint
+    from PySide6.QtGui import QFont,QFontDatabase
+    client=MonitorClient();original=deepcopy(client.logs)
+    window=RunnerWindow(client,job_id='JA',poll_interval=0)
+    try:
+        if os.name=='nt':
+            assert QFontDatabase.addApplicationFont('C:/Windows/Fonts/malgun.ttf')>=0
+            window.setFont(QFont('Malgun Gothic',10))
+        until(app,lambda:window.selected_job_id=='JA' and not window._pending)
+        window.resize(width,height);window.show();app.processEvents()
+        window.log_search.setText('native');window.log_search.setFocus()
+        window.find_log();app.processEvents()
+        assert window.log_text.textCursor().selectedText()=='native'
+        assert window.log_text.viewport().height()>=5*window.log_text.fontMetrics().lineSpacing()
+        for button in (window.result_button,window.cancel_button,window.origin_button,window.post_button,window.more_button):
+            top_left=button.mapTo(window,QPoint(0,0))
+            assert button.isVisible() and top_left.x()>=0 and top_left.x()+button.width()<=window.width()
+        window.refresh_selected();until(app,lambda:not window._pending)
+        assert window.selected_job_id=='JA' and window.log_text.textCursor().selectedText()=='native'
+        assert client.logs==original and '보고되지' in window.progress_summary.text()
+        capture(window,'monitor-raw-log',width)
+    finally:
+        until(app,lambda:not window._workers)
+        window.close();app.processEvents()

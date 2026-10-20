@@ -73,7 +73,7 @@ def _gauss_positions(points):
     return [row['xyz_mm'] for row in tetra10_gauss(points)]
 
 
-def parse_result(raw, expected):
+def parse_result(raw, expected, *, allow_initial_order=False):
     """Full native DEPL/REAC and FPG5 coverage; missing rows never become zero."""
     if raw.get('solver_status') != 'COMPLETED' or raw.get('converged') is not True:
         raise ValueError('Native Aster result did not complete')
@@ -82,7 +82,7 @@ def parse_result(raw, expected):
     guard, tables = raw['native_mesh_checks'], raw['tables']
     if guard.get('status') != 'PASS':
         raise ValueError('Native Aster mesh admission did not pass')
-    order = _identifier(raw['order'], 'order')
+    order = raw['order'] if allow_initial_order and type(raw['order']) is int and raw['order']==0 else _identifier(raw['order'], 'order')
     if raw.get('available_orders') != [order]:
         raise ValueError('Single linear static result requires exactly one native order')
     access = raw.get('access_parameters',{})

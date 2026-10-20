@@ -1,7 +1,6 @@
 """Common entrypoint checks after applying integration.patch; no GUI/solver claims."""
 from types import SimpleNamespace as NS
-from pathlib import Path
-import ast
+import xml.etree.ElementTree as ET
 import pytest
 from caelab.beam_model import OPERATIONS
 
@@ -59,11 +58,26 @@ def test_registrar_reuses_four_file_contract(tmp_path):
     assert receipt['kind']=='frozen_beam' and receipt['format']=='freecad-beam' and len(receipt['files'])==5
 
 
-def test_common_modules_parse_and_beam_post_does_not_use_stress_aliases():
-    integrated();root=Path(__file__).resolve().parents[1]
-    for name in ('bridge','connection','native_controls','cae_prep'):
-        ast.parse((root/'apps'/'desktop_pre'/f'{name}.py').read_text(encoding='utf-8'))
-    for name in ('workbench','desktop_links','native_inputs','native_commands','backends'):
-        ast.parse((root/'caelab'/f'{name}.py').read_text(encoding='utf-8'))
-    # Partial archive does not contain the full app/schema dependencies needed
-    # to instantiate Workbench; actual end-to-end registration is a native gate.
+def test_beam_post_exports_section_forces_and_moments_without_stress_aliases(tmp_path):
+    integrated()
+    from test_beam_support import model, frd
+    from caelab.beam_results import read_frd, write_post
+    beam=model();raw=frd(beam,times=(.5,1.))
+    source=tmp_path/'beam.frd';source.write_text(raw,encoding='ascii')
+    observed=read_frd(source,beam)
+    artifact=write_post(tmp_path/'post',observed,beam,source_status='SUCCEEDED')
+    metadata={row['name']:row for row in artifact['native_metadata']['arrays']}
+    datasets=ET.parse(tmp_path/'post'/'beam.pvd').findall('./Collection/DataSet')
+    assert [float(row.get('timestep')) for row in datasets]==[.5,1.]
+    # This is synthetic FRD-to-Post integration, not a native solver result.
+    expected={'V1':(11.,'N'),'V2':(22.,'N'),'N':(33.,'N'),
+              'Mt':(44.,'Nmm'),'M1':(55.,'Nmm'),'M2':(66.,'Nmm')}
+    for dataset in datasets:
+        point=ET.parse(tmp_path/'post'/dataset.get('file')).find('./UnstructuredGrid/Piece/PointData')
+        arrays={row.get('Name'):row for row in point.findall('DataArray')}
+        assert set(arrays)==set(metadata)-{'NativeElementId'}
+        assert not any('stress' in name.lower() or 'mises' in name.lower() for name in arrays)
+        for name,(value,unit) in expected.items():
+            assert metadata[name]['units']==unit and arrays[name].get('NumberOfComponents')=='1'
+            assert [float(x) for x in arrays[name].text.split()]==[value*float(dataset.get('timestep'))]*5
+    assert source.read_text(encoding='ascii')==raw

@@ -110,7 +110,7 @@ class RetainedFixture:
     def _metadata(self): return deepcopy(self.data)
 
 
-def test_old_assignment_refreeze_preserves_exact_receipt_without_live_cas(monkeypatch):
+def test_old_assignment_refreeze_preserves_exact_receipt_without_live_cas(monkeypatch, historical_installation):
     original = seed();r = original['simulation_draft']['settings']['source_receipt']
     f = RetainedFixture(r);new = other_session(original['native_target'])
     # New process has the filename-derived internal name, not the original name.
