@@ -730,7 +730,8 @@ class ExpertWindow(QMainWindow):
                 self._update_actions()
                 return
             composer = draft.get('composer', {})
-            self.question.setPlainText(composer.get('text', ''))
+            if self.question.toPlainText() != composer.get('text', ''):
+                self.question.setPlainText(composer.get('text', ''))
             self.classification.setCurrentIndex(self.classification.findData(composer.get('classification')))
             mode = draft.get('context', {}).get('discussion_mode', 'sequential')
             self.protocol_mode.setCurrentIndex(max(0, self.protocol_mode.findData(mode)))

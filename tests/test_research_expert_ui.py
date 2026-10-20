@@ -324,3 +324,48 @@ def test_cancel_question_keeps_other_local_inputs_and_never_sends(app, ui_owner)
     assert window.edited_draft()['budget'] == budget and window.local_dirty
     assert owner.read(before['id']) == before
     assert window.client.operations == [] and not manager.list() and not calls
+
+
+def test_clean_poll_preserves_composer_selection_and_changed_remote_text_updates(app, ui_owner):
+    from PySide6.QtTest import QTest
+    from PySide6.QtGui import QTextCursor
+    owner, manager, calls, _ = ui_owner
+    window = open_window(app, owner)
+    try:
+        window.question.setPlainText('Retained previous question')
+        window.apply_inputs()
+        wait(app, lambda: not window._busy and not window.local_dirty)
+        window.show()
+        window.question.setFocus()
+        app.processEvents()
+        QTest.keyClick(window.question, Qt.Key.Key_A, Qt.KeyboardModifier.ControlModifier)
+        assert window.question.textCursor().selectedText() == 'Retained previous question'
+        before = deepcopy(owner.read(window.document['id']))
+        assert window.refresh_document()
+        wait(app, lambda: not window._busy)
+        assert window.question.textCursor().selectedText() == 'Retained previous question'
+        assert not window.local_dirty and owner.read(before['id']) == before
+        QTest.keyClicks(window.question, 'Compare the new results.')
+        assert window.question.toPlainText() == 'Compare the new results.'
+        assert window.local_dirty
+        window.cancel_question_edits()
+        cursor = window.question.textCursor()
+        cursor.setPosition(4)
+        cursor.movePosition(QTextCursor.MoveOperation.Right, QTextCursor.MoveMode.KeepAnchor, 5)
+        window.question.setTextCursor(cursor)
+        assert window.refresh_document()
+        wait(app, lambda: not window._busy)
+        assert (window.question.textCursor().anchor(), window.question.textCursor().position()) == (4, 9)
+        remote = deepcopy(before['draft'])
+        remote['composer']['text'] = 'A changed remote question'
+        owner.command(before['id'], 'expert.update', {'draft': remote},
+                      session_id=before['session_id'], expected_generation=before['generation'],
+                      command_id='Cremotequestion')
+        assert window.refresh_document()
+        wait(app, lambda: not window._busy)
+        assert window.question.toPlainText() == 'A changed remote question'
+        assert not window.local_dirty and not window.conflict
+        assert not manager.list() and not calls
+    finally:
+        window._allow_close = True
+        window.close()
