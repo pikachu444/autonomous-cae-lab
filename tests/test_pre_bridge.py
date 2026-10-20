@@ -54,8 +54,7 @@ def test_disconnected_displacement_draft_survives_project_save_and_cold_read(mon
         {'object_id': 'Analysis'}, owner=owner, on_done=saved)
     connection.submit_native('document.save', {}, owner=owner,
         _capture_motion_view=False, _capture_shell=False, _capture_beam=False,
-        _capture_dynamic=False, _capture_composite=False, _capture_connector=False,
-        _capture_pretension=False)
+        _capture_dynamic=False, _capture_composite=False, _capture_connector=False)
     stored = load_json(output)
     assert stored['displacement_transfers']['Analysis']['draft'] == raw
     assert stored['displacement_transfers']['Analysis']['accepted'] == accepted
@@ -115,10 +114,11 @@ def test_transfer_focus_restores_previous_docks_after_last_task_and_preserves_na
     one, two = object(), object()
     connection._transfer_task_visibility(one, True)
     queued.pop(0)()
-    assert not any(item.visible for item in (model, tasks, overlay, calculation, hidden))
+    assert model.visible
+    assert not any(item.visible for item in (tasks, overlay, calculation, hidden))
     connection._transfer_task_visibility(two, True)
     connection._transfer_task_visibility(one, False)
-    assert not model.visible and not overlay.visible
+    assert model.visible and not overlay.visible
     connection._transfer_task_visibility(two, False)
     assert all(item.visible for item in (model, tasks, overlay, calculation)) and not hidden.visible
     assert commands == ['Std_DockOverlayToggleRight'] * 2

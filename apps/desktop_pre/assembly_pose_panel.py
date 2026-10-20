@@ -174,18 +174,28 @@ def make_panel(connection, owner):
 
         def admitted(self):
             try:
-                require_valid(owner)  # fresh, never the generation/UI cache
-                return True
+                return require_valid(owner)  # fresh, never the generation/UI cache
             except ValueError as error:
                 self.status.setText(str(error))
                 self.buttons(self.row(), None)
                 return False
 
         def conditions(self):
-            if not self.admitted(): return
+            model = self.admitted()
+            if not model: return
             if selected_body(owner) is None:
                 self.status.setText('해석할 부품의 면이나 부품을 모델에서 선택하세요.'); return
-            connection.show_panel('fem', owner=owner)
+            try:
+                import FemGui
+                owner.before_design_action('FEM conditions')
+                connection.Gui.activateWorkbench('FemWorkbench')
+                FemGui.setActiveAnalysis(owner.doc.getObject(model['analysis_id']))
+                for dock in connection.Gui.getMainWindow().findChildren(Q.QDockWidget):
+                    if dock.objectName() in ('Model', 'Tasks'):
+                        dock.show()
+                self.status.setText('FEM 메뉴에서 하중 또는 구속을 선택하세요. 현재 선택한 면과 부품을 사용합니다.')
+            except Exception as error:
+                self.status.setText(str(error))
 
         def edit_cad(self):
             row = self._rows.get(selected_body(owner))
@@ -208,17 +218,10 @@ def make_panel(connection, owner):
                 elif reply.get('object_id'):
                     obj = owner.doc.getObject(reply['object_id'])
                     connection.Gui.Selection.clearSelection(); connection.Gui.Selection.addSelection(obj)
-                    if kind == 'material':
-                        connection.submit_native('pre.fem.task_edit', {}, {'object_id': obj.Name},
-                            lambda r: self.status.setText(_message(r) or '재료 편집을 완료하세요.'), owner=owner)
-                    else:
-                        panel = connection.show_panel('fem', owner=owner)
-                        try:
-                            panel.open_mesh_settings(obj.Name)
-                        except ValueError as error:
-                            self.status.setText(str(error))
-                        else:
-                            self.status.setText('해석 설정에서 메시 크기와 차수를 지정하고 생성하세요.')
+                    caption = ('재료 편집을 완료하세요.' if kind == 'material' else
+                               'FreeCAD 메시 작업창에서 크기와 차수를 지정하고 생성하세요.')
+                    connection.submit_native('pre.fem.task_edit', {}, {'object_id': obj.Name},
+                        lambda r: self.status.setText(_message(r) or caption), owner=owner)
                 self.refresh()
             try:
                 connection.submit_native('pre.assembly_candidate.'+kind, {}, {'object_id': row['body_id']}, done, owner=owner)

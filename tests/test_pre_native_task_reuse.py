@@ -1,9 +1,136 @@
 """Native-shaped owner/Qt checks, not acceptance of a live FreeCAD Task dialog."""
 from copy import deepcopy
 from types import SimpleNamespace as NS
+import json
+import sys
 import pytest
-from test_pre_fem_edit import native, submit, repair_conditions, region, Quantity, Object
-from test_pre_fem_panel_ui import panel, app, QtWidgets
+from test_pre_fem_edit import native, submit, repair_conditions, region, Quantity
+
+
+@pytest.fixture
+def native_solver_apis(monkeypatch):
+    """Original FreeCAD API boundaries, without starting a solver or new GUI."""
+    from apps.desktop_pre import metadata, native_solver_guard
+    data = {'schema': metadata.SCHEMA}
+    saved = NS(PropertiesList=['Definition'])
+    doc = NS(Objects=[], getObject=lambda name: saved if name == metadata.NAME else None)
+    solver = NS(Name='UserSolver', Document=doc, TypeId='Fem::FemSolverObjectPython',
+                MaterialNonlinearity='nonlinear')
+    analysis = NS(Name='UserAnalysis', Label='사용자 해석', Document=doc,
+                  TypeId='Fem::FemAnalysis', Group=[solver])
+    doc.Objects = [analysis, solver]
+    calls, warnings, errors = [], [], []
+    result = object()
+
+    class ViewProvider:
+        def setEdit(self, vobj, mode=0):
+            calls.append(('edit', vobj, mode))
+            return result
+
+    class Writer:
+        def __init__(self):
+            self.analysis, self.solver_obj = analysis, solver
+
+        def write_solver_input(self, *args, **kwargs):
+            calls.append(('write', args, kwargs))
+            return result
+
+    class Task:
+        def __init__(self):
+            self.fea = NS(analysis=analysis, solver=solver)
+
+        def runCalculix(self, *args, **kwargs):
+            calls.append(('run', args, kwargs))
+            return result
+
+        def femConsoleMessage(self, text, level):
+            errors.append((text, level))
+
+    modules = {
+        'femviewprovider.view_solver_ccxtools': NS(VPSolverCcxTools=ViewProvider),
+        'femsolver.calculix.writer': NS(FemInputWriterCcx=Writer),
+        'femtaskpanels.task_solver_ccxtools': NS(_TaskPanel=Task),
+        'FreeCAD': NS(Console=NS(PrintError=errors.append)),
+        'FreeCADGui': NS(getMainWindow=lambda: 'native-main-window'),
+        'PySide': NS(QtGui=NS(QMessageBox=NS(warning=lambda *args: warnings.append(args)))),
+    }
+    for name, module in modules.items():
+        monkeypatch.setitem(sys.modules, name, module)
+    native_solver_guard.install()
+
+    def save():
+        saved.Definition = json.dumps(data, ensure_ascii=False)
+
+    save()
+    return NS(data=data, saved=saved, save=save, analysis=analysis, solver=solver,
+              doc=doc, view=ViewProvider(), writer=Writer(), task=Task(),
+              result=result, calls=calls, warnings=warnings, errors=errors,
+              install=native_solver_guard.install)
+
+
+@pytest.mark.parametrize('key', [
+    'contacts', 'contact_programs', 'convergence_drafts', 'periodic_constraints',
+    'pretension_sections', 'initial_fields', 'pretension_editors', 'shells',
+    'beam_models', 'dynamic_programs', 'composite_shells', 'displacement_transfers',
+])
+def test_native_solver_entry_writer_and_existing_task_reject_omitted_saved_conditions(native_solver_apis, key):
+    api = native_solver_apis
+    # The task already exists before saved conditions are changed.
+    api.data[key] = ([{'analysis_id': api.analysis.Name, 'raw': '1e'}]
+        if key in ('contacts', 'contact_programs', 'convergence_drafts',
+                   'periodic_constraints', 'pretension_sections')
+        else {api.analysis.Name: {'raw': '1e'}})
+    api.save()
+    before = api.saved.Definition
+    assert api.view.setEdit(NS(Object=api.solver)) is False
+    assert api.warnings[-1][0] == 'native-main-window'
+    assert '사용자 해석' in api.warnings[-1][2] and '계산 관리' in api.warnings[-1][2]
+    with pytest.raises(ValueError, match='사용자 해석.*계산 관리'):
+        api.writer.write_solver_input()
+    assert api.task.runCalculix() is None
+    assert api.errors[-1][1] == 'Error' and '계산 관리' in api.errors[-1][0]
+    assert not api.calls
+    assert api.saved.Definition == before
+    assert api.analysis.Group == [api.solver] and api.solver.MaterialNonlinearity == 'nonlinear'
+
+
+def test_native_solver_delegation_preserves_calls_returns_and_stale_plasticity(native_solver_apis):
+    api = native_solver_apis
+    api.data.update(contacts=[{'analysis_id': 'OtherAnalysis'}],
+        initial_fields={'OtherAnalysis': {'raw': '1e'}},
+        plasticity_drafts=[{'analysis_id': api.analysis.Name, 'draft_errors': ['old draft'],
+                            'draft': {'yield': '1e'}, 'applied': None}])
+    api.save()
+    before = api.saved.Definition
+    methods = (type(api.view).setEdit, type(api.writer).write_solver_input, type(api.task).runCalculix)
+    api.install()
+    assert methods == (type(api.view).setEdit, type(api.writer).write_solver_input, type(api.task).runCalculix)
+    vobj = NS(Object=api.solver)
+    assert api.view.setEdit(vobj, 7) is api.result
+    assert api.writer.write_solver_input('native-arg', output='unchanged') is api.result
+    assert api.task.runCalculix(False, native_flag=True) is api.result
+    assert api.calls == [('edit', vobj, 7), ('write', ('native-arg',), {'output': 'unchanged'}),
+                         ('run', (False,), {'native_flag': True})]
+    assert not api.warnings and not api.errors and api.saved.Definition == before
+
+
+def test_native_writer_checks_its_actual_analysis_instead_of_selected_analysis(native_solver_apis):
+    api = native_solver_apis
+    api.data['initial_fields'] = {api.analysis.Name: {'raw': '1e'}}
+    api.save()
+    api.writer.analysis = NS(Name='OtherAnalysis', Label='다른 해석', Document=api.doc)
+    assert api.writer.write_solver_input() is api.result
+    assert api.calls == [('write', (), {})]
+
+
+def test_unmanaged_native_model_keeps_all_original_solver_entry_points(native_solver_apis):
+    api = native_solver_apis
+    api.doc.getObject = lambda name: None
+    assert api.view.setEdit(NS(Object=api.solver)) is api.result
+    assert api.writer.write_solver_input() is api.result
+    assert api.task.runCalculix() is api.result
+    assert [call[0] for call in api.calls] == ['edit', 'write', 'run']
+    assert not api.errors and not api.warnings
 
 
 def test_native_targets_require_explicit_adoption_and_preserve_native_fields(native):
@@ -31,6 +158,42 @@ def test_current_exact_named_regions_are_retained_and_value_only_edit_needs_no_a
     assert result['region_id'] == before['conditions'][1]['region_id']
 
 
+def test_generic_native_face_edit_does_not_require_legacy_condition_repair(native):
+    repair_conditions(native)
+    native.force.References = [(native.shape, ['Face1'])]
+    before = deepcopy(native.metadata)
+    assert native.editor._condition_errors(native.force, before)
+    assert native.editor.validate_for_run(native.analysis) == []
+    assert native.metadata == before
+    assert native.force.References == [(native.shape, ['Face1'])]
+
+
+def test_generic_native_admission_keeps_native_validator_refusal(native,monkeypatch):
+    repair_conditions(native)
+    native.force.References=[]
+    before=deepcopy(native.metadata)
+    def reject(analysis,solver):
+        assert analysis is native.analysis and solver is native.solver
+        assert not native.force.References
+        raise ValueError('Force has empty references.')
+    monkeypatch.setattr('apps.desktop_pre.native_calculix.validate_analysis',reject)
+    errors=native.editor.validate_for_run(native.analysis)
+    assert any(row['message']=='Force has empty references.' and row['blocks_evaluation'] for row in errors)
+    assert native.metadata==before
+
+
+@pytest.mark.parametrize('changed',['geometry','mesh'])
+def test_generic_native_admission_keeps_actual_mesh_source_checks(native,changed):
+    repair_conditions(native)
+    if changed=='geometry':native.shape.Shape.brep='changed native source geometry'
+    else:native.mesh.FemMesh.Nodes[4].z=2.
+    before=deepcopy(native.metadata)
+    errors=native.editor.validate_for_run(native.analysis)
+    expected='Source geometry changed' if changed=='geometry' else 'Native mesh changed'
+    assert any(expected in row['message'] and row['blocks_evaluation'] for row in errors)
+    assert native.metadata==before
+
+
 @pytest.mark.parametrize('problem', ['active_task', 'geometry', 'empty', 'edge_reference', 'foreign', 'direction', 'boolean'])
 def test_native_confirmation_does_not_bypass_invalid_target_or_active_task(native, problem):
     repair_conditions(native)
@@ -49,81 +212,46 @@ def test_native_confirmation_does_not_bypass_invalid_target_or_active_task(nativ
     assert native.metadata == before
 
 
-def test_task_open_and_cancel_leave_metadata_invariant_and_no_duplicate_forms(panel, native):
-    repair_conditions(native); panel.refresh()
+
+
+
+
+
+
+
+
+
+
+@pytest.mark.parametrize('target', ['mesh', 'material', 'fixed', 'force'])
+def test_existing_freecad_task_entry_changes_no_native_values_or_metadata(native, target):
+    obj = getattr(native, target)
     before = deepcopy(native.metadata)
-    panel.condition.setCurrentIndex(panel.condition.findData(native.force.Name))
-    panel.findChild(QtWidgets.QPushButton, 'femEditCondition').click(); panel.test_complete()
-    assert native.edit == native.force.Name and native.metadata == before
-    native.edit = None  # Native reject restores its transaction; owner must not adopt anything.
-    panel.poll()
-    assert native.metadata == before and panel.confirm_condition_button.isHidden()
-    assert panel.findChild(QtWidgets.QDoubleSpinBox, 'femForce') is None
-    assert panel.findChild(QtWidgets.QDoubleSpinBox, 'femYoungModulus') is None
-    native.force.References = [(native.shape, ['Face1'])]  # Native accepted edit.
-    panel.poll(); assert not panel.confirm_condition_button.isHidden()
-    panel.confirm_condition(); panel.test_complete()
-    assert not native.editor._condition_errors(native.force, native.editor._metadata())
-    assert panel.confirm_condition_button.isHidden()
+    group = list(native.analysis.Group)
+    result = submit(native, 'task_edit', obj=obj)
+    assert native.edit == obj.Name and result['state'] == 'NATIVE_TASK_OPEN'
+    assert native.metadata == before and native.analysis.Group == group
+    native.edit = None  # Native Task cancel; no replacement editor or auto-apply.
+    assert native.metadata == before and native.force.Force.Value == 10
 
 
-def test_new_force_is_created_once_then_edited_in_its_native_task(panel, native):
+def test_typed_force_creation_retains_native_task_and_exact_source_selection(native):
     selected = region(native)
-    panel.refresh(); panel.new_condition.setCurrentIndex(panel.new_condition.findData('Force'))
-    panel.condition_region.setCurrentIndex(panel.condition_region.findData(selected['id']))
-    panel.force.setValue(37)
-    panel.create_condition(); panel.test_complete()
-    identifier = panel.test_calls[-1][2]['object_id']
-    assert panel.test_calls[-1][0] == 'pre.fem.task_edit'
-    created = native._object(identifier)
+    result = submit(native, 'condition_set', {'kind': 'Force', 'region_id': selected['id'],
+        'force': 37, 'unit': 'N'}, native.analysis)
+    created = native._object(result['object_id'])
     assert created in native.analysis.Group and created.Force.Value == 37
-    panel.test_complete()
-    assert native.edit == identifier and panel.condition.currentData() == identifier
+    assert created.References == [(native.shape, ['Face1'])]
+    before = deepcopy(native.metadata)
+    submit(native, 'task_edit', obj=created)
+    assert native.edit == created.Name and native.metadata == before
 
 
-def test_late_local_edit_does_not_open_created_task_or_discard_user_input(panel, native):
-    selected = region(native)
-    panel.refresh(); panel.new_condition.setCurrentIndex(panel.new_condition.findData('Force'))
-    panel.condition_region.setCurrentIndex(panel.condition_region.findData(selected['id']))
-    panel.force.setValue(37); panel.create_condition()
-    panel.region_label.setText('새 영역 이름')
-    panel.test_complete()
-    assert native.edit is None and not panel.test_pending
-    assert panel.region_label.text() == '새 영역 이름'
-    assert panel.test_calls[-1][0] == 'pre.fem.condition_set'
-
-
-def test_stale_force_edge_direction_can_be_explicitly_repaired_after_cad_change(panel, native):
+def test_explicit_target_repair_preserves_native_force_after_cad_change(native):
     repair_conditions(native)
     native.force.Direction = (native.shape, ['Edge1'])
     submit(native, 'condition_repair', {'use_native_references': True}, native.force)
-    native.shape.Shape.brep = 'edited CAD'
-    native.shape.Shape.Edges[0].brep = 'edited edge'
-    selected = region(native, 'Edge1')
-    panel.refresh(); panel.condition.setCurrentIndex(panel.condition.findData(native.force.Name))
-    assert not panel.direction_region.isHidden()
-    assert panel.direction_region.currentData() == '__keep'
-    panel.direction_region.setCurrentIndex(panel.direction_region.findData(selected['id']))
-    native.selection = [NS(Object=native.shape, SubElementNames=['Face2'])]
-    panel.repair_condition(); panel.test_complete(); panel.test_complete()
+    native.shape.Shape.brep = 'edited CAD'; native.shape.Shape.Edges[0].brep = 'edited edge'
+    edge = region(native, 'Edge1'); face = region(native, 'Face2')
+    submit(native, 'condition_repair', {'region_id': face['id'], 'direction_region_id': edge['id']}, native.force)
+    assert native.force.Direction == (native.shape, ['Edge1']) and native.force.Force.Value == 10
     assert not native.editor._condition_errors(native.force, native.editor._metadata())
-    assert native.force.Direction == (native.shape, ['Edge1'])
-    assert panel.direction_region.isHidden()
-
-
-def test_hidden_old_direction_choice_cannot_override_later_native_direction_edit(panel, native):
-    repair_conditions(native)
-    edge = region(native, 'Edge1')
-    native.force.Direction = (native.shape, ['Edge1'])
-    panel.refresh(); panel.condition.setCurrentIndex(panel.condition.findData(native.force.Name))
-    panel.direction_region.setCurrentIndex(panel.direction_region.findData(edge['id']))
-    native.selection = [NS(Object=native.shape, SubElementNames=['Face2'])]
-    panel.repair_condition(); panel.test_complete(); panel.test_complete()
-    assert panel.direction_region.isHidden() and panel.direction_region.currentData() == '__keep'
-    native.force.Direction = None
-    panel.poll(); panel.confirm_condition(); panel.test_complete()
-    native.selection = [NS(Object=native.shape, SubElementNames=['Face1'])]
-    panel.repair_condition(); panel.test_complete()
-    assert 'direction_region_id' not in panel.test_calls[-1][1]
-    panel.test_complete()
-    assert native.force.Direction is None

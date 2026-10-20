@@ -252,7 +252,8 @@ def test_region_geometry_edit_needs_explicit_repair_then_condition_confirmation(
     with pytest.raises(ValueError, match='previous region target hash'):
         region(native, 'Face1', region_id=selected['id'])
     selected = region(native, 'Face1', region_id=selected['id'], expected_target_sha256=selected['target_sha256'])
-    assert any('STALE_CONDITION_TARGET' in row['message'] for row in native.editor.validate_for_run(native.analysis))
+    assert any('STALE_CONDITION_TARGET' in message for message in
+               native.editor._condition_errors(native.fixed, native.editor._metadata()))
     submit(native, 'condition_repair', {'region_id': selected['id']}, native.fixed)
     assert not native.editor._condition_errors(native.fixed, native.editor._metadata())
     assert native.editor._condition_errors(native.force, native.editor._metadata())
@@ -632,3 +633,9 @@ def test_quality_reads_native_nodes_once_per_call_without_persistent_cache(nativ
     assert changed['mesh_sha256'] != actual['mesh_sha256']
     native.mesh.FemMesh = mesh
     assert changed == submit(native, 'mesh_quality', {}, native.mesh)
+
+
+@pytest.fixture(scope='module')
+def app():
+    widgets = pytest.importorskip('PySide6.QtWidgets')
+    return widgets.QApplication.instance() or widgets.QApplication([])

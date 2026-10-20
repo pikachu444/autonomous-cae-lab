@@ -130,6 +130,20 @@ def test_native_writer_cannot_mutate_saved_mesh_connectivity(native, tmp_path, f
     assert not list(tmp_path.rglob('snapshot.json'))
 
 
+@pytest.mark.parametrize('changed', ['material', 'solver'])
+def test_native_writer_cannot_mutate_material_or_solver(native, tmp_path, changed):
+    def alter():
+        if changed == 'material':
+            native.material.Material['YoungsModulus'] = '2000 MPa'
+        else:
+            native.solver.MaterialNonlinearity = 'nonlinear'
+    native.after_write = alter
+    with pytest.raises(ValueError, match='source model changed'):
+        freeze_analysis(native.analysis, native.solver, tmp_path)
+    assert not list(tmp_path.rglob('snapshot.json'))
+    assert native.source.read_bytes() == b'original document'
+
+
 def test_generic_snapshot_reports_unconnected_aster_translation(native, tmp_path):
     from caelab.adapters.codeaster_frozen import prepare_input
     record = freeze_analysis(native.analysis, native.solver, tmp_path / 'input')
@@ -235,8 +249,9 @@ def test_installed_freecad_converts_original_solver_result(tmp_path, monkeypatch
 
 
 @pytest.mark.parametrize('changed_during_write', [False, True])
+@pytest.mark.parametrize('hardening', ['isotropic hardening', 'kinematic hardening'])
 def test_applied_material_uses_official_writer_with_hex_pressure_and_gravity(native, tmp_path, monkeypatch,
-                                                                          changed_during_write):
+                                                                          changed_during_write, hardening):
     import importlib.util
     import io
     from copy import deepcopy
@@ -267,6 +282,11 @@ def test_applied_material_uses_official_writer_with_hex_pressure_and_gravity(nat
     n.material.Material.update(Name='User steel', Density='7.85e-9 t/mm^3')
     source = draft(); nm.apply(fem, n.material, n.analysis.Name, source)
     plastic, = nm.native_objects(n.analysis)
+    # A preserved, unapplied UI draft cannot replace the current FreeCAD model.
+    stored['plasticity_drafts'][0]['draft']['definitions_confirmed'] = False
+    plastic.MaterialModelNonlinearity = hardening
+    plastic.YieldPoints = [f'{300+i},{i*.001:.3f}' for i in range(201)]
+    native_curve = list(plastic.YieldPoints)
     original_source = n.source.read_bytes(); original_metadata = deepcopy(stored)
     pressure = NS(Name='UserPressure', Label='User pressure', TypeId='Fem::ConstraintPressure', Document=n.doc,
         State=[], Suppressed=False, Pressure=Quantity('1.2 MPa'), EnableAmplitude=False, Reversed=False)
@@ -301,22 +321,25 @@ def test_applied_material_uses_official_writer_with_hex_pressure_and_gravity(nat
             selfweight_writer.write_constraint(stream, {}, gravity, self)
             stream.write('*NODE FILE\nU\n*END STEP\n')
             path = self.root / 'native.inp'; path.write_text(stream.getvalue(), encoding='utf-8')
-            if changed_during_write: stored['plasticity_drafts'][0]['draft']['definitions_confirmed'] = False
+            if changed_during_write: plastic.YieldPoints = ['400,0', '450,.01']
             return str(path)
     monkeypatch.setattr(sys.modules['femsolver.calculix.writer'], 'FemInputWriterCcx', Writer)
     output = tmp_path / 'applied'
     if changed_during_write:
-        with pytest.raises(ValueError, match='확인'):
+        with pytest.raises(ValueError, match='source model changed'):
             freeze_analysis(n.analysis, n.solver, output)
         assert not list(output.glob('*/snapshot.json'))
     else:
         record = freeze_analysis(n.analysis, n.solver, output)
         manifest, mesh, _, _ = frozen_fem.validate_snapshot(record)
         text = (record.parent / manifest['input_file']).read_text()
-        assert '*PLASTIC\n' + '\n'.join(plastic.YieldPoints) + '\n' in text
+        keyword = '*PLASTIC' if hardening == 'isotropic hardening' else '*PLASTIC, HARDENING=KINEMATIC'
+        assert keyword+'\n'+'\n'.join(native_curve)+'\n' in text
         assert float(text.split('*DENSITY\n')[1].splitlines()[0]) == 7.85e-9
         assert '7,P2,1.2\n' in text and 'Eall,GRAV,9810,0,0,-1\n' in text
         assert mesh['elements'][0]['type'] == 'C3D8'
         assert {'*PLASTIC', '*DENSITY', '*DLOAD'} <= set(manifest['native_cards'])
-        assert stored == original_metadata and stored['plasticity_drafts'][0]['draft'] == source
+        assert plastic.YieldPoints == native_curve
+    assert stored == original_metadata
+    assert stored['plasticity_drafts'][0]['applied_draft'] == source
     assert n.source.read_bytes() == original_source

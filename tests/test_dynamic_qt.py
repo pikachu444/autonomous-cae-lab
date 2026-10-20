@@ -10,6 +10,29 @@ from apps.desktop_pre.dynamic_panel import make_panel
 from test_dynamic_support import dynamic_model
 
 
+@pytest.mark.parametrize('blocked',[None,'command','native_request','draft','backend'])
+def test_dynamic_native_run_keeps_command_draft_and_backend_guards(blocked):
+    from apps.desktop_pre.dynamic_menu import start_run
+    calls=[]
+    owner=NS(doc=NS(Name='UserDoc'),document_id='Puser',session_id='Suser',generation=2,
+        refresh=lambda:calls.append('refresh'),dynamic=NS(inspect=lambda aid:{'can_freeze':blocked!='backend',
+            'errors':[{'message':'Native input is not ready'}] if blocked=='backend' else []}))
+    connection=NS(pending={'existing':True} if blocked=='command' else None,
+        native_requests={'Cpending':{'document_id':'Puser'}} if blocked=='native_request' else {},
+        panels={},send_command=lambda:calls.append('send'))
+    if blocked=='draft':
+        connection.panels={'UserDoc':{'dynamic':NS(widget=lambda:NS(editor_token=lambda:'unsaved'))}}
+    if blocked:
+        with pytest.raises(ValueError):start_run(connection,owner,'Analysis')
+        assert 'send' not in calls
+    else:
+        start_run(connection,owner,'Analysis',export_only=True)
+        assert calls==['refresh','send']
+        assert connection.pending['operation']=='pre.dynamic.freeze'
+        assert connection.pending['arguments']=={'analysis_id':'Analysis'}
+        assert connection.pending['export_only'] is True
+
+
 @pytest.mark.parametrize('size',[(470,740),(1100,840)])
 def test_two_sizes_invalid_draft_and_explicit_cancel(size,tmp_path):
     app=QtWidgets.QApplication.instance() or QtWidgets.QApplication([])

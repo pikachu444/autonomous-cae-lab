@@ -302,7 +302,7 @@ def saved_native_admission(nonlinear_factory, monkeypatch):
 
 @pytest.mark.parametrize('changed', ['draft', 'native_curve', 'solver', 'missing_base', 'foreign_base',
                                       'suppressed_base', 'duplicate_record'])
-def test_native_run_admission_preserves_saved_plasticity_guards(saved_native_admission, changed):
+def test_legacy_typed_material_admission_preserves_saved_plasticity_guards(saved_native_admission, changed):
     n = saved_native_admission
     nm.apply(n.editor, n.material, n.analysis.Name, draft())
     nm.native_objects(n.analysis)[0].State = []
@@ -326,19 +326,28 @@ def test_native_run_admission_preserves_saved_plasticity_guards(saved_native_adm
     before = deepcopy(n.metadata)
     with pytest.raises(ValueError):
         nm.validate_applied_materials(n.analysis, n.solver, n.metadata)
-    errors = n.editor.validate_for_run(n.analysis)
-    assert errors and all(row['blocks_evaluation'] for row in errors)
     assert n.metadata == before
 
 
-def test_native_only_kinematic_material_is_not_reinterpreted_as_app_j2(saved_native_admission):
+@pytest.mark.parametrize('legacy_edit', ['saved_draft', 'duplicate_record', 'native_curve', 'native_kinematic'])
+def test_native_material_admission_uses_current_objects_without_changing_legacy_drafts(saved_native_admission, legacy_edit):
     n = saved_native_admission
     nm.apply(n.editor, n.material, n.analysis.Name, draft())
     nm.native_objects(n.analysis)[0].State = []
-    n.metadata.clear()
     nonlinear, = nm.native_objects(n.analysis)
-    nonlinear.MaterialModelNonlinearity = 'kinematic hardening'
+    if legacy_edit == 'saved_draft':
+        n.metadata['plasticity_drafts'][0]['draft']['definitions_confirmed'] = False
+    elif legacy_edit == 'duplicate_record':
+        n.metadata['plasticity_drafts'].append(deepcopy(n.metadata['plasticity_drafts'][0]))
+    elif legacy_edit == 'native_curve':
+        nonlinear.YieldPoints = ['300,0', '350,.01']
+    else:
+        nonlinear.MaterialModelNonlinearity = 'kinematic hardening'
     before = list(nonlinear.YieldPoints)
-    assert nm.validate_applied_materials(n.analysis, n.solver, n.metadata) == []
+    before_metadata = deepcopy(n.metadata)
+    with pytest.raises(ValueError):
+        nm.validate_applied_materials(n.analysis, n.solver, n.metadata)
     assert n.editor.validate_for_run(n.analysis) == []
-    assert nonlinear.MaterialModelNonlinearity == 'kinematic hardening' and nonlinear.YieldPoints == before
+    assert nonlinear.YieldPoints == before and n.metadata == before_metadata
+    assert nonlinear.MaterialModelNonlinearity == ('kinematic hardening' if legacy_edit == 'native_kinematic'
+                                                  else 'isotropic hardening')

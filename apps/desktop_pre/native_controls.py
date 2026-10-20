@@ -8,8 +8,6 @@ from pathlib import Path
 from .beam_menu import editor_token as beam_token, pending_changes as beam_pending
 from .dynamic_menu import editor_token as dynamic_token, pending_changes as dynamic_pending
 from .connector_menu import editor_token as connector_token, pending_changes as connector_pending
-from .pretension_controls import editor_token as pretension_token, pending_changes as pretension_pending
-from .initial_field_controls import editor_token as initial_token, pending_changes as initial_pending, panel as initial_panel
 from .composite_controls import editor_token as composite_token, has_unsaved_editor as composite_pending
 
 def transfer_panel(connection, owner):
@@ -50,9 +48,7 @@ def _close_version(owner, connection=None):
             dynamic_token(connection, owner) if connection is not None else None,
             composite_token(connection, owner) if connection is not None else None,
             connector_token(connection, owner) if connection is not None else None,
-            pretension_token(connection, owner) if connection is not None else None,
-            transfer_token(connection, owner) if connection is not None else None,
-            initial_token(connection, owner) if connection is not None else None)
+            transfer_token(connection, owner) if connection is not None else None)
 
 
 def install(connection, open_model):
@@ -88,7 +84,6 @@ def install(connection, open_model):
                     ('설계 변수', lambda: connection.show_panel('parameters')),
                     ('조립 운동', lambda: connection.show_panel('motion')),
                     ('선택 자세 해석', lambda: connection.show_panel('assembly_candidate')),
-                    ('확장 조건 편집…', lambda: connection.show_panel('fem')),
                     ('변위 가져오기…', lambda: connection.show_panel('structural_transfer')),
                     ('빔 설정', lambda: connection.show_panel('beam')),
                     ('프로젝트', lambda: connection.show_panel('project'))]:
@@ -100,7 +95,7 @@ def install(connection, open_model):
             from .shell_controls import has_unsaved_editor
             controller = _motion_controller(connection, owner)
             return (_saved(owner) and (controller is None or not controller.has_unsaved_editor())
-                    and not has_unsaved_editor(connection, owner) and not beam_pending(connection, owner) and not dynamic_pending(connection, owner) and not composite_pending(connection, owner) and not connector_pending(connection, owner) and not pretension_pending(connection, owner) and not transfer_pending(connection, owner) and not initial_pending(connection, owner))
+                    and not has_unsaved_editor(connection, owner) and not beam_pending(connection, owner) and not dynamic_pending(connection, owner) and not composite_pending(connection, owner) and not connector_pending(connection, owner) and not transfer_pending(connection, owner))
 
         def invoke(self, callback):
             try: callback()
@@ -218,14 +213,9 @@ def install(connection, open_model):
                         connection.message.setText('다시 연결 준비 중 편집이 바뀌었습니다. 현재 모델과 편집을 유지합니다.'); return
                     self.closing = False; after(); return
                 owner = pending.pop(0)
-                initial = initial_panel(connection, owner)
-                if initial is not None and initial.pending:
-                    self.closing = False
-                    connection.message.setText('초기조건 요청의 처리 여부를 먼저 확인하세요. 현재 모델과 편집을 유지합니다.')
-                    return
                 controller = _motion_controller(connection, owner)
                 from .shell_controls import has_unsaved_editor
-                if (controller is None or not controller.has_unsaved_editor()) and not has_unsaved_editor(connection, owner) and not beam_pending(connection, owner) and not dynamic_pending(connection, owner) and not composite_pending(connection, owner) and not connector_pending(connection, owner) and not pretension_pending(connection, owner) and not transfer_pending(connection, owner) and not initial_pending(connection, owner):
+                if (controller is None or not controller.has_unsaved_editor()) and not has_unsaved_editor(connection, owner) and not beam_pending(connection, owner) and not dynamic_pending(connection, owner) and not composite_pending(connection, owner) and not connector_pending(connection, owner) and not transfer_pending(connection, owner):
                     advance(); return
                 version = _close_version(owner, connection)
                 choice = QtWidgets.QMessageBox.question(main, '다시 연결하기 전에 편집을 저장하시겠습니까?',
@@ -268,11 +258,6 @@ def install(connection, open_model):
                     after(); return
                 owner = pending.pop(0)
                 if owner.closed: advance(); return
-                initial = initial_panel(connection, owner)
-                if initial is not None and initial.pending:
-                    self.closing = False
-                    connection.message.setText('초기조건 요청의 처리 여부를 먼저 확인하세요. 현재 모델과 편집을 유지합니다.')
-                    return
                 try: owner.before_design_action('close')
                 except Exception as error:
                     self.closing = False; connection.message.setText(str(error)); return

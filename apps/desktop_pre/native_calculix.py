@@ -194,13 +194,6 @@ def _mesh_quality(native, elements):
     return summary
 
 
-def _applied_material_state(analysis, solver):
-    from . import metadata
-    from .nonlinear_material import validate_applied_materials
-    stored = metadata.read(analysis.Document)
-    return validate_applied_materials(analysis, solver, stored)
-
-
 def validate_analysis(analysis, solver):
     """Apply the installed writer's input checks to the selected native objects."""
     if threading.current_thread() is not threading.main_thread():
@@ -254,7 +247,6 @@ def validate_analysis(analysis, solver):
             nu = _number(values["PoissonRatio"])
             if e <= 0 or not -1 < nu < .5:
                 raise ValueError(obj.Name + ": elasticity requires E > 0 and -1 < nu < 0.5")
-    _applied_material_state(analysis, solver)
     return mesh, member
 
 
@@ -277,7 +269,6 @@ def export_analysis(analysis, solver, output_root, *, binding_validator=None):
         from .freeze_analysis import require_ready_model
         require_ready_model(doc)
         return {"members": [(obj.Name, _properties(obj)) for obj in analysis.Group],
-                "applied_materials": _applied_material_state(analysis, solver),
                 "nodes": {int(n): [_number(v) for v in (p.x, p.y, p.z)] for n, p in mesh.FemMesh.Nodes.items()},
                 "elements": {family: [(int(n), list(mesh.FemMesh.getElementNodes(n)))
                                       for n in sorted(getattr(mesh.FemMesh, family, []))]

@@ -128,17 +128,16 @@ def test_switching_editor_docks_preserves_unapplied_text_and_model_tree(app):
         return dock
     model = make_dock('Model', QtCore.Qt.LeftDockWidgetArea)
     calculation = make_dock('CAELabCalculation', QtCore.Qt.BottomDockWidgetArea)
-    inspector = make_dock('CaeSelectionInspector', QtCore.Qt.RightDockWidgetArea)
     note = make_dock('UserNotes', QtCore.Qt.BottomDockWidgetArea)
     edit = QtWidgets.QLineEdit('1e')
-    first = make_dock('Material', QtCore.Qt.RightDockWidgetArea, edit)
-    second = make_dock('Contact', QtCore.Qt.RightDockWidgetArea)
+    first = make_dock('Parameters', QtCore.Qt.RightDockWidgetArea, edit)
+    second = make_dock('Motion', QtCore.Qt.RightDockWidgetArea)
     first.hide(); second.hide()
     conn = Connection.__new__(Connection)
     conn.QtWidgets, conn.QtCore, conn.closed = QtWidgets, QtCore, False
     conn.Gui = NS(getMainWindow=lambda: main)
     conn.dock = calculation
-    conn.panels = {'UserModel': {'fem': first, 'contact': second}}
+    conn.panels = {'UserModel': {'parameters': first, 'motion': second}}
     for dock in (first, second):
         dock.visibilityChanged.connect(lambda visible, dock=dock: conn._editor_dock_visibility(dock, visible))
     main.resize(1280, 800); main.show(); app.processEvents()
@@ -146,7 +145,7 @@ def test_switching_editor_docks_preserves_unapplied_text_and_model_tree(app):
         first.show(); app.processEvents()
         edit.setSelection(1, 1)
         assert model.isVisible() and note.isVisible()
-        assert not calculation.isVisible() and not inspector.isVisible()
+        assert not calculation.isVisible()
         second.show(); app.processEvents()
         assert second.isVisible() and not first.isVisible()
         assert first.widget() is edit and edit.text() == '1e' and edit.selectedText() == 'e'
@@ -154,14 +153,14 @@ def test_switching_editor_docks_preserves_unapplied_text_and_model_tree(app):
         assert first.isVisible() and not second.isVisible() and model.isVisible()
         assert edit.text() == '1e' and edit.selectedText() == 'e'
         first.close(); app.processEvents()
-        assert calculation.isVisible() and inspector.isVisible() and model.isVisible()
+        assert calculation.isVisible() and model.isVisible()
         assert note.isVisible()
     finally:
         conn.closed = True
         main.close(); main.deleteLater(); app.processEvents()
 
 
-def test_native_fem_stays_primary_and_extension_editor_opens_only_on_request(controls):
+def test_native_fem_stays_primary_without_duplicate_preprocessor_entry(controls):
     c = controls
     opened = []
     c.connection.show_panel = lambda kind: opened.append(kind)
@@ -170,9 +169,8 @@ def test_native_fem_stays_primary_and_extension_editor_opens_only_on_request(con
     assert not opened
     menu = next(action.menu() for action in c.main.menuBar().actions() if action.text() == 'CAE 작업')
     research = next(action.menu() for action in menu.actions() if action.text() == '연구 도구')
-    edit = next(action for action in research.actions() if action.text() == '확장 조건 편집…')
-    edit.trigger()
-    assert opened == ['fem']
+    assert '확장 조건 편집…' not in [action.text() for action in research.actions()]
+    assert not opened
     assert c.originals == [] and not c.connection.calls
 
 
@@ -394,34 +392,3 @@ def test_transfer_raw_buffer_blocks_save_and_survives_close_reconnect_cancel(con
     completed=[];c.guards.prepare_reconnect([owner],lambda:completed.append(True))
     assert not completed and not c.connection.pending and not c.originals
     assert not c.guards.closing and buffer=={'text':'1e','version':1}
-
-
-def test_initial_raw_buffer_is_in_close_reconnect_token_and_cancel_preserves_it(controls, monkeypatch):
-    c = controls; owner = c.owners[0]; owner.saved_generation = owner.generation
-    raw = {'text':'1e', 'edit':1}
-    page = NS(pending=False, pending_changes=lambda:True, token=lambda:deepcopy(raw))
-    c.connection.panels = {owner.doc.Name:{'fem':NS(widget=lambda:NS(initial_field_page=page))}}
-    from apps.desktop_pre.native_controls import _close_version
-    version = _close_version(owner, c.connection); assert not c.guards.saved(owner)
-    questions(monkeypatch, [QtWidgets.QMessageBox.Cancel, QtWidgets.QMessageBox.Cancel])
-    c.guards.replacements['Std_Close'][1].trigger()
-    completed = []; c.guards.prepare_reconnect([owner], lambda:completed.append(True))
-    assert not completed and not c.originals and not c.connection.pending
-    raw['edit'] += 1
-    assert _close_version(owner, c.connection) != version and raw['text'] == '1e'
-
-
-@pytest.mark.parametrize('operation', ['close', 'reconnect'])
-def test_unresolved_initial_request_cannot_be_discarded_by_host_close_or_reconnect(controls, monkeypatch, operation):
-    c = controls; owner = c.owners[0]; owner.saved_generation = owner.generation
-    raw = {'text':'1e', 'request':'same-pending-request'}
-    page = NS(pending=True, pending_changes=lambda:True, token=lambda:deepcopy(raw))
-    c.connection.panels = {owner.doc.Name:{'fem':NS(widget=lambda:NS(initial_field_page=page))}}
-    # Choosing Discard must not turn an unknown command into a known outcome.
-    seen = questions(monkeypatch, [QtWidgets.QMessageBox.Discard])
-    completed = []
-    if operation == 'close':c.guards.close_owners([owner], lambda:completed.append(True))
-    else:c.guards.prepare_reconnect([owner], lambda:completed.append(True))
-    assert not completed and not c.originals and not c.guards.approved_close
-    assert seen == []
-    assert page.pending and raw['text'] == '1e' and not c.connection.pending

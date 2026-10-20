@@ -237,10 +237,10 @@ def effective(fem, analysis, base):
 
 
 def validate_applied_materials(analysis, solver, metadata):
-    """Keep saved plasticity edits bound to the exact native writer objects.
+    """Validate the legacy typed plasticity operation's applied editor state.
 
-    Native-only materials remain the installed writer's responsibility. Only
-    bases with an application-owned draft use this editor's J2 admission.
+    Generic native export uses the installed writer and current native objects,
+    independently of these preserved editing drafts.
     """
     from types import SimpleNamespace
     rows = [row for row in metadata.get('plasticity_drafts', [])

@@ -1013,10 +1013,6 @@ class FEMEditor:
                     fail(mesh.Name, '메시의 연결·좌표 또는 사면체의 비양수 Jacobian을 확인하세요.')
             except Exception as error:
                 fail(analysis.Name, str(error))
-            for obj in analysis.Group:
-                if any(row.get('object_id') == obj.Name for row in data.get('conditions', [])):
-                    for message in self._condition_errors(obj, data):
-                        fail(obj.Name, message)
             return errors
         programs = [row for row in self._metadata().get('contact_programs', [])
                     if row.get('analysis_id') == analysis.Name]

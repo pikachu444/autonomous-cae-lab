@@ -1,30 +1,10 @@
 """Real Qt TIE editing/entry checks; native document and command receipts are doubles."""
 from copy import deepcopy
 from types import SimpleNamespace as NS
-from test_pre_fem_panel_ui import app, panel, native
+from test_pre_fem_edit import app, native
 from test_pre_fem_edit import Object
-from test_contact_tie import install_tie
 
 
-def test_gui_tie_dependencies_partial_draft_and_late_edit(panel,native,monkeypatch,app):
-    a,b = install_tie(native,monkeypatch)
-    panel.refresh(load_forms=True)
-    page = panel.contact_page
-    page.fields['normal_law'].setCurrentIndex(page.fields['normal_law'].findData('tie'))
-    page.fields['tie_tolerance_mm'].setText('1e')
-    page.sides['a'].setCurrentIndex(page.sides['a'].findData(a['id']))
-    page.sides['b'].setCurrentIndex(page.sides['b'].findData(b['id']))
-    panel.tabs.setCurrentWidget(page); panel.resize(1100,780); panel.show(); app.processEvents()
-    assert page.fields['tie_tolerance_mm'].isVisible()
-    assert not page.fields['normal_stiffness_MPa_per_mm'].isVisible()
-    assert not page.fields['tangential_law'].isEnabled()
-    assert page.draft()['tangential_law'] == 'tied'
-    page.apply()
-    page.fields['tie_tolerance_mm'].setText('.02'); page.fields['tie_tolerance_mm'].textEdited.emit('.02')
-    panel.test_complete()
-    assert native.metadata['contacts'][0]['draft']['tie_tolerance_mm']=='1e'
-    assert page.fields['tie_tolerance_mm'].text()=='.02'
-    assert panel.width()==1100
 
 
 def test_native_connection_routes_native_tie_to_official_writer(native,monkeypatch,app):

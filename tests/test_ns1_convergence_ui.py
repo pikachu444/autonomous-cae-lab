@@ -7,12 +7,8 @@ from types import SimpleNamespace as NS
 import json
 import pytest
 from PySide6 import QtCore as C, QtWidgets as W, QtGui as G, QtTest as T
-from test_pre_fem_edit import native, Object
-from test_pre_fem_panel_ui import app
-from test_ns1_convergence_controls import draft
+from test_pre_fem_edit import app
 from test_ns1_convergence_logs import supplied, FIXTURE, cvgrow, header, stdoutblock, stdout
-from apps.desktop_pre.fem_panel import make_panel
-from apps.desktop_pre import convergence
 from apps.research.contact_run_dialog import ContactRunDialog
 from apps.research.convergence_view import metric_value, ConvergenceView
 from caelab.calculix_convergence import read_convergence, read_cvg, read_stdout, combine
@@ -27,78 +23,10 @@ def installed_offscreen_font(app):
     if identifier>=0:G.QFontDatabase.removeApplicationFont(identifier)
 
 
-@pytest.fixture
-def pre(native,app):
-    pending=[]
-    def submit(op,args,target,on_done=None):
-        pending.append((op,deepcopy(args),deepcopy(target),on_done));return {'queued':True}
-    n=native;n.solver.IterationsControlParameterTimeUse=True
-    n.solver.IterationsControlParameterIter=draft()['iterations'];n.solver.IterationsControlParameterCutb=draft()['factors']
-    widget=make_panel(W,C,n.editor,submit);widget.timer.stop()
-    widget.tabs.setCurrentWidget(widget.convergence_page)
-    def finish():
-        op,args,target,done=pending.pop(0)
-        done({'status':'COMPLETED','result':convergence.dispatch(n.editor,op,args,target)})
-    widget.pending=pending;widget.finish=finish
-    yield widget
-    widget.close();widget.deleteLater();app.processEvents()
 
 
-@pytest.mark.parametrize('width',[480,1100])
-def test_native_convergence_table_save_invalid_repair_and_keyboard(pre,native,app,width):
-    p=pre.convergence_page
-    pre.resize(width,820);pre.show();app.processEvents()
-    assert pre.width()==width
-    assert p.solver.currentData()==('Analysis','Solver')
-    p.enabled.setChecked(True)
-    p.table.setCurrentCell(0,1);p.table.editItem(p.table.item(0,1));app.processEvents()
-    editor=next((e for e in p.table.findChildren(W.QLineEdit) if e.isVisible()),None)
-    assert editor
-    T.QTest.keyClicks(editor,'1e-');T.QTest.keyClick(editor,C.Qt.Key_Tab);app.processEvents()
-    assert p.buffer['field'].split(',')[0]=='1e-'
-    assert not p.apply_button.isEnabled() and p.save_button.isEnabled()
-    p.save_button.click();assert pre._command_busy and not p.table.isEnabled()
-    pre.finish();app.processEvents()
-    assert native.metadata['convergence_drafts'][0]['draft']['field'].startswith('1e-')
-    assert p.state.text().startswith('실행 차단')
-    target=os.environ.get('NS1_RENDER_DIR')
-    if target:
-        folder=Path(target);folder.mkdir(parents=True,exist_ok=True)
-        pre.grab().save(str(folder/f'convergence-settings-error-{width}.png'))
-    p.error_button.click();app.processEvents()
-    editor=next((e for e in p.table.findChildren(W.QLineEdit) if e.isVisible()),None)
-    assert editor
-    T.QTest.keyClick(editor,C.Qt.Key_A,C.Qt.ControlModifier)
-    T.QTest.keyClicks(editor,'0.005');T.QTest.keyClick(editor,C.Qt.Key_Tab);app.processEvents()
-    assert p.apply_button.isEnabled(), (p.buffer,p.errors,p.state.text())
-    p.apply_button.click();pre.finish();app.processEvents()
-    assert p.info['applied'] and native.solver.IterationsControlParameterIter==draft()['iterations']
-    assert p.table.horizontalHeaderItem(3).text()=='단위'
-    assert p.width()<=pre.width() and p.table.width()>300
-    scroll=p.parentWidget().parentWidget()
-    assert isinstance(scroll,W.QScrollArea)
-    origin=p.enabled.mapTo(scroll.viewport(),C.QPoint(0,0))
-    assert origin.x()>=0 and origin.x()+p.enabled.width()<=scroll.viewport().width()
-    assert p.enabled.width()>=p.enabled.sizeHint().width()
-    root=os.environ.get('NS1_RENDER_DIR')
-    if root:
-        folder=Path(root);folder.mkdir(parents=True,exist_ok=True)
-        pre.grab().save(str(folder/f'convergence-settings-{width}.png'))
 
 
-def test_late_receipt_cannot_replace_other_solver_selection(pre,native,app):
-    p=pre.convergence_page;p.enabled.setChecked(True);p.table.item(0,1).setText('.006');p.save_button.click()
-    other=Object(native.doc,'OtherSolver','Fem::SolverCcxTools',Suppressed=False)
-    native.analysis.Group.append(other)
-    p.refresh(load_forms=True)
-    p.solver.setCurrentIndex(1)
-    p.table.item(0,1).setText('.009')  # Programmatic adversarial edit while former receipt is pending.
-    pre.finish()
-    assert p.loaded==('Analysis','OtherSolver')
-    assert p.buffer['field'].startswith('.009')
-    assert native.metadata['convergence_drafts'][0]['solver_id']=='Solver'
-    p.solver.setCurrentIndex(0)
-    assert p.buffer['field'].startswith('.006')
 
 
 def record():
@@ -207,19 +135,3 @@ def test_legacy_log_button_verifies_exact_attempt_and_keeps_selection(app,tmp_pa
     assert len(parent.calls)==1 and parent.calls[0].startswith('contact-logs:')
     assert all(p.read_bytes()==raw for p,raw in before.items())
     d.close();parent.close()
-
-
-@pytest.mark.parametrize('export_only',[False,True])
-def test_pending_convergence_editor_blocks_prepare_and_run(pre,native,app,monkeypatch,export_only):
-    import sys
-    from apps.desktop_pre.connection import Connection
-    p=pre.convergence_page;p.enabled.setChecked(True);p.table.item(0,1).setText('1e-')
-    assert p.pending_changes('Analysis','Solver') and not p.pending_changes('Other','Solver')
-    monkeypatch.setitem(sys.modules,'femtools',NS(femutils=NS(type_of_obj=lambda obj:obj.TypeId)))
-    monkeypatch.setitem(sys.modules,'FemGui',NS(getActiveAnalysis=lambda:native.analysis))
-    c=Connection.__new__(Connection);c.pending=None;c.App=native.App
-    c.owners={native.doc.Name:(native,)};c.panels={native.doc.Name:{'fem':NS(widget=lambda:pre)}}
-    c.message=W.QLabel()
-    c.run(export_only=export_only)
-    assert c.pending is None and '수렴 설정에 미저장' in c.message.text()
-    assert pre.pending==[]  # No native command or solver submission was sent.

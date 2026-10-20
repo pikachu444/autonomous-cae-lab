@@ -19,6 +19,52 @@ def app():
     app=QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
     yield app
 
+
+@pytest.mark.parametrize('action',['conditions','mesh','material'])
+def test_model_actions_open_existing_native_fem_without_replacement_panel(app,tmp_path,monkeypatch,action):
+    import sys
+    from apps.desktop_pre.assembly_pose_candidate import PoseCandidates,prepare_fem_object
+    original,root,_=source_fixture(tmp_path,monkeypatch);job=run_preparation(original,root)
+    owner=Owner(job._document,tmp_path/'ui',App=original.App,Gui=original.Gui)
+    owner.pose_candidates=PoseCandidates(owner)
+    row=owner.read_metadata()['assembly_pose_candidate']['bodies'][0]
+    body=owner._object(row['body_id']);selections=[NS(Object=body,SubElementNames=['Face1'])]
+    main=QtWidgets.QMainWindow();docks=[]
+    for name in ('Model','Tasks'):
+        dock=QtWidgets.QDockWidget(name,main);dock.setObjectName(name)
+        main.addDockWidget(QtCore.Qt.LeftDockWidgetArea,dock);dock.hide();docks.append(dock)
+    workbenches=[];active=[];calls=[]
+    gui=NS(Selection=NS(getSelectionEx=lambda name:selections,clearSelection=selections.clear,
+        addSelection=lambda obj,*args:selections.append(NS(Object=obj,SubElementNames=list(args)))),
+        activateWorkbench=workbenches.append,getMainWindow=lambda:main)
+    owner.Gui=gui
+    monkeypatch.setitem(sys.modules,'FemGui',NS(setActiveAnalysis=active.append))
+    def submit(operation,arguments,target,on_done,*,owner):
+        calls.append((operation,arguments,target))
+        if operation.startswith('pre.assembly_candidate.'):
+            on_done(prepare_fem_object(owner,target['object_id'],operation.rsplit('.',1)[1]))
+        else:
+            assert operation=='pre.fem.task_edit'
+            on_done({'state':'NATIVE_TASK_OPEN'})
+    connection=NS(QtWidgets=QtWidgets,QtCore=QtCore,Gui=gui,submit_native=submit)
+    panel=make_panel(connection,owner)
+    try:
+        if action=='conditions':
+            panel.conditions()
+            assert workbenches==['FemWorkbench']
+            assert active==[owner._object(owner.read_metadata()['assembly_pose_candidate']['analysis_id'])]
+            assert selections[0].Object is body and selections[0].SubElementNames==['Face1']
+            assert all(not dock.isHidden() for dock in docks) and not calls
+        else:
+            panel.prepare(action)
+            assert [call[0] for call in calls]==['pre.assembly_candidate.'+action,'pre.fem.task_edit']
+            target=owner._object(calls[-1][2]['object_id'])
+            assert selections[0].Object is target
+            assert calls[-1][1]=={}
+            assert ('완료' if action=='material' else 'FreeCAD 메시') in panel.status.text()
+    finally:
+        panel.timer.stop();panel.close();main.close();panel.deleteLater();main.deleteLater();app.processEvents()
+
 @pytest.mark.parametrize('width',[360,720])
 def test_model_panel_sizes_native_selection_and_no_selection(app,tmp_path,monkeypatch,width):
     owner,root,_=source_fixture(tmp_path,monkeypatch);job=run_preparation(owner,root)
