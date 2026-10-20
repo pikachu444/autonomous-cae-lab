@@ -1,4 +1,4 @@
-"""Real Windows COM shortcuts in temporary folders; no install or app launch."""
+"""Real Windows Unicode COM shortcuts in temporary folders; no install or app launch."""
 import json
 import base64
 import os
@@ -24,14 +24,20 @@ def quote(value):
 
 def powershell(tmp_path, body):
     helper = tmp_path / 'probe.ps1'
-    helper.write_text("$ErrorActionPreference='Stop'\n" + body, encoding='utf-8-sig')
+    helper.write_text("$ErrorActionPreference='Stop'\n" + r"""
+function Get-TestShortcut([string]$Path) {
+    $shell = New-Object -ComObject Shell.Application
+    $folder = $shell.NameSpace([IO.Path]::GetDirectoryName($Path))
+    return $folder.ParseName([IO.Path]::GetFileName($Path)).GetLink
+}
+""" + body, encoding='utf-8-sig')
     env = os.environ.copy()
     env.pop('PSModulePath', None)
     return subprocess.run([PS, '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', str(helper)],
                           capture_output=True, text=True, encoding='utf-8', errors='replace', env=env, timeout=20)
 
 
-def source(tmp_path, name="공학 앱 & 개인 모델's source"):
+def source(tmp_path, name="공학 앱 🧪 & 개인 모델's source"):
     folder = tmp_path / name
     folder.mkdir()
     (folder / 'Start-CAE-Lab.cmd').write_text('@echo off\nexit /b 99\n', encoding='ascii')
@@ -54,11 +60,11 @@ def test_real_com_shortcuts_and_exact_repeat(tmp_path):
     assert first.returncode == 0, first.stderr
     assert len(json.loads(first.stdout)) == len(TOOLS)
     before = {path.name: path.read_bytes() for path in destination.glob('*.lnk')}
-    body = "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)\n$s=New-Object -ComObject WScript.Shell\n" + (
+    body = "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)\n" + (
         'Get-ChildItem -LiteralPath ' + quote(destination) + " -Filter '*.lnk' | ForEach-Object {\n"
-        '$l=$s.CreateShortcut($_.FullName); [pscustomobject]@{Name=$_.BaseName;Target=$l.TargetPath;'
+        '$l=(Get-TestShortcut $_.FullName); [pscustomobject]@{Name=$_.BaseName;Target=$l.Path;'
         'Arguments=$l.Arguments;WorkingDirectory=$l.WorkingDirectory;Description=$l.Description;'
-        'WindowStyle=$l.WindowStyle;Icon=$l.IconLocation} } | ConvertTo-Json')
+        'WindowStyle=$l.ShowCommand;Icon=$l.IconLocation} } | ConvertTo-Json')
     read = powershell(tmp_path, body)
     assert read.returncode == 0, read.stderr
     actual = {row['Name']: row for row in json.loads(read.stdout)}
@@ -76,13 +82,13 @@ def test_real_com_shortcuts_and_exact_repeat(tmp_path):
 
 
 @pytest.mark.parametrize('property,value', [('Arguments', '-Tool data -UserChanged'),
-                                           ('Hotkey', 'CTRL+ALT+D')])
+                                           ('Hotkey', 0x0644)])
 def test_edited_shortcut_refused_without_partial_changes(tmp_path, property, value):
     origin = source(tmp_path)
     destination = tmp_path / 'shortcuts'
     assert install(tmp_path, origin, destination).returncode == 0
     link = destination / '데이터.lnk'
-    changed = powershell(tmp_path, '$s=New-Object -ComObject WScript.Shell\n$l=$s.CreateShortcut(' + quote(link) +
+    changed = powershell(tmp_path, '$l=(Get-TestShortcut ' + quote(link) +
                          ')\n$l.' + property + '=' + quote(value) + '\n$l.Save()')
     assert changed.returncode == 0, changed.stderr
     # A missing earlier link must not be recreated before finding the conflict.
@@ -137,8 +143,8 @@ def test_direct_file_invocation_resolves_its_own_source_root(tmp_path):
         text=True, errors='replace', env=env, timeout=20)
     assert result.returncode == 0, result.stdout + result.stderr
     read = powershell(tmp_path, "[Console]::OutputEncoding=[Text.UTF8Encoding]::new($false)\n"
-        "$s=New-Object -ComObject WScript.Shell\n$l=$s.CreateShortcut(" +
-        quote(destination/'전처리.lnk') + ")\nWrite-Output $l.TargetPath")
+        "$l=(Get-TestShortcut " +
+        quote(destination/'전처리.lnk') + ")\nWrite-Output $l.Path")
     assert read.returncode == 0, read.stderr
     assert Path(read.stdout.strip()) == ROOT/'Start-CAE-Pre.cmd'
 
@@ -166,19 +172,19 @@ def test_explicit_research_shortcuts_keep_two_stores_and_literal_paths_separate(
     # The selected script is a recording fixture: no install, service or GUI.
     for destination, store, port in [(first_destination, first_store, 8871),
                                      (second_destination, second_store, 8872)]:
-        body = "$s=New-Object -ComObject WScript.Shell\n"
+        body = ""
         for tool, name in TOOLS.items():
-            body += '$l=$s.CreateShortcut(' + quote(destination/(name+'.lnk')) + ')\n'
+            body += '$l=(Get-TestShortcut ' + quote(destination/(name+'.lnk')) + ')\n'
             if tool in NATIVE_LAUNCHERS:
-                body += 'if ($l.TargetPath -ne ' + quote(origin/NATIVE_LAUNCHERS[tool]) + ") { throw 'Wrong native launcher' }\n"
+                body += 'if ($l.Path -ne ' + quote(origin/NATIVE_LAUNCHERS[tool]) + ") { throw 'Wrong native launcher' }\n"
                 body += "if ($l.Arguments -ne '') { throw 'Native launch settings changed' }\n"
             else:
-                body += 'if ($l.TargetPath -ne ' + quote(PS) + ") { throw 'Wrong Research launcher' }\n"
+                body += 'if ($l.Path -ne ' + quote(PS) + ") { throw 'Wrong Research launcher' }\n"
                 expected = '-NoProfile -ExecutionPolicy Bypass -File .caelab-research-start.ps1 -Tool '+tool
                 body += 'if ($l.Arguments -cne ' + quote(expected) + ") { throw 'Wrong tool' }\n"
                 body += 'if (-not $l.Description.Contains(' + quote(store) + ")) { throw 'Missing store description' }\n"
-        body += '$l=$s.CreateShortcut(' + quote(destination/'문서 연결.lnk') + ')\n'
-        body += "$start=New-Object Diagnostics.ProcessStartInfo\n$start.FileName=$l.TargetPath\n"
+        body += '$l=(Get-TestShortcut ' + quote(destination/'문서 연결.lnk') + ')\n'
+        body += "$start=New-Object Diagnostics.ProcessStartInfo\n$start.FileName=$l.Path\n"
         body += "$start.Arguments=$l.Arguments\n$start.UseShellExecute=$false\n$start.CreateNoWindow=$true\n"
         body += "$start.WorkingDirectory=$l.WorkingDirectory\n"
         body += "$p=[Diagnostics.Process]::Start($start)\ntry {\n"

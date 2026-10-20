@@ -121,7 +121,8 @@ function Start-Process {
           [string]$RedirectStandardError,[switch]$PassThru)
     $state = $global:CaeLauncherTest
     if ($FilePath -ne $state.python -or $ArgumentList[1] -ne 'apps.lab.server') {
-        throw 'Unexpected process or browser launch'
+        throw ("Unexpected process or browser launch: actual={0}; expected={1}; arguments={2}" -f
+            $FilePath, $state.python, ($ArgumentList | ConvertTo-Json -Compress))
     }
     Write-TestEvent @{kind='server';python=$FilePath;argv=$ArgumentList;cwd=$WorkingDirectory}
     $state.started = $true
@@ -296,7 +297,7 @@ class WindowsDesktopLauncherTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.temporary = tempfile.TemporaryDirectory(prefix="cae-launch-")
-        cls.folder = Path(cls.temporary.name)
+        cls.folder = Path(cls.temporary.name).resolve()
         cls.runtime = cls.folder / "개인 runtime"
         venv.EnvBuilder(with_pip=False).create(cls.runtime / "venv")
 
