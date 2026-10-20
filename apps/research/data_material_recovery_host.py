@@ -129,6 +129,8 @@ def leave_with_recovery(window,continuation):
             session.finish(); return
         def bound():
             try:
+                # Focus events can settle while identities are read; restore only unchanged editors.
+                session.guard.restore_focus()
                 current=session.capture()
                 if {r['identity']['document_id']:r['raw'] for r in current}!=original:
                     raise ValueError('검토 중 편집이 바뀌었습니다. 창과 원문을 유지합니다.')

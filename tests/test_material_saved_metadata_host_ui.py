@@ -59,7 +59,8 @@ def test_modal_newer_saved_revision_is_not_rebound_to_historical_receipt(monkeyp
     assert current['draft']=={'value':1}
 
 
-def test_lost_save_reply_inspection_keeps_both_pending_owners_for_cold_read(tmp_path,monkeypatch):
+@pytest.mark.parametrize('during_identity', [None, 'focus', 'text'])
+def test_lost_save_reply_inspection_keeps_both_pending_owners_for_cold_read(tmp_path,monkeypatch,during_identity):
     from apps.lab.service import LabService
     from apps.lab.server import LabHTTPServer
     from apps.research.material_window import MaterialWindow
@@ -119,7 +120,11 @@ def test_lost_save_reply_inspection_keeps_both_pending_owners_for_cold_read(tmp_
         widget=panel._widgets[plan['id']]
         assert callable(getattr(widget,'refresh_saved_metadata',None))
         original=client.data_material;calls=[]
+        identity_started,identity_release=threading.Event(),threading.Event()
         def lost(operation,args):
+            if operation=='recovery.identity' and during_identity and not identity_started.is_set():
+                identity_started.set()
+                assert identity_release.wait(5), 'Identity reply was not released by the GUI test'
             calls.append(operation);result=original(operation,args)
             if operation=='related_save.execute':raise OSError('Injected committed save reply loss')
             return result
@@ -162,7 +167,31 @@ def test_lost_save_reply_inspection_keeps_both_pending_owners_for_cold_read(tmp_
         assert '저장 결과를 읽었습니다' in window.message.text()
         capture('pending-saved')
         assert calls==['related_save.preview','related_save.execute','related_save.receipt']
+        if during_identity:
+            before_identity=material_raw_snapshot(window)
+            timer=QTimer(window);timers.append(timer);timer.setInterval(10)
+            def deferred_editor_event():
+                if not identity_started.is_set():return
+                timer.stop()
+                try:
+                    if during_identity=='focus':
+                        line.setCursorPosition(len(line.text()))
+                        changed=material_raw_snapshot(window)
+                        assert {key for key in changed if changed[key]!=before_identity.get(key)}=={'focus','editor_revision'}
+                    else:
+                        line.setText('2e3')
+                        assert material_raw_snapshot(window)['cells']!=before_identity['cells']
+                except BaseException as error:errors.append(error)
+                finally:identity_release.set()
+            timer.timeout.connect(deferred_editor_event);timer.start()
         later(QMessageBox,lambda dialog:next(b for b in dialog.buttons() if b.text()=='편집 원문 보관').click())
+        if during_identity=='text':
+            window.close()
+            wait(lambda:'검토 중 편집이 바뀌었습니다' in window.message.text())
+            assert window.isVisible() and line.text()=='2e3'
+            assert all(client.document_read(d['id'])['draft']==drafts[d['id']] for d in (material,plan))
+            assert not original('recovery.read',{'document_id':material['id']})['capsules']
+            return
         def keep(dialog):
             wait(lambda:dialog.keep_button.isEnabled() or dialog.preview is not None and any(t.get('problems') for t in dialog.preview['targets']))
             assert dialog.keep_button.isEnabled(),dialog.message.text()
