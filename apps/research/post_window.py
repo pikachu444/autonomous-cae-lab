@@ -531,6 +531,12 @@ class PostWindow(QMainWindow):
         for action in self.new_buttons:
             action.setParent(self)
         self.menuBar().clear()
+        # Keep Python-created menu wrappers alive while the layout is rebuilt.
+        self._desktop_menus = [QMenu(title, self.menuBar()) for title in
+                               ('파일(&F)', '편집(&E)', '분석(&A)', '결과(&R)', '보기(&V)')]
+        for menu in self._desktop_menus:
+            self.menuBar().addMenu(menu)
+        file_menu, edit_menu, self.analysis_menu, self.results_menu, view_menu = self._desktop_menus
         self.handoff_retry.setParent(self); self.handoff_retry.hide()
         toolbar.clear()
         toolbar.setWindowTitle('빠른 실행')
@@ -568,11 +574,8 @@ class PostWindow(QMainWindow):
         self.new_gauge_action = QAction(style.standardIcon(QStyle.StandardPixmap.SP_FileIcon), '두 점 상대변위…', self)
         self.new_gauge_action.triggered.connect(self.new_gauge)
         self.new_buttons.append(self.new_gauge_action)
-        file_menu = self.menuBar().addMenu('파일(&F)')
         file_menu.addActions([self.open_action, self.add_source_action, self.save_action])
-        edit_menu = self.menuBar().addMenu('편집(&E)')
         edit_menu.addActions([self.edit_action, self.keep_action, self.reset_action, self.undo_button, self.redo_button])
-        self.analysis_menu = self.menuBar().addMenu('분석(&A)')
         self.analysis_menu.addActions(self.new_buttons)
         measurement_menu = self.analysis_menu.addMenu('측정 추가')
         for kind, label in [('point', '점'), ('path', '경로'), ('time', '원본 점 시간 이력'),
@@ -582,7 +585,6 @@ class PostWindow(QMainWindow):
             self.new_buttons.append(action)
         self.analysis_menu.addSeparator()
         self.analysis_menu.addActions([self.preview_action, self.apply_action])
-        self.results_menu = self.menuBar().addMenu('결과(&R)')
         self.results_menu.addActions([self.native_action, self.show_result_action, self.read_action, self.contact_action])
         self.results_menu.addAction(command('비교 곡선…', self.comparison_curve_button, QStyle.StandardPixmap.SP_FileDialogContentsView))
         export_menu = self.results_menu.addMenu('내보내기')
@@ -590,7 +592,6 @@ class PostWindow(QMainWindow):
             action = export_menu.addAction(fmt.upper(), lambda checked=False, fmt=fmt: self._export_format(fmt))
             self._command_actions.append((action, self.export_button))
         self.results_menu.addAction(self.numerical_action)
-        view_menu = self.menuBar().addMenu('보기(&V)')
         view_menu.addAction(self.refresh_action)
         view_menu.addAction('설정', self.edit_selected)
         self._desktop_view_menu = view_menu

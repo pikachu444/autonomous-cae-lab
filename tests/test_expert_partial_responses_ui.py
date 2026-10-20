@@ -19,6 +19,14 @@ class ReaderClient(LocalClient):
     fail_read = False
     def __init__(self, wb):
         super().__init__(wb); self.reads = []
+        self.block_read = False
+        self.read_entered, self.release_read = threading.Event(), threading.Event()
+    def document_read(self, identifier):
+        if self.block_read:
+            self.block_read = False
+            self.read_entered.set()
+            assert self.release_read.wait(5), 'Explicit background-read fixture was not released'
+        return super().document_read(identifier)
     def document_result(self, identifier, job_id):
         self.reads.append((identifier, job_id))
         if self.fail_read:
@@ -67,14 +75,24 @@ def test_saved_partial_read_selection_failure_recovery_and_explicit_retry(tmp_pa
         assert len(scripted) == calls
         dialog.reject()
         # Existing explicit retry is still the sole execution route.
+        wait(app, lambda: not window._busy, window)
+        client.block_read = True
+        window.refresh_document()
+        assert client.read_entered.wait(2)
+        assert window._busy and not window._foreground_busy
         window.model_calls.setValue(100)
         window.retry_protocol()
+        assert window._protocol_steps, 'Explicit retry must wait for the in-flight background read'
+        assert 'expert.retry' not in client.operations
+        client.release_read.set()
         wait(app, lambda: window.document['discussion']['costorm'].get('ready')
              and not window._busy and not window._protocol_steps, window)
         latest_job = window.document['discussion']['costorm']['job_id']
         assert wb.document_result(document['id'], latest_job)['costorm']['usage']['replayed_completions'] >= 2
         assert wb.document_result(document['id'], partial_job)['costorm']['retry']['journal'] == original
     finally:
+        if window:
+            window.client.release_read.set()
         if dialog: dialog.reject()
         if window: close(app, window)
         wb.shutdown()

@@ -100,7 +100,7 @@ def test_lost_save_reply_inspection_keeps_both_pending_owners_for_cold_read(tmp_
                          and owned(d)),None)
             if dialog is None:
                 if time.monotonic()>=deadline:
-                    timer.stop();errors.append(AssertionError('Owned '+kind.__name__+' did not open'))
+                    timer.stop();errors.append(AssertionError('Owned '+kind.__name__+' did not open: '+window.message.text()))
                     modal=app.activeModalWidget()
                     if modal is not None and owned(modal):modal.reject()
                 return

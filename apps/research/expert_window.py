@@ -490,7 +490,7 @@ class ExpertWindow(QMainWindow):
         elif destination == 'connection-transmission':
             self.open_connection(transmission=True)
 
-    def _preflight_source_transmission(self, after):
+    def _preflight_source_transmission(self, after, *, blocked=None):
         """Read the current connection and exact archives; consent stays authored."""
         if not self.document or self._closed or self.conflict or self._draft_problem:
             return False
@@ -501,6 +501,9 @@ class ExpertWindow(QMainWindow):
         if not references:
             return after()
         owner = (self.document['id'], self.document['session_id'])
+        def refused():
+            if blocked:
+                blocked()
         def read():
             connection = self.client.expert_connection()
             if not connection.get('external_model', True):
@@ -510,6 +513,7 @@ class ExpertWindow(QMainWindow):
             if (not self.document or (self.document['id'], self.document['session_id']) != owner
                     or self.conflict or self.edited_draft() != submitted):
                 self.message.setText('질문이나 자료 선택이 바뀌었습니다. 현재 내용을 확인하고 다시 질문하세요.')
+                refused()
                 return
             connection, records = payload
             if connection.get('external_model', True):
@@ -519,16 +523,18 @@ class ExpertWindow(QMainWindow):
                         any(record['collection'] not in policy.get('collections', []) for record in records)):
                     self.message.setText('선택 자료의 모델 전송이 연결에서 허용되지 않았습니다. '
                                          '<a href="connection-transmission">연결 설정 · 자료 전송 열기</a>')
+                    refused()
                     return
                 if (not scope.get('allow_question') or
                         any(ref not in scope.get('source_refs', []) for ref in references) or
                         any(record['collection'] not in scope.get('collections', []) for record in records)):
                     self.message.setText('선택 자료의 전송 허용을 확인해야 질문할 수 있습니다. '
                                          '<a href="source-transmission">이 대화의 전송 설정 열기</a>')
+                    refused()
                     return
             self.message.setText('')
             after()
-        return self._call(read, received)
+        return self._call(read, received, failure=lambda _: refused())
 
     def _call(self, function, success, *, background=False, failure=None):
         if self._closed or self._busy or self._source_choosing or getattr(self, '_incoming_review', False):
@@ -1059,7 +1065,7 @@ class ExpertWindow(QMainWindow):
             self.next_button.setEnabled(False)
             self.report_view.generate.setEnabled(False)
 
-    def protocol_action(self, operation, *, participate=False, after=None, _transmission_checked=False):
+    def protocol_action(self, operation, *, participate=False, after=None):
         if (not self.document or self._closed or self.conflict or self._draft_problem
                 or self._protocol_steps or self._protocol_delivery):
             return False
@@ -1068,12 +1074,6 @@ class ExpertWindow(QMainWindow):
             if active or discussion.get('paused'):
                 self.message.setText('현재 응답이 끝난 뒤 계속하세요.' if active else '먼저 일시 정지를 해제하세요.')
                 return False
-        intervention_only = participate and (active or discussion.get('paused') or
-                                              discussion.get('costorm', {}).get('can_retry'))
-        if (operation in {'expert.ask', 'expert.advance', 'expert.report', 'expert.retry'}
-                and not intervention_only and not _transmission_checked):
-            return self._preflight_source_transmission(lambda: self.protocol_action(
-                operation, participate=participate, after=after, _transmission_checked=True))
         draft = self.edited_draft()
         self._protocol_owner = (self.document['id'], self.document['session_id'])
         steps = []
@@ -1102,6 +1102,17 @@ class ExpertWindow(QMainWindow):
         if owner != self._protocol_owner or self.conflict or self._draft_problem:
             self._protocol_steps = []
             return
+        step = self._protocol_steps[0]
+        if (step['operation'] in {'expert.ask', 'expert.advance', 'expert.report', 'expert.retry'}
+                and not step.get('transmission_checked')):
+            def accepted():
+                step['transmission_checked'] = True
+                self._drain_protocol()
+            def blocked():
+                self._protocol_steps = []
+                self._protocol_after = None
+            # Retain the explicit action in the existing queue during a poll read.
+            return self._preflight_source_transmission(accepted, blocked=blocked)
         step = self._protocol_steps.pop(0)
         # Retrying an unconfirmed HTTP response uses exactly the same command,
         # input generation and payload. It never duplicates the authored turn.
