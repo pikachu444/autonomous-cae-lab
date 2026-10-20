@@ -489,6 +489,45 @@ def test_actual_uq_linked_rows_full_width_and_late_read_preserves_edit(environme
     assert not w.result_summary.text()
 
 
+def test_queued_result_retry_keeps_highlight_until_fresh_read(environment,monkeypatch):
+    import threading
+    app,wb,open_window=environment
+    install_algebra(monkeypatch)
+    w=open_window(request('uq',inputs()))
+    job,result=execute(app,wb,w)
+    wait(app,lambda:not w._busy and not w._callbacks and w._queued_result_retry is None,w)
+    w.work_pages.setCurrentWidget(w.results_panel)
+    w.candidates.selectRow(3)
+    selected=w._selected_actual_candidate()['candidate_id']
+    selected_item=w.candidates.item(3,0)
+    reading,release=threading.Event(),threading.Event()
+    original=w.client.document_read
+    def read(identifier):
+        reading.set()
+        assert release.wait(5)
+        return original(identifier)
+    monkeypatch.setattr(w.client,'document_read',read)
+    try:
+        w.refresh_document();wait(app,reading.is_set,w)
+        w.retry_result()
+        assert w._queued_result_retry==(w.document['id'],job)
+        assert w._selected_actual_candidate()['candidate_id']==selected
+        release.set()
+        wait(app,lambda:w._queued_result_retry is None and not w._busy and not w._callbacks,w)
+        assert w._selected_actual_candidate()['candidate_id']==selected
+        assert w.candidates.item(3,0) is selected_item
+        assert w._result_cache[job]==result
+        changed=deepcopy(result)
+        changed['diagnostics']={'reader_note':'New retained diagnostic'}
+        monkeypatch.setattr(w.client,'document_result',lambda *args,**kwargs:deepcopy(changed))
+        w.retry_result()
+        wait(app,lambda:w._queued_result_retry is None and not w._busy and not w._callbacks,w)
+        assert w._result_cache[job]==changed
+        assert w._selected_actual_candidate() is None
+    finally:
+        release.set()
+
+
 def test_independent_plan_selects_real_saved_material_and_runs_existing_adapter(environment,monkeypatch):
     pytest.importorskip('felupe')
     app,wb,open_window=environment

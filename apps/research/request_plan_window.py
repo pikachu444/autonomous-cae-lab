@@ -2285,7 +2285,9 @@ class RequestPlanWindow(NumericalWindow):
             QTimer.singleShot(25, self._dispatch_result_retry)
             return
         self._queued_result_retry = None
-        super().retry_result()
+        self._result_after.pop(pending[1], None)
+        self._trial_source_errors.clear()
+        self.refresh_result(force=True)
 
     def _draw_result(self):
         job = self.selected_job()

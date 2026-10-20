@@ -1681,11 +1681,11 @@ class NumericalWindow(QMainWindow):
             QTimer.singleShot(0, self.refresh_result)
         self._call(lambda: self.client.document_read(identifier), received, background=True)
 
-    def refresh_result(self):
+    def refresh_result(self, *, force=False):
         if self._closed or not isValid(self):
             return
         job = self.selected_job()
-        if self._busy or self._callbacks or self._pending_adoption or not job or job in self._result_cache or monotonic() < self._result_after.get(job, 0):
+        if self._busy or self._callbacks or self._pending_adoption or not job or (job in self._result_cache and not force) or monotonic() < self._result_after.get(job, 0):
             return
         document_id = self.document['id']
         session_id = self.document['session_id']
