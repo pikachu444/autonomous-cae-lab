@@ -205,13 +205,13 @@ def test_independent_file_context_history_save_restart_has_no_execution(tmp_path
         assert reopened.shutdown()['joined']
 
 
-@pytest.mark.parametrize('run_count', [2, 3])
+@pytest.mark.parametrize('run_count', [3, 4])
 def test_archived_native_reruns_reach_expert_with_bounded_observations_and_readable_originals(run_count, tmp_path, monkeypatch):
     """Public owner/jobs with a labelled injected provider; no live inference/solver."""
     import json
     import uuid
     from caelab.storage import canonical_hash
-    calls, references, archived = [], [], []
+    calls, references, archived, retained_history, raw_history = [], [], [], [], []
     policy = {'allow_external_model': True, 'allow_question': True, 'collections': ['materials']}
     wb = Workbench(tmp_path / 'workbench', configuration={
         'experts': [{'id': 'materials', 'instructions': 'Discuss actual selected observations.',
@@ -231,6 +231,7 @@ def test_archived_native_reruns_reach_expert_with_bounded_observations_and_reada
         assert len(prompt.encode()) < 100_000
         assert payload['source_segments'] == []
         assert context['selected_sources'] == references
+        assert context['engineering_context_history_source'] == original_context['engineering_context_history_source']
         assert len(context['selected_source_catalog']) == run_count * 4
         assert all(row['sha256'] and row['segment_count'] for row in context['selected_source_catalog'])
         assert context['constraints'] == ['Keep the original mesh and material; compare only the imposed displacement.']
@@ -245,7 +246,7 @@ def test_archived_native_reruns_reach_expert_with_bounded_observations_and_reada
             assert model['constraints'][0]['rows'] == [f'Loaded, 1, 1, {value:g}']
             convergence = observed['convergence'][0]
             assert convergence['columns'][1] == 'increment'
-            assert convergence['rows'][-1][1] == '20'
+            assert convergence['rows'][-1][1] == '40'
             assert convergence['rows'][-1][5] == '1.0000E-03'
             assert any('WARNING: retained contact warning' in line for log in observed['logs']
                        for line in log.get('diagnostic_lines', []))
@@ -265,6 +266,7 @@ def test_archived_native_reruns_reach_expert_with_bounded_observations_and_reada
         document = wb.desktop.selection_discussion(session_id=wb.session_id, command_id='Cinitial',
             selection={'model_snapshot': {'kind': 'freecad-model', 'materials': [{'name': 'Preserved material'}]},
                        'scope': {'objects': ['Loaded']}})['document']
+        raw_history.append(deepcopy(document['draft']['context']['engineering_context']))
         draft = deepcopy(document['draft']); draft['participants'] = ['materials']
         draft['composer']['text'] = 'Initial model question.'
         draft['context']['transmission_scope'] = {'allow_question': True}
@@ -282,9 +284,9 @@ def test_archived_native_reruns_reach_expert_with_bounded_observations_and_reada
             source = folder / 'Mesh.inp'
             source.write_text('*NODE\n1,0,0,0\n*MATERIAL,NAME=Preserved\n*ELASTIC\n210000,.3\n'
                 f'*BOUNDARY\nLoaded, 1, 1, {.004 + .001 * index:g}\n*STEP\n*STATIC\n.05,1\n*END STEP\n')
-            source.with_suffix('.sta').write_text('INCREMENT 20 TOTAL TIME 1.0\n')
+            source.with_suffix('.sta').write_text('INCREMENT 40 TOTAL TIME 1.0\n')
             source.with_suffix('.cvg').write_text('SUMMARY OF CONVERGENCE INFORMATION\n' + ''.join(
-                f'1 {increment} 1 1 0 1.0000E-03 2.0000E-04 0.0000E+00 0.0000E+00\n' for increment in range(1, 21)))
+                f'1 {increment} 1 1 0 1.0000E-03 2.0000E-04 0.0000E+00 0.0000E+00\n' for increment in range(1, 41)))
             source.with_suffix('.dat').write_text(''.join(
                 f'{node}, {node * (index + 1) / 1_000_000:.6f}\n' for node in range(1200)) + 'WARNING: retained contact warning\n')
             selected = [source.with_suffix(extension) for extension in ('.inp', '.sta', '.cvg', '.dat')]
@@ -294,9 +296,32 @@ def test_archived_native_reruns_reach_expert_with_bounded_observations_and_reada
                     {'title': path.name}, workspace_id=wb.workspace_id)
                 references.append({key: archive[key] for key in ('document_id', 'revision')})
                 archived.append(wb.assistance().knowledge.source(**references[-1], workspace_id=wb.workspace_id))
+            if run_count == 4:
+                draft = deepcopy(document['draft'])
+                draft['composer']['text'] = 'Keep this unsent question while attaching run ' + str(index + 1)
+                document = command(document, 'expert.update', {'draft': draft})
+                assert document['dirty']
+            previous = deepcopy(document)
             document = wb.desktop.selection_discussion(session_id=wb.session_id, command_id='Crun' + str(index),
                 discussion_id=document['id'], source_refs=references[-4:],
                 selection={'sources': [{'path': str(path)} for path in selected]})['document']
+            assert document['id'] == previous['id']
+            assert document['generation'] == previous['generation'] + 1
+            assert document['draft']['composer'] == previous['draft']['composer']
+            assert document['draft']['context']['constraints'] == previous['draft']['context']['constraints']
+            assert document['draft']['context']['selected_sources'] == references
+            reference = document['draft']['context'].get('engineering_context_history_source')
+            if reference:
+                original = wb.research_reference(reference)['document']['draft']
+                assert original == previous['draft']
+                retained_history.append((deepcopy(reference), deepcopy(previous['draft'])))
+            raw_history.append(deepcopy(document['draft']['context']['engineering_context']))
+            assert len(json.dumps(document['draft']).encode()) <= 96 * 1024
+            accepted = deepcopy(document)
+            document = wb.desktop.selection_discussion(session_id=wb.session_id, command_id='Crun' + str(index),
+                discussion_id=document['id'], source_refs=references[-4:],
+                selection={'sources': [{'path': str(path)} for path in selected]})['document']
+            assert document['generation'] == accepted['generation'] and document['draft'] == accepted['draft']
         document = wb.desktop.selection_discussion(session_id=wb.session_id, command_id='Cpost', discussion_id=document['id'],
             selection={'path': str(source), 'scope': {'association': 'POINTS', 'array': 'DISP', 'component': 'D1', 'time': 1.0},
                 'result_metadata': {'time': 1.0, 'units': None, 'arrays': [{'name': 'DISP', 'component': 'D1',
@@ -305,6 +330,10 @@ def test_archived_native_reruns_reach_expert_with_bounded_observations_and_reada
         draft['context']['transmission_scope'] = {'allow_question': True, 'source_refs': deepcopy(references), 'collections': ['materials']}
         document = command(document, 'expert.update', {'draft': draft})
         original_context = deepcopy(document['draft']['context'])
+        from caelab.material_document import MaterialDocuments
+        repeated = deepcopy(document['draft']); repeated['context']['engineering_context_history'] = raw_history
+        with pytest.raises(ValueError, match='96 KiB'):
+            MaterialDocuments._draft(repeated)
         assert len(json.dumps(archived, ensure_ascii=False).encode()) + len(json.dumps(original_context).encode()) > 100_000
         document = command(document, 'expert.ask')
         assert finished(wb, {'id': document['runs'][-1]['job_id']})['state'] == 'SUCCEEDED', wb.document_result(
@@ -315,6 +344,15 @@ def test_archived_native_reruns_reach_expert_with_bounded_observations_and_reada
         assert [canonical_hash(wb.assistance().knowledge.source(**ref, workspace_id=wb.workspace_id))
                 for ref in references] == [canonical_hash(row) for row in archived]
         assert wb.config['runtime']['transmission'] == policy
+        document = command(document, 'document.save')
+        workspace, config = wb.workspace, deepcopy(wb.config)
+        wb.shutdown()
+        wb = Workbench(workspace, configuration=config)
+        restored = wb.document_read(document['id'])
+        assert restored['draft']['context'] == original_context
+        assert restored['draft']['composer'] == document['draft']['composer']
+        for reference, original in retained_history:
+            assert wb.research_reference(reference)['document']['draft'] == original
     finally:
         wb.shutdown()
 

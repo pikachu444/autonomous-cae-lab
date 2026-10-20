@@ -786,7 +786,18 @@ class DesktopLinks:
                         history = deepcopy(draft['context'].get('engineering_context_history', []))
                         if previous not in history:
                             history.append(previous)
-                        context['engineering_context_history'] = history
+                        from .engineering_context import expert_projection
+                        compact = expert_projection({'engineering_context_history': history})['engineering_context_history']
+                        if compact != history:
+                            # Preserve the exact old working input before removing duplicated raw log text.
+                            if discussion.get('dirty') or not discussion.get('saved_revision'):
+                                discussion = owner.command(target, 'document.save', {}, session_id=session_id,
+                                    expected_generation=discussion['generation'])['document']
+                            reference = document_reference(discussion)
+                            reference['document_kind'] = reference.pop('kind')
+                            reference['kind'] = 'document'
+                            context['engineering_context_history_source'] = reference
+                        context['engineering_context_history'] = compact
                     old_jobs = draft['context'].get('selected_result_ids', [])
                     changed_context = any(draft['context'].get(key) != value for key, value in context.items()
                                           if key != 'selected_result_ids')
