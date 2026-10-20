@@ -833,6 +833,7 @@ def _post(client, args, *, _report_origin=None, _report_launch=None,
             source = Path(args.input_path).resolve(strict=True)
             command += [str(source), str(workspace)]
         preparation_environment = os.environ.copy()
+        preparation_environment['CAELAB_DESKTOP_PYTHON'] = context['python']
         if args.input_path and Path(args.input_path).suffix.lower() == '.frd':
             from caelab.adapters.native_calculix_results import _freecad_command
             preparation_environment['FREECAD_CMD'] = _freecad_command(context.get('freecad_executable'))

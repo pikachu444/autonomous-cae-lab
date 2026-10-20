@@ -44,6 +44,25 @@ def test_multiple_selected_files_retain_separate_source_identity(tmp_path):
     assert [row['source']['path'] for row in context['sources']] == list(map(str, files))
 
 
+def test_selected_companions_share_log_and_convergence_observations(tmp_path):
+    source=tmp_path/'selected.inp'
+    source.write_text('*NODE\n1,0,0,0\n*STEP\n*STATIC\n*END STEP\n')
+    log=source.with_suffix('.cvg');log.write_bytes(b'actual convergence text\n')
+    output=source.with_suffix('.dat');output.write_bytes(b'actual result log\n')
+    selection={'sources':[{'path':str(path),'scope':{'selected_kind':path.suffix}}
+                          for path in (source,log,output)]}
+    context=read_context(object(),selection=selection)
+    assert len(context['logs'])==2 and len(context['convergence'])==1
+    assert context['convergence'][0]['path']==str(log)
+    for selected,path in zip(context['sources'],(source,log,output)):
+        assert selected['source']=={'path':str(path),'scope':{'selected_kind':path.suffix}}
+        assert selected['log_paths']==[str(log),str(output)]
+        assert selected['convergence_path']==str(log)
+        assert 'logs' not in selected and 'convergence' not in selected
+    assert context['sources'][0]['model']['model_state']=='calculation_input'
+    assert {row['text'] for row in context['logs']}=={'actual convergence text\n','actual result log\n'}
+
+
 def test_unsaved_native_model_can_be_read_without_a_file():
     context = read_context(object(), selection={'model_snapshot': {'materials': [{'name': 'Steel'}]},
                                               'scope': {'objects': ['Pressure']}})

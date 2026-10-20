@@ -297,6 +297,55 @@ def test_file_question_snapshots_rerun_in_origin_discussion(tmp_path, monkeypatc
         assert wb.document_read(document['id'])['draft'] == current
 
 
+@pytest.mark.parametrize('evidence_kind',['regression','local'])
+def test_calculix_file_bundle_attaches_without_repeating_companion_text(tmp_path,monkeypatch,evidence_kind):
+    import json
+    import shutil
+    from pathlib import Path
+    from apps.research.selection_discussion import open_file_discussion
+    from caelab.discussion_document import default_draft
+    if evidence_kind=='local':
+        folder=os.environ.get('CAELAB_CALCULIX_EVIDENCE_DIR')
+        if not folder:pytest.skip('No selected local CalculiX evidence directory')
+        candidates=[path for path in Path(folder).glob('*.inp')
+            if all(path.with_suffix(ext).is_file() for ext in ('.sta','.cvg','.dat','.frd'))]
+        assert len(candidates)==1
+        source=candidates[0]
+    else:
+        folder=tmp_path/'evidence';folder.mkdir()
+        source=folder/'observation.inp'
+        fixtures=Path(__file__).parent/'fixtures'
+        for ext in ('.inp','.sta','.cvg'):
+            shutil.copyfile(fixtures/'ns1_convergence_0548ee0'/('contact'+ext),source.with_suffix(ext))
+        shutil.copyfile(fixtures/'calculix_221_structural_family'/'family.frd',source.with_suffix('.frd'))
+        source.with_suffix('.dat').write_bytes(b'Explicit test-only retained diagnostic\n'*500)
+    paths=[source.with_suffix(ext) for ext in ('.inp','.sta','.cvg','.dat','.frd')]
+    monkeypatch.setattr('apps.research.desktop.launch_tool',lambda *args,**kwargs:{'launched':True})
+    with running(LabService(tmp_path/'store')) as transport:
+        wb=transport.server.workbench
+        client=Client('http://127.0.0.1:'+str(transport.server.server_port))
+        draft=default_draft()
+        draft['composer']['text']='Keep the original unsent question'
+        draft['context']={'constraints':['Preserve the material law and mesh'],
+            'engineering_context':{'model':{'model_state':'saved_model','materials':[{'name':'Original material'}]}}}
+        original=wb.document_open(kind='expert',draft=draft)
+        receipt=open_file_discussion(client,paths,discussion_id=original['id'])
+        saved=client.document_read(original['id'])
+        assert receipt['document']['id']==original['id']
+        context=saved['draft']['context'];observed=context['engineering_context']
+        assert saved['draft']['composer']==draft['composer']
+        assert context['constraints']==draft['context']['constraints']
+        assert context['engineering_context_history']==[draft['context']['engineering_context']]
+        assert [row['source']['path'] for row in observed['sources']]==list(map(str,paths))
+        assert len(observed['logs'])==3 and len(observed['convergence'])==1
+        assert observed['sources'][0]['model']['model_state']=='calculation_input'
+        assert observed['sources'][-1]['result']['frames']
+        assert observed['state'] is None
+        assert len(context['selected_sources'])==4
+        assert len(json.dumps(saved['draft'],allow_nan=False).encode())<=96*1024
+        assert all(job['operation']=='knowledge.ingest' for job in wb.manager.list())
+
+
 def test_workbench_sources_require_existing_common_role_collection_before_upload(tmp_path, monkeypatch):
     from apps.research.selection_discussion import open_file_discussion
     from apps.research.expert_sources import source_collection

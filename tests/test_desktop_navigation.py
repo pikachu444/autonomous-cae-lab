@@ -195,6 +195,7 @@ def test_post_preparation_is_exact_registered_external_reader_and_child_environm
     prepared = []
     def prepare(command, **kwargs):
         prepared.append(command)
+        assert kwargs['env']['CAELAB_DESKTOP_PYTHON'] == client.context['python']
         folder = Path(command[3]); folder.mkdir()
         (folder / 'state.pvsm').write_text('TEST_ONLY native state')
         (folder / 'project.json').write_text(json.dumps({'kind':'external-result','workspace_file':'state.pvsm',
@@ -215,6 +216,31 @@ def test_post_preparation_is_exact_registered_external_reader_and_child_environm
     assert settings['env']['PV_MACRO_PATH'].endswith('macros_external')
     assert (Path(result['project']).parent.parent / 'prepare.stderr.log').is_file()
     assert os.environ['CAELAB_ORIGIN_JOB_ID'] == 'Jwrong_inherited'  # Parent is untouched.
+
+
+def test_independent_frd_preparation_passes_configured_freecad_and_primary_python(client, processes, tmp_path, monkeypatch):
+    post_install(client, tmp_path)
+    source = tmp_path / 'Mesh.frd'; source.write_bytes(b'retained solver result')
+    freecad = tmp_path / 'FreeCAD.exe'; freecad.write_bytes(b'native installation')
+    command_python = tmp_path / 'FreeCADCmd.exe'; command_python.write_bytes(b'native converter')
+    client.context['freecad_executable'] = str(freecad)
+    monkeypatch.setenv('CAELAB_DESKTOP_PYTHON', 'foreign-embedded-python')
+    def freecad_command(configured):
+        assert configured == str(freecad)
+        return str(command_python)
+    monkeypatch.setattr('caelab.adapters.native_calculix_results._freecad_command', freecad_command)
+    def prepare(command, **kwargs):
+        assert kwargs['env']['CAELAB_DESKTOP_PYTHON'] == sys.executable
+        assert kwargs['env']['FREECAD_CMD'] == str(command_python)
+        assert command[3] == str(source)
+        workspace = Path(command[4]); workspace.mkdir()
+        (workspace / 'state.pvsm').write_bytes(b'native saved state')
+        (workspace / 'project.json').write_text(json.dumps({'kind': 'external-result', 'workspace_file': 'state.pvsm'}))
+        return NS(returncode=0)
+    monkeypatch.setattr(desktop.subprocess, 'run', prepare)
+    result = desktop._post(client, desktop._arguments(['--service', client.url, 'post', '--input-path', str(source)]))
+    assert result['status'] == 'LAUNCHED' and source.read_bytes() == b'retained solver result'
+    assert os.environ['CAELAB_DESKTOP_PYTHON'] == 'foreign-embedded-python'
 
 
 def test_post_existing_project_requires_no_solver_or_native_preparation(client, processes, tmp_path, monkeypatch):

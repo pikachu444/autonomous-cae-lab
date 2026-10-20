@@ -91,7 +91,9 @@ class WindowsJob:
 
 def spawn_gated(command, *, cwd, stdout, stderr, env, label):
     """Return a Popen still blocked at a one-byte gate and its ready-file path."""
-    interpreter = Path(getattr(sys, '_base_executable', sys.executable)).resolve(strict=True)
+    # Embedded native interpreters (pvpython) replace stdin; the gate needs CPython.
+    configured = (os.environ if env is None else env).get('CAELAB_DESKTOP_PYTHON')
+    interpreter = Path(configured or getattr(sys, '_base_executable', sys.executable)).resolve(strict=True)
     ready = Path(cwd) / (label + '.gate-ready.json')
     if ready.exists():
         raise ValueError('Candidate process gate requires a fresh receipt')

@@ -88,6 +88,19 @@ def test_normal_exit_waits_for_descendant_before_sealing(tmp_path):
     assert result.returncode == 0 and marker.read_text(encoding='utf-8') == 'done'
 
 
+def test_embedded_native_runtime_uses_primary_python_for_owned_gate(tmp_path, monkeypatch):
+    base = str(Path(getattr(sys, '_base_executable', sys.executable)).resolve())
+    embedded = tmp_path / 'pvpython.exe'
+    embedded.write_bytes(b'embedded-runtime-must-not-host-stdlib-gate')
+    monkeypatch.setattr(sys, '_base_executable', str(embedded))
+    environment = dict(os.environ, CAELAB_DESKTOP_PYTHON=base)
+    result = run_owned_command([base, '-I', '-S', '-c', "print('native child completed')"],
+                              tmp_path, 'embedded', env=environment, owned_tree=True)
+    assert result.returncode == 0 and result.stdout.strip() == 'native child completed'
+    receipt = json.loads((tmp_path / 'embedded.execution.json').read_text(encoding='utf-8'))
+    assert receipt['tree_ownership'] == 'WINDOWS_JOB' and receipt['status'] == 'COMPLETED'
+
+
 def test_job_assignment_failure_never_releases_native_command(tmp_path, monkeypatch):
     from caelab.windows_job import WindowsJob
     monkeypatch.setattr(WindowsJob, 'assign',

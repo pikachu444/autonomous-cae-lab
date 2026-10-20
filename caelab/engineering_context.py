@@ -169,7 +169,25 @@ def read_selection(selection, *, freecad_executable=None):
         sources = selection['sources']
         if not isinstance(sources, list) or not 1 <= len(sources) <= 32:
             raise ValueError('Select from one to 32 independent engineering files')
-        return {'sources': [read_selection(source, freecad_executable=freecad_executable) for source in sources],
+        observed = [read_selection(source, freecad_executable=freecad_executable) for source in sources]
+        logs, convergence = {}, {}
+        for source in observed:
+            companions = source.pop('logs', [])
+            source['log_paths'] = [row['path'] for row in companions]
+            for row in companions:
+                logs.setdefault(row['path'], row)
+            history = source.pop('convergence', None)
+            if isinstance(history, list):
+                source['convergence_paths'] = [row['path'] for row in history]
+                for row in history:
+                    convergence.setdefault(row['path'], {key: value for key, value in row.items() if key != 'path'})
+            elif history is not None:
+                path = next(row['path'] for row in companions if Path(row['path']).suffix.lower() == '.cvg')
+                source['convergence_path'] = path
+                convergence.setdefault(path, history)
+        # Selected inputs/results share companion observations, not copies of their text.
+        return {'sources': observed, 'logs': list(logs.values()),
+                'convergence': [{'path': path, **history} for path, history in convergence.items()],
                 'scope': deepcopy(selection.get('scope', {})), 'state': None,
                 'validation_status': '검증 사례 없음', 'engineering_release': 'NOT_ASSESSED'}
     raw = selection.get('path') or selection.get('file_path')
