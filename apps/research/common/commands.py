@@ -53,7 +53,7 @@ class FocusedUndoRedo(QObject):
         self.refresh()
 
     def _focus_changed(self, _old, new):
-        if self._refreshing:
+        if not isValid(self) or not isValid(self.window) or self._refreshing:
             return
         if new is not None and isValid(new):
             candidate = new
@@ -77,11 +77,13 @@ class FocusedUndoRedo(QObject):
 
     def _available(self, target):
         widget = target['widget']
-        return isValid(widget) and widget.isEnabled() and widget.isVisibleTo(self.window)
+        return (isValid(self) and isValid(self.window) and isValid(widget)
+                and widget.isEnabled() and widget.isVisibleTo(self.window))
 
     def refresh(self):
         """Update the same menu/toolbar actions without changing owner state."""
-        if self._refreshing:
+        if (not isValid(self) or not isValid(self.window) or not isValid(self.undo_action)
+                or not isValid(self.redo_action) or self._refreshing):
             return
         self._targets = [item for item in self._targets if isValid(item['widget'])]
         if self._current not in self._targets or not self._current['widget'].isVisibleTo(self.window):

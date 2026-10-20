@@ -115,3 +115,28 @@ def test_reentrant_undo_and_replaced_target_do_not_duplicate_commands(app):
         assert calls == [True, False]
     finally:
         window.close()
+
+
+def test_owner_destruction_ignores_late_focus_and_command_refresh(app):
+    from shiboken6 import isValid
+    window = QMainWindow()
+    root = QWidget(); window.setCentralWidget(root)
+    undo, redo = QAction(window), QAction(window)
+    router = FocusedUndoRedo(window, undo, redo)
+    calls = []
+    router.register_target(root, undo=lambda: calls.append('undo'), redo=lambda: calls.append('redo'),
+        can_undo=lambda: True, can_redo=lambda: True)
+    target = router._targets[0]
+    window.show(); app.processEvents()
+    window.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    assert not isValid(window)
+    survivor = QWidget()
+    try:
+        survivor.show(); survivor.setFocus(); app.processEvents()
+        router._focus_changed(None, survivor)
+        router.refresh()
+        assert not router._available(target)
+        assert calls == []
+    finally:
+        survivor.close()

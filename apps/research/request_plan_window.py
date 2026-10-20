@@ -2293,26 +2293,22 @@ class RequestPlanWindow(NumericalWindow):
         run=next((row for row in self.document.get('runs',[]) if row['job_id']==job),{}) if self.document else {}
         self.gradient_evidence.set_result(result,submitted=run.get('draft',{}).get('request',{}).get('inputs',{}))
         rows = result.get('candidates', result.get('predictions', []))
-        # Both predicted and evaluated selections survive reads of this exact result.
-        selected = self.candidates.item(self.candidates.currentRow(),0)
-        selected = (selected.data(Qt.ItemDataRole.UserRole) or selected.text()) if selected and self.candidates.selectionModel().selectedRows() else None
         key = (self.document['id'], self.document['session_id'], job, canonical_hash(result)) if self.document else None
         unchanged = key == self._candidate_table_key
-        self.candidates.blockSignals(True)
-        self.candidates.clearSelection()
-        self.candidates.setRowCount(0)
-        self.candidates.setRowCount(len(rows))
-        self.candidates.setVisible(bool(rows) or not (result.get('responses') or result.get('curves')))
-        self.candidates.setColumnCount(6)
-        for row, candidate in enumerate(rows):
-            for column, value in enumerate((candidate.get('candidate_id'), candidate_state(candidate), candidate.get('values'), candidate.get('objective'), candidate.get('feasible'), candidate.get('failure_reason'))):
-                self._set_cell(self.candidates, row, column, value, False)
-            if unchanged and selected and candidate.get('candidate_id') == selected:
-                self.candidates.selectRow(row)
         if not unchanged:
+            # An identical frozen read must leave the user's row and focus intact.
+            self.candidates.blockSignals(True)
+            self.candidates.clearSelection()
+            self.candidates.setRowCount(0)
+            self.candidates.setRowCount(len(rows))
+            self.candidates.setVisible(bool(rows) or not (result.get('responses') or result.get('curves')))
+            self.candidates.setColumnCount(6)
+            for row, candidate in enumerate(rows):
+                for column, value in enumerate((candidate.get('candidate_id'), candidate_state(candidate), candidate.get('values'), candidate.get('objective'), candidate.get('feasible'), candidate.get('failure_reason'))):
+                    self._set_cell(self.candidates, row, column, value, False)
             self._candidate_selection_serial += 1
+            self.candidates.blockSignals(False)
         self._candidate_table_key = key
-        self.candidates.blockSignals(False)
         fill_tree(self.responses, result.get('responses', {}))
         previous = self.plot_response.currentData()
         self.plot_response.blockSignals(True)

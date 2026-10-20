@@ -448,6 +448,7 @@ def test_distribution_draft_cancel_partial_save_reopen_repair(environment,monkey
 
 
 def test_actual_uq_linked_rows_full_width_and_late_read_preserves_edit(environment,monkeypatch):
+    from PySide6.QtCore import QModelIndex, QItemSelectionModel
     app,wb,open_window=environment
     install_algebra(monkeypatch)
     value=inputs();value['settings']['fail']=True
@@ -468,6 +469,9 @@ def test_actual_uq_linked_rows_full_width_and_late_read_preserves_edit(environme
         assert w.canvas.height()>170
     w._edit_structure(lambda current:current['thresholds'][0].update(unit='Pa'))
     draft=deepcopy(w.edited_draft())
+    # Losing the keyboard's current index must not discard the highlighted row.
+    w.candidates.selectionModel().setCurrentIndex(QModelIndex(), QItemSelectionModel.SelectionFlag.NoUpdate)
+    assert w._selected_actual_candidate()['candidate_id']==identifier
     w._draw_result()  # A result callback only redraws the frozen run.
     assert w.edited_draft()==draft and w.work_pages.currentWidget() is w.results_panel
     assert w._selected_actual_candidate()['candidate_id']==identifier
