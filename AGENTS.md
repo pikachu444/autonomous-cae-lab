@@ -61,7 +61,7 @@
 - 검증은 tests/ 아래의 자동 테스트와, CI에서 도는 작은 표준 벤치마크 모음 하나로만 한다.
 - 기존 CI·테스트 목록에서 수정 영향 범위를 고르고, 해당 개별 검사와 직접 관련된 회귀 검사를 먼저 실행한다.
 - 실패를 수집할 때 첫 실패에서 중단해 뒤쪽 검사를 누락하지 않는다. 수정 중에는 실패한 검사와 직접 관련된 검사만 반복한다.
-- GitHub 개별 검사는 기존 `caelab-ci.yml`의 수동 실행에서 pytest는 `mode=selected`, `test_selection`, `test_platform`으로, 기존 CI 작업 하나는 `mode=job`, `job_selection`으로 고른다. 검증용 브랜치에서 실행해 PR의 최종 전체 CI와 분리한다.
+- GitHub 개별 검사는 제품 회귀 `caelab-ci.yml`에서 pytest는 `mode=selected`, `test_selection`, `test_platform`으로, 제품 작업은 `mode=job`, `job_selection`으로 고른다. 솔버 수치 검증은 `solver-verification.yml`에서 `mode=job`, `job_selection`으로 고르고 Code_Aster는 `codeaster_check`로 기존 검사 하나를 고를 수 있다. 검증용 브랜치에서 실행해 최종 전체 CI와 분리한다.
 - 개별 검사가 모두 통과한 뒤 변경을 모아 반영하고 최종 전체 CI를 실행한다. 수정 하나마다 전체 CI를 재시작하지 않는다.
 - 기능 하나를 고칠 때마다 벤치마크 캠페인을 다시 돌리지 않는다.
 - 진행 보고는 확인한 사용자 동작과 남은 결함을 중심으로 한다. CI 단계 이름을 실패 원인처럼 설명하지 않는다. 실행 종료, 결과 읽기, 수치 비교를 실제 로그로 구분한 뒤 원인·수정·개별 검사 결과를 보고한다.
