@@ -304,6 +304,27 @@ def test_raw_recovery_write_failure_and_base_change_keep_exact_plan(recovery_env
     assert not wb.manager.list()
 
 
+def test_raw_recovery_preserves_multiline_purpose_and_reverse_selection(recovery_environment):
+    from PySide6.QtGui import QTextCursor
+    from apps.research.numerical_recovery import numerical_raw_snapshot, restore_numerical_raw
+    app,wb,client,open_view=recovery_environment
+    view,document=open_view('request')
+    text='변위 조건 변경\n재료와 메시 유지 🙂'
+    view.purpose.setText(text)
+    view.activateWindow();view.purpose.setFocus();app.processEvents()
+    cursor=view.purpose.textCursor()
+    cursor.movePosition(QTextCursor.MoveOperation.End)
+    cursor.movePosition(QTextCursor.MoveOperation.Start,QTextCursor.MoveMode.KeepAnchor)
+    view.purpose.setTextCursor(cursor)
+    raw=numerical_raw_snapshot(view)
+    assert raw['focus']['field_path']==['request','purpose'] and raw['focus']['cursor']==0
+    fresh,_=open_view('request',document['id']);restore_numerical_raw(fresh,raw)
+    restored=fresh.purpose.textCursor()
+    assert fresh.purpose.text()==text and restored.position()==0
+    assert restored.anchor()==cursor.anchor() and restored.selectedText()==cursor.selectedText()
+    assert client.document_read(document['id'])['draft']==document['draft'] and not wb.manager.list()
+
+
 def test_raw_recovery_paste_advanced_leaf_selection_and_local_undo(recovery_environment):
     from PySide6.QtWidgets import QLineEdit
     from apps.research.request_plan_window import DATA

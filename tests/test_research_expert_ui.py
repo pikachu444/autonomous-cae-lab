@@ -284,7 +284,7 @@ def test_direct_entry_helpers_show_errors_and_retry_same_plan_command(app, ui_ow
         app.processEvents()
         time.sleep(.002)
     window.open_plan(window.document['id'], 'AJactual', 0)
-    wait(app, lambda: len(calls) == 2 and not window._busy and 'Requested' in window.message.text())
+    wait(app, lambda: len(calls) == 2 and not window._busy and '문서 열기를 요청했습니다.' in window.message.text())
     assert calls[0] == calls[1]
     assert calls[0][-1].startswith('C')
     assert 'Nactual' in window.details.toPlainText()
@@ -366,6 +366,69 @@ def test_clean_poll_preserves_composer_selection_and_changed_remote_text_updates
         assert window.question.toPlainText() == 'A changed remote question'
         assert not window.local_dirty and not window.conflict
         assert not manager.list() and not calls
+    finally:
+        window._allow_close = True
+        window.close()
+
+
+@pytest.mark.parametrize('component_names', [['D1', 'D2', 'D3'], None])
+def test_workflow_labels_keep_failed_history_role_names_and_plan_selection(component_names, app, ui_owner):
+    owner, manager, calls, _ = ui_owner
+    opened = []
+    window = open_window(app, owner, open_plan=lambda *args: opened.append(args))
+    saved = deepcopy(owner.read(window.document['id']))
+    # A display fixture represents a retained failed reply with an editable proposal.
+    document = deepcopy(window.document)
+    document['title'] = '변위 결과 검토'
+    document['draft']['participants'] = ['material']
+    document['draft']['context']['selected_sources'] = [
+        {'document_id': 'Kinput', 'revision': 1}, {'document_id': 'Klog', 'revision': 1}]
+    document['draft']['context']['engineering_context'] = {
+        'source': {'scope': {'array': 'DISP', 'association': 'POINTS', 'component': 0, 'time': 1.0}},
+        'result': {'arrays': [
+            {'name': 'DISP', 'association': 'CELLS', 'component_names': ['Different component'], 'units': 'Pa'},
+            {'name': 'DISP', 'association': 'POINTS', 'component_names': component_names, 'units': None}],
+            'time_units': None, 'time_semantics': None}}
+    window._source_titles = {'Kinput': '해석 입력.inp', 'Klog': '수렴 기록.cvg'}
+    document['turns'] = [{'id': 'Afailed', 'author': 'material', 'text': None, 'status': 'FAILED',
+        'topic_id': 'Qmain', 'topic': {'id': 'Qmain', 'title': '변위 비교', 'parent_id': None},
+        'response': {'reason': 'CONTROLLED retained failure reason', 'sources': [],
+            'proposed_actions': [{'status': 'PLANNED', 'editable': True, 'executed': False,
+                'plan': {'purpose': '입력 변위 검토', 'operation': 'evaluate',
+                         'inputs': {'backend': 'material.felupe', 'settings': {}}, 'budget': {'evaluations': 1}}}]}}]
+    try:
+        window._show_document(document)
+        window.turns.setCurrentRow(0)
+        window.show()
+        for width, height in ((1442, 932), (1100, 760)):
+            window.resize(width, height)
+            app.processEvents()
+            assert window.windowTitle().startswith('전문가 토론 — 변위 결과 검토')
+            assert window.ask_button.text() == '질문 보내기'
+            assert window.intervene_button.text() == '의견 기록'
+            assert window.apply_button.text() == '작성 내용 반영'
+            assert 'Registered material role' in window.composer_context.text()
+            assert '참고 자료 2개 (해석 입력.inp, 수렴 기록.cvg)' in window.composer_context.text()
+            component = 'D1' if component_names else '성분 1'
+            assert f'선택 결과: DISP / {component} / ParaView Time 1.0' in window.composer_context.text()
+            assert '출력값' not in window.composer_context.text()
+            assert '선택한 결과 성분의 단위는 확인되지 않았습니다.' in window.composer_context.toolTip()
+            assert 'ParaView Time의 실제 시간 의미와 단위는 확인되지 않았습니다.' in window.composer_context.toolTip()
+            assert '인용 자료 0개 / 계산 제안 1개' in window.turn_context.text()
+            for button in (window.ask_button, window.intervene_button, window.plan_button):
+                assert button.visibleRegion().boundingRect().width() == button.width()
+        assert window.reply.itemText(1) == 'Registered material role: 답변 실패'
+        assert window.reply.itemData(1) == 'Afailed'
+        assert window.protocol_mode.itemData(1) == 'costorm'
+        assert 'Co-STORM' not in window.protocol_mode.itemText(1)
+        assert 'CONTROLLED retained failure reason' in window.turns.itemWidget(window.turns.item(0)).body.toPlainText()
+        assert 'FAILED' in window.details.toPlainText() and window.details.isHidden()
+        window.reply.setCurrentIndex(1)
+        assert window.edited_draft()['composer']['reply_to'] == 'Afailed'
+        window.plan_button.click()
+        assert opened == [(document['id'], 'Afailed', 0)]
+        assert owner.read(saved['id']) == saved
+        assert not window.client.operations and not manager.list() and not calls
     finally:
         window._allow_close = True
         window.close()

@@ -19,7 +19,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QComboBox, QDialog, QDialogBut
 from caelab.numerical_document import request_draft
 from caelab.storage import canonical_hash
 from .numerical_window import NumericalWindow, axis_label, size_table_to_rows
-from .runner_window import RunnerWindow, readonly_table, fill_tree, candidate_state
+from .runner_window import RunnerWindow, readonly_table, fill_tree, candidate_state, backend_label
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
@@ -131,6 +131,14 @@ class _WorksheetDelegate(QStyledItemDelegate):
             model.dataChanged.emit(index,index,[int(Qt.ItemDataRole.EditRole),CHOICE_DATA])
 
 
+class _PurposeEdit(QPlainTextEdit):
+    def text(self):
+        return self.toPlainText()
+
+    def setText(self, text):
+        self.setPlainText(text)
+
+
 class RequestPlanWindow(NumericalWindow):
     """Reuse NumericalWindow's service commands, retained jobs, save and close flow."""
     def __init__(self, client, document_id=None, poll_interval=2000, auto_open=True):
@@ -162,6 +170,7 @@ class RequestPlanWindow(NumericalWindow):
         self._observation_read_timer.timeout.connect(self._dispatch_observation_read)
 
     def _build_ui(self):
+        self.setWindowTitle('계산 계획')
         self.resize(1440, 900)
         bar = QToolBar('계산 계획', self)
         self.addToolBar(bar)
@@ -218,8 +227,11 @@ class RequestPlanWindow(NumericalWindow):
         self.sheet_layout = QVBoxLayout(self.sheet)
         self.advanced = QWidget()
         advanced_layout = QVBoxLayout(self.advanced)
-        form = QFormLayout()
-        self.purpose, self.backend, self.evaluations = QLineEdit(), QLineEdit(), QLineEdit()
+        form = self.request_form = QFormLayout()
+        self.purpose, self.backend, self.evaluations = _PurposeEdit(), QLineEdit(), QLineEdit()
+        self.purpose.setMinimumHeight(90)
+        self.purpose.setMaximumHeight(160)
+        self.purpose.setTabChangesFocus(True)
         self.operation = QComboBox()
         methods = {'evaluate': '모델 평가', 'fit': '동정', 'doe': '실험계획 (DOE)', 'optimize': '최적화',
             'uq': '불확실성 분석', 'epsilon': '다목적 탐색', 'sample_sensitivity': '영향도 표본',
@@ -231,11 +243,13 @@ class RequestPlanWindow(NumericalWindow):
         form.addRow('계산 목적', self.purpose)
         form.addRow('방법', self.operation)
         model_row = QHBoxLayout()
-        model_row.addWidget(self.backend, 1)
+        self.model_label = QLabel()
+        self.model_label.setWordWrap(True)
+        model_row.addWidget(self.model_label, 1)
         self.model_button = QPushButton('모델 선택…')
         self.model_button.clicked.connect(self.choose_model_document)
         model_row.addWidget(self.model_button)
-        self.model_open_button=QPushButton('저장 입력 열기')
+        self.model_open_button=QPushButton('모델 열기')
         self.model_open_button.clicked.connect(self.open_model_source)
         model_row.addWidget(self.model_open_button)
         self.native_update_button = QPushButton('모델 입력 갱신')
@@ -294,6 +308,23 @@ class RequestPlanWindow(NumericalWindow):
         self.advanced_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         self.advanced_scroll.setWidget(self.advanced)
         self.input_tabs.addTab(self.advanced_scroll, '고급 입력')
+        backend_form = QFormLayout()
+        backend_form.addRow('계산 엔진 식별명', self.backend)
+        advanced_layout.insertLayout(0, backend_form)
+        self.native_page = QWidget()
+        native_layout = QVBoxLayout(self.native_page)
+        native_layout.setContentsMargins(18, 18, 18, 18)
+        native_layout.setSpacing(14)
+        heading = QLabel('FreeCAD FEM에서 조건 편집')
+        heading.setProperty('appearanceRole', 'section')
+        native_layout.addWidget(heading)
+        self.native_instructions = QLabel('FreeCAD FEM에서 위 목적에 적힌 조건을 확인하고 수정하세요.\n\n'
+            '모델을 저장하고 CalculiX 계산을 실행한 뒤, 새 결과와 로그를 Workbench에서 선택해 원 대화에 추가하세요.')
+        self.native_instructions.setWordWrap(True)
+        native_layout.addWidget(self.native_instructions)
+        native_layout.addStretch()
+        self.input_tabs.addTab(self.native_page, '모델에서 편집')
+        self.input_tabs.setTabVisible(self.input_tabs.indexOf(self.native_page), False)
         inputs_layout.addWidget(self.input_tabs, 1)
         self.observation_button = QPushButton('저장 관찰 추가…')
         self.observation_button.setObjectName('attachRetainedObservation')
@@ -306,8 +337,8 @@ class RequestPlanWindow(NumericalWindow):
             model_actions.addWidget(button)
         advanced_layout.addLayout(model_actions)
         self.backend.textEdited.connect(self._backend_edited)
-        for field in (self.purpose, self.evaluations):
-            field.textEdited.connect(self._edited)
+        self.purpose.textChanged.connect(self._edited)
+        self.evaluations.textEdited.connect(self._edited)
         self.operation.currentIndexChanged.connect(self._edited)
         self.operation.currentIndexChanged.connect(self._operation_changed)
         retained = QHBoxLayout()
@@ -1260,10 +1291,12 @@ class RequestPlanWindow(NumericalWindow):
         self._populating = True
         if not self._view_error:
             request = self._request_buffer['request']
-            self.purpose.setText(request['purpose'])
+            for field, text in ((self.purpose, request['purpose']),
+                    (self.backend, value_text(request['inputs'].get('backend', ''))),
+                    (self.evaluations, value_text(request['budget']['evaluations']))):
+                if field.text() != text:
+                    field.setText(text)
             self.operation.setCurrentIndex(self.operation.findData(request['operation']))
-            self.backend.setText(value_text(request['inputs'].get('backend', '')))
-            self.evaluations.setText(value_text(request['budget']['evaluations']))
             self._operation_initial = self.operation.currentData()
             self._shown_operation = self.operation.currentData()
             self._operation_inputs = {**deepcopy(document['draft'].get('method_inputs', {})),
@@ -2725,9 +2758,27 @@ class RequestPlanWindow(NumericalWindow):
         self.editor.setEnabled(present and not self._view_error and not (self._busy and not self._busy_background))
         self.apply_button.setEnabled(enabled and self.local_dirty and not self._view_error)
         needs_native_input = self._requires_native_input()
-        self.run_button.setText('모델에서 계산 준비…' if needs_native_input else '현재 계획 실행')
-        self.run_button.setToolTip('연결 모델을 열거나 계산 입력을 준비합니다. 계산은 자동 실행하지 않습니다.'
+        self.run_button.setText('FreeCAD에서 모델 편집…' if needs_native_input else '현재 계획 실행')
+        self.run_button.setToolTip('FreeCAD FEM에서 조건을 적용하고 모델을 저장한 뒤 CalculiX 계산을 실행하세요.'
                                   if needs_native_input else '')
+        manual = (needs_native_input and self.operation.currentData() == 'evaluate'
+                  and all(table.rowCount() == 0 for table in (self.variable_sheet, self.response_sheet, self.method_sheet)))
+        self.purpose.setMinimumHeight(220 if manual else 90)
+        self.purpose.setMaximumHeight(360 if manual else 160)
+        was_sheet = self.input_tabs.currentWidget() is self.sheet
+        self.input_tabs.setTabVisible(self.input_tabs.indexOf(self.native_page), manual)
+        self.input_tabs.setTabVisible(self.input_tabs.indexOf(self.sheet), not manual)
+        if manual and was_sheet:
+            self.input_tabs.setCurrentWidget(self.native_page)
+        elif not manual and self.input_tabs.currentWidget() is self.native_page:
+            self.input_tabs.setCurrentWidget(self.sheet)
+        for field in (self.operation, self.evaluations):
+            field.setVisible(not manual)
+            self.request_form.labelForField(field).setVisible(not manual)
+        backend = self.backend.text()
+        self.model_label.setText('CalculiX / FreeCAD FEM' if backend.startswith('structure.calculix.')
+                                 else backend_label(backend) or '모델을 선택하세요.')
+        self.model_open_button.setText('FreeCAD에서 열기' if needs_native_input else '모델 열기')
         self.run_button.setEnabled(enabled and not self.local_dirty and not self._view_error and not self.document.get('diagnostics'))
         self.save_action.setEnabled(enabled)
         self.undo_action.setEnabled(enabled and (self._draft_history_index > 0 or not self.local_dirty and self.document.get('can_undo', False)))
@@ -2765,7 +2816,7 @@ class RequestPlanWindow(NumericalWindow):
         frozen=selected_run.get('draft',{})
         source=frozen.get('model_source') or frozen.get('source')
         native_model = self._uses_native_model()
-        self.native_update_button.setVisible(native_model)
+        self.native_update_button.setVisible(native_model and not needs_native_input)
         self.native_update_button.setEnabled(enabled and not self.local_dirty)
         plan_source = (self.edited_draft(commit=False).get('source') or {}) if present else {}
         self.model_open_button.setEnabled(enabled and (native_model or bool(
@@ -2795,7 +2846,7 @@ class RequestPlanWindow(NumericalWindow):
         from .numerical_mixed_plan import limit_unsupported_execution
         limit_unsupported_execution(self)
         if present:
-            self.setWindowTitle('계산 계획 — ' + self.document['title'] + (' *' if self.local_dirty or self.document.get('dirty') else ''))
+            self.setWindowTitle('계산 계획' + (' *' if self.local_dirty or self.document.get('dirty') else ''))
             self.identity.setText('변경 적용 전' if self.local_dirty else ('저장됨' if not self.document.get('dirty') else '저장 전'))
             self.identity.setToolTip(self.document['id'] + ' / generation ' + str(self.document['generation']))
 
@@ -3078,13 +3129,29 @@ class RequestPlanWindow(NumericalWindow):
                 documents = [doc for doc in payload['documents'] if doc.get('kind') == 'numerical' and doc.get('draft', {}).get('mode') == 'request']
                 width = min(640, max(240, self.width() - 180))
                 labels = [str(index + 1) + '. ' + self.fontMetrics().elidedText(
-                    doc['draft']['request'].get('purpose') or doc['title'], Qt.TextElideMode.ElideRight, width)
+                    doc['title'].splitlines()[0][:72], Qt.TextElideMode.ElideRight, width)
                     for index, doc in enumerate(documents)]
                 if not labels:
                     self.message.setText('저장한 계산 계획이 없습니다.')
                     return
-                label, accepted = QInputDialog.getItem(self, '계산 계획 열기', '저장한 계획', labels, editable=False)
-                if accepted:
-                    self.open_document(document_id=documents[labels.index(label)]['id'])
+                dialog = QInputDialog(self)
+                dialog.setWindowTitle('계산 계획 열기')
+                dialog.setLabelText('저장한 계획')
+                dialog.setComboBoxItems(labels)
+                dialog.setComboBoxEditable(False)
+                dialog.setOkButtonText('열기')
+                dialog.setCancelButtonText('취소')
+                preview = QPlainTextEdit()
+                preview.setObjectName('requestPurposePreview')
+                preview.setReadOnly(True)
+                preview.setMinimumHeight(160)
+                dialog.layout().insertWidget(2, preview)
+                def show_purpose(label):
+                    preview.setPlainText(documents[labels.index(label)]['draft']['request'].get('purpose', ''))
+                dialog.textValueChanged.connect(show_purpose)
+                show_purpose(labels[0])
+                dialog.resize(660, 340)
+                if dialog.exec() == dialog.DialogCode.Accepted:
+                    self.open_document(document_id=documents[labels.index(dialog.textValue())]['id'])
             self._call(self.client.documents, listed)
         self._leave(choose)

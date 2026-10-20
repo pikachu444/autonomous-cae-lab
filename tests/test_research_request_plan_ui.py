@@ -12,7 +12,9 @@ import time
 import pytest
 pytest.importorskip('PySide6')
 pytest.importorskip('felupe')
-from PySide6.QtWidgets import QApplication, QInputDialog
+from PySide6.QtWidgets import QApplication, QInputDialog, QPlainTextEdit
+from PySide6.QtCore import Qt
+from PySide6.QtTest import QTest
 from apps.research.request_plan_window import RequestPlanWindow, DATA
 from caelab.workbench import Workbench
 from caelab.numerical_document import request_draft
@@ -123,7 +125,7 @@ def test_native_model_refresh_edits_the_plan_without_submitting(app, workbench, 
         window.open_document(draft=draft)
         wait(app, lambda: window.document is not None and not window._busy)
         assert window.native_update_button.isEnabled()
-        assert window.run_button.text()==('모델에서 계산 준비…' if missing_input else '현재 계획 실행')
+        assert window.run_button.text()==('FreeCAD에서 모델 편집…' if missing_input else '현재 계획 실행')
         # Adding a different result to the conversation cannot redirect this
         # Plan away from the model selected when its source reply was requested.
         original_read = client.document_read
@@ -178,7 +180,7 @@ def test_independent_native_primary_action_opens_existing_fem_without_job(app,wo
     try:
         window.open_document(draft=draft)
         wait(app,lambda:window.document is not None and not window._busy)
-        assert window.run_button.isEnabled() and window.run_button.text()=='모델에서 계산 준비…'
+        assert window.run_button.isEnabled() and window.run_button.text()=='FreeCAD에서 모델 편집…'
         window.run_button.click()
         wait(app,lambda:not window._busy and bool(launched))
         assert launched==[{'source':state['model']['saved_path'],'discussion_id':discussion['id'],'workbench':state}]
@@ -577,6 +579,51 @@ def test_explicit_actual_evaluation_save_reopen_and_selected_result(app, workben
     assert len(workbench.manager.list()) == 1
 
 
+@pytest.mark.parametrize('field_name', ['purpose', 'backend', 'evaluations'])
+def test_clean_refresh_preserves_selected_line_edit_for_replacement(app, workbench, edit_windows, field_name):
+    window = opened(app, workbench)
+    window.show()
+    window.activateWindow()
+    if field_name == 'backend':
+        window.input_tabs.setCurrentWidget(window.advanced_scroll)
+    field = getattr(window, field_name)
+    field.setFocus()
+    app.processEvents()
+    QTest.keyClick(field, Qt.Key.Key_A, Qt.KeyboardModifier.ControlModifier)
+    def selection():
+        return ((field.textCursor().selectedText(), field.textCursor().position())
+                if isinstance(field, QPlainTextEdit) else (field.selectedText(), field.cursorPosition()))
+    selected, cursor = selection()
+    assert selected == field.text() and selected
+    window.refresh_document()
+    wait(app, lambda: not window._busy)
+    assert selection() == (selected, cursor)
+    QTest.keyClicks(field, '9' if field_name == 'evaluations' else 'Replacement')
+    assert field.text() == ('9' if field_name == 'evaluations' else 'Replacement')
+    assert window.local_dirty and not workbench.manager.list()
+
+
+@pytest.mark.parametrize('field_name', ['purpose', 'backend', 'evaluations'])
+def test_clean_refresh_applies_changed_remote_line_edit(app, workbench, edit_windows, field_name):
+    window = opened(app, workbench)
+    current = workbench.document_read(window.document['id'])
+    draft = deepcopy(current['draft'])
+    if field_name == 'purpose':
+        draft['request']['purpose'] = 'Remote purpose'
+    elif field_name == 'backend':
+        draft['request']['inputs']['backend'] = 'material.changed'
+    else:
+        draft['request']['budget']['evaluations'] = 9
+    workbench.document_command(current['id'], 'numerical.update', {'draft': draft},
+        session_id=current['session_id'], expected_generation=current['generation'], command_id='Cremote')
+    window.refresh_document()
+    wait(app, lambda: not window._busy)
+    assert getattr(window, field_name).text() == {
+        'purpose': 'Remote purpose', 'backend': 'material.changed', 'evaluations': '9'}[field_name]
+    assert window.edited_draft() == draft and not window.local_dirty
+    assert not workbench.manager.list()
+
+
 def test_background_read_preserves_typed_edit_then_stale_conflict(app, workbench, edit_windows):
     window = opened(app, workbench)
     release = threading.Event()
@@ -610,12 +657,16 @@ def test_request_chooser_uses_envelope_filters_material_bound_plans(app, workben
     other = workbench.document_open(kind='numerical', title='Exact request target', draft=draft)
     workbench.document_open(kind='numerical', title='Material-bound other editor')
     monkeypatch.setattr(window, '_leave', lambda callback: callback())
-    def choose(parent, title, label, choices, **kwargs):
+    def choose(dialog):
+        choices = dialog.comboBoxItems()
         assert not any('Material-bound' in item for item in choices)
         assert not any(other['id'] in item for item in choices)
-        assert max(parent.fontMetrics().horizontalAdvance(item) for item in choices) < 700
-        return next(item for item in choices if '보완한 압력 비교' in item), True
-    monkeypatch.setattr(QInputDialog, 'getItem', choose)
+        assert max(dialog.fontMetrics().horizontalAdvance(item) for item in choices) < 700
+        assert not any('보완한 압력 비교' in item for item in choices)
+        dialog.setTextValue(next(item for item in choices if 'Exact request target' in item))
+        assert dialog.findChild(QPlainTextEdit, 'requestPurposePreview').toPlainText() == draft['request']['purpose']
+        return dialog.DialogCode.Accepted
+    monkeypatch.setattr(QInputDialog, 'exec', choose)
     window.choose_document()
     wait(app, lambda: not window._busy and window.document['id'] == other['id'])
     assert window.document['title'] == 'Exact request target'

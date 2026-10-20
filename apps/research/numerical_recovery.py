@@ -2,7 +2,8 @@
 from copy import deepcopy
 
 from PySide6.QtCore import Qt, QItemSelectionModel
-from PySide6.QtWidgets import QApplication, QAbstractItemView, QComboBox, QLineEdit, QTreeWidget
+from PySide6.QtGui import QTextCursor
+from PySide6.QtWidgets import QApplication, QAbstractItemView, QComboBox, QLineEdit, QPlainTextEdit, QTreeWidget
 
 from caelab.related_save_recovery import validate_raw
 from caelab.storage import canonical_hash
@@ -80,6 +81,7 @@ def _text(widget, item):
     source = live if live is not None else widget
     if isinstance(source, QComboBox): return source.currentText(), live
     if isinstance(source, QLineEdit): return source.text(), live
+    if isinstance(source, QPlainTextEdit): return source.toPlainText(), live
     return item.text(1) if isinstance(widget, QTreeWidget) else item.text(), live
 
 
@@ -105,8 +107,12 @@ def numerical_raw_snapshot(window):
                            original_exists=exists, position=position,
                            editor_kind='unfinished' if live is not None else 'cell')
         line = live.lineEdit() if isinstance(live, QComboBox) else live
-        if line is None and item is None and widget.hasFocus() and isinstance(widget, QLineEdit): line = widget
-        if line is not None: focus = dict(field_path=list(path), **_line_focus(line))
+        if line is None and item is None and widget.hasFocus() and isinstance(widget, (QLineEdit, QPlainTextEdit)): line = widget
+        if isinstance(line, QPlainTextEdit):
+            cursor = line.textCursor()
+            focus = dict(field_path=list(path), cursor=cursor.position(),
+                selection=[cursor.selectionStart(), cursor.selectionEnd()-cursor.selectionStart()] if cursor.hasSelection() else [-1, 0])
+        elif line is not None: focus = dict(field_path=list(path), **_line_focus(line))
     for name, table in _tables(window):
         selections[name] = [[index.row(), index.column()] for index in table.selectedIndexes()]
         if getattr(table, 'raw_paste', None): paste[name] = deepcopy(table.raw_paste)
@@ -207,7 +213,18 @@ def restore_numerical_raw(window, raw):
                 line = pending.lineEdit() if isinstance(pending, QComboBox) else pending
                 if not _request(window) and line in (window.budget, window.count, window.seed, window.penalty):
                     window.settings_toggle.setChecked(True)
-                line.setFocus(); _restore_line_focus(line, focus)
+                line.setFocus()
+                if isinstance(line, QPlainTextEdit):
+                    cursor = line.textCursor()
+                    start, count = focus.get('selection', [-1, 0])
+                    position = focus.get('cursor', 0)
+                    if count:
+                        cursor.setPosition(start + count if position == start else start)
+                        cursor.setPosition(position, QTextCursor.MoveMode.KeepAnchor)
+                    else:
+                        cursor.setPosition(position)
+                    line.setTextCursor(cursor)
+                else: _restore_line_focus(line, focus)
         finally:
             window._populating = False
             if _request(window): window._sheet_populating = False

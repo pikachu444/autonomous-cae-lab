@@ -35,6 +35,51 @@ def test_advanced_inputs_do_not_enlarge_window_and_optional_source_stays_outside
     assert window.edited_draft() == original and not workbench.manager.list()
 
 
+@pytest.mark.parametrize('dimensions', [(1440, 900), (1100, 780)])
+def test_native_conditions_show_wrapped_purpose_and_freecad_instead_of_empty_tables(app, workbench, edit_windows, dimensions):
+    from PySide6.QtWidgets import QPlainTextEdit
+    from caelab.numerical_document import request_draft
+    from test_research_request_plan_ui import InProcessClient
+    purpose = '변위를 0.005 mm에서 0.006 mm로 수정합니다.\n' + '기존 재료, 하중과 구속을 유지하고 반력을 비교합니다. ' * 20
+    draft = request_draft({'purpose': purpose, 'operation': 'evaluate',
+        'inputs': {'backend': 'structure.calculix.frozen', 'settings': {}},
+        'budget': {'evaluations': 1}}, source={'discussion_id': 'Xsource', 'turn_id': 'Aturn',
+            'proposal_index': 0, 'proposal_sha256': 'a'*64, 'job_id': 'Jsource',
+            'input_revision': 'Isource', 'input_sha256': 'b'*64})
+    window = RequestPlanWindow(InProcessClient(workbench), auto_open=False, poll_interval=0)
+    import os
+    if os.name == 'nt':
+        from pathlib import Path
+        from PySide6.QtGui import QFont, QFontDatabase
+        font_path = Path(os.environ.get('WINDIR', 'C:/Windows')) / 'Fonts' / 'malgun.ttf'
+        if font_path.is_file() and QFontDatabase.addApplicationFont(str(font_path)) >= 0:
+            window.setFont(QFont('Malgun Gothic', 10))
+    window.open_document(draft=draft, title=purpose[:150])
+    wait(app, lambda: window.document is not None and not window._busy)
+    window.resize(*dimensions)
+    window.show()
+    app.processEvents()
+    assert window.windowTitle() in {'계산 계획', '계산 계획 *'}
+    assert isinstance(window.purpose, QPlainTextEdit) and window.purpose.text() == purpose
+    assert window.purpose.lineWrapMode() == QPlainTextEdit.LineWrapMode.WidgetWidth
+    assert window.purpose.horizontalScrollBar().maximum() == 0
+    assert window.model_label.text() == 'CalculiX / FreeCAD FEM'
+    assert not window.backend.isVisible()
+    assert window.input_tabs.currentWidget() is window.native_page
+    assert not any(table.isVisible() for table in (window.variable_sheet, window.response_sheet, window.method_sheet))
+    assert window.native_instructions.isVisible() and 'CalculiX' in window.native_instructions.text()
+    assert window.run_button.isEnabled() and window.run_button.text() == 'FreeCAD에서 모델 편집…'
+    if os.environ.get('CAELAB_QT_CAPTURE_DIR'):
+        from pathlib import Path
+        folder = Path(os.environ['CAELAB_QT_CAPTURE_DIR'])
+        folder.mkdir(parents=True, exist_ok=True)
+        assert window.grab().save(str(folder / ('request-plan-' + str(dimensions[0]) + '.png')))
+    window.input_tabs.setCurrentWidget(window.advanced_scroll)
+    app.processEvents()
+    assert window.backend.isVisible() and window.backend.text() == 'structure.calculix.frozen'
+    assert window.edited_draft() == draft and not workbench.manager.list()
+
+
 def test_page_switch_resize_and_advanced_scroll_preserve_live_edit_and_method_buffers(app, workbench, edit_windows):
     window = opened(app, workbench)
     window.show()

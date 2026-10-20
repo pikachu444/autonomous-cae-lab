@@ -429,7 +429,7 @@ class DesktopLinks:
                 if (owner._folder(target) / 'working.json').exists() or owner._manifest(target):
                     document = owner.read(target)
                 else:
-                    document = owner.open(_new_id=target, title=('Plan — ' + request['purpose'])[:160],
+                    document = owner.open(_new_id=target, title='계산 계획 — ' + discussion['title'][:60],
                         draft=request_draft(request,source=source))
                 save_json(record, {'request_hash':signature, 'document_id':target, 'state':'SUCCEEDED', 'source':source})
             return {'document':document, 'command_id':command_id, 'source':source,
@@ -474,7 +474,7 @@ class DesktopLinks:
                 if (owner._folder(target)/'working.json').exists() or owner._manifest(target):
                     document = owner.read(target)
                 else:
-                    document = owner.open(_new_id=target,title=('Plan — '+prepared['request']['purpose'])[:160],
+                    document = owner.open(_new_id=target,title='계산 계획 — '+prepared['request']['purpose'][:60],
                         draft=request_draft(prepared['request'],source=prepared['source']))
                 save_json(record,{**prepared,'state':'SUCCEEDED'})
             return {'document':document,'source':prepared['source'],'command_id':command_id,
@@ -847,7 +847,7 @@ class DesktopLinks:
             target, owner = prepared['document_id'], wb.numerical_documents
             with owner._lock(target):
                 document = (owner.read(target) if (owner._folder(target)/'working.json').exists() or owner._manifest(target)
-                    else owner.open(_new_id=target,title=('Plan — '+prepared['request']['purpose'])[:160],
+                    else owner.open(_new_id=target,title='계산 계획 — '+prepared['request']['purpose'][:60],
                                     draft=request_draft(prepared['request'],source=prepared['source'])))
                 save_json(path,{**prepared,'state':'SUCCEEDED'})
             return {'document':document,'source':prepared['source'],'command_id':command_id,'executed':False}

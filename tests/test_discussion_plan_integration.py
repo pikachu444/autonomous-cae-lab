@@ -109,6 +109,8 @@ def test_actual_http_selected_proposal_open_retry_preserves_edits_and_never_exec
     plan = receipt['document']
     assert receipt['executed'] is False and receipt['status'] == 'DRAFT_OPENED'
     assert plan['kind'] == 'numerical' and plan['draft']['mode'] == 'request'
+    assert plan['title'] == '계산 계획 — ' + discussion['title']
+    assert selected['purpose'] not in plan['title']
     assert plan['draft']['request'] == selected
     source = plan['draft']['source']
     assert source == {'discussion_id': discussion['id'], 'turn_id': turn['id'], 'proposal_index': 1,
