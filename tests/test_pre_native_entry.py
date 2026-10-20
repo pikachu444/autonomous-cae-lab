@@ -72,25 +72,27 @@ def test_managed_entry_is_explicit(prep, monkeypatch, tmp_path):
 
 @pytest.mark.parametrize('mode', ['native', 'managed'])
 def test_fcstd_native_open_uses_actual_path_while_managed_retains_copy(prep, monkeypatch, tmp_path, mode):
-    from apps.desktop_pre import projects
+    from apps.desktop_pre import projects, native_presentation
     module = prep.module
     source = tmp_path / 'user.FCStd'
     source.touch()
     copy = tmp_path / 'managed.FCStd'
     copy.touch()
-    opened, copied = [], []
+    opened, copied, presented = [], [], []
     def open_document(path):
         opened.append(path)
         prep.doc.FileName = path
         return prep.doc
     prep.app.openDocument = open_document
     monkeypatch.setattr(projects, 'remember_open', lambda *args: None)
+    monkeypatch.setattr(native_presentation, 'restore_fem_viewproviders', lambda doc: presented.append(doc))
     monkeypatch.setattr(module, 'record', lambda *args, **kw: None)
     monkeypatch.setattr(module, 'working_copy', lambda *args: (copied.append(args) or copy, {}))
     module.CONFIG = {'entry_mode': mode}
     assert module.load(source) is prep.doc
     assert opened == [str(source if mode == 'native' else copy)]
     assert bool(copied) == (mode == 'managed')
+    assert presented == [prep.doc]
 
 
 @pytest.mark.parametrize('saved', [False, True])
@@ -152,17 +154,31 @@ def test_managed_receipt_cannot_be_silently_ignored_in_native_entry(prep, tmp_pa
 def test_native_menu_exposes_question_and_explicit_condition_editor(prep, monkeypatch):
     widgets = pytest.importorskip('PySide6.QtWidgets')
     gui = pytest.importorskip('PySide6.QtGui')
+    core = pytest.importorskip('PySide6.QtCore')
     app = widgets.QApplication.instance() or widgets.QApplication([])
-    main = widgets.QMainWindow()
+    class NativeMain(widgets.QMainWindow):
+        workbenchActivated = core.Signal(str)
+    main = NativeMain()
     calls = []
     monkeypatch.setattr(prep.gui, 'getMainWindow', lambda: main)
     monkeypatch.setattr(prep.module, 'discuss_selection', lambda: calls.append('question'))
     monkeypatch.setattr(prep.module, 'enable_managed', lambda: calls.append('conditions'))
-    prep.module.add_native_actions()
+    monkeypatch.setattr(prep.module, 'QtWidgets', widgets)
+    monkeypatch.setattr(prep.module, 'QtCore', core)
+    menu = prep.module.add_native_actions()
+    assert menu.menuAction().data() == 'CAE 연구'
+    # FreeCAD MenuManager.retranslate uses this data as the source title.
+    menu.setTitle(app.translate('Workbench', menu.menuAction().data()))
+    assert menu.title() == 'CAE 연구'
     actions = {action.objectName(): action for action in main.findChildren(gui.QAction)}
     actions['CAELabSelectionDiscussion'].trigger()
     actions['CAELabManagedConditions'].trigger()
     app.processEvents()
     assert calls == ['question', 'conditions']
     assert len(main.menuBar().actions()) == 1
+    assert prep.module.add_native_actions() is menu
+    main.menuBar().clear()
+    main.workbenchActivated.emit('PartWorkbench')
+    app.processEvents()
+    assert main.menuBar().actions() == [menu.menuAction()]
     main.close()

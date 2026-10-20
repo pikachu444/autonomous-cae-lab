@@ -85,6 +85,8 @@ def load(path, approved_root=None):
         manifest = CONFIG.get('source_manifest') or manifest
     if copy.suffix.lower() == '.fcstd':
         doc = App.openDocument(str(copy))
+        from apps.desktop_pre.native_presentation import restore_fem_viewproviders
+        restore_fem_viewproviders(doc)
     else:
         import ImportGui
         doc = App.newDocument('ImportedModel')
@@ -314,13 +316,32 @@ def enable_managed(initial_owners=()):
 
 
 def add_native_actions():
-    menu = Gui.getMainWindow().menuBar().addMenu('CAE 연구')
+    main = Gui.getMainWindow()
+    existing = getattr(main, '_caelab_native_research_menu', None)
+    if existing is not None:
+        existing['attach']()
+        return existing['menu']
+    menu = QtWidgets.QMenu('CAE 연구', main)
+    menu.setObjectName('CAELabResearchMenu')
+    menu.menuAction().setObjectName('CAELabResearchMenu')
+    # FreeCAD retranslates menu titles from QAction.data(), not QMenu.title().
+    menu.menuAction().setData('CAE 연구')
     discussion = menu.addAction('선택 대상으로 논의…')
     discussion.setObjectName('CAELabSelectionDiscussion')
     discussion.triggered.connect(guarded(discuss_selection))
     action = menu.addAction('저장된 확장 조건 편집…')
     action.setObjectName('CAELabManagedConditions')
     action.triggered.connect(guarded(enable_managed))
+    def attach():
+        if menu.menuAction() not in main.menuBar().actions():
+            main.menuBar().addMenu(menu)
+        menu.menuAction().setVisible(True)
+    main._caelab_native_research_menu = {'menu': menu, 'attach': attach}
+    activated = getattr(main, 'workbenchActivated', None)
+    if activated is not None:
+        activated.connect(lambda *unused: QtCore.QTimer.singleShot(0, attach))
+    attach()
+    return menu
 
 
 def discuss_selection():
