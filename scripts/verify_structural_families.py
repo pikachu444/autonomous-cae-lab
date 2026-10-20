@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 from copy import deepcopy
 import hashlib
+import json
 import math
 from pathlib import Path
 import subprocess
@@ -16,7 +17,7 @@ import subprocess
 from caelab import Lab
 from caelab.adapters.fixture_cadquery import FixtureCadQueryAdapter
 from caelab.storage import load_json, save_json, source_identity, utc_now
-from plugins.structural_families.reference import assess, specification
+from plugins.structural_families.reference import assess, model_declaration, specification
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -71,19 +72,27 @@ def _check_source(snapshot: dict, result: dict | None = None) -> None:
                  "Core result source bytes/clean identity differ from frozen acceptance source")
 
 
+class _NumericalFailure(AssertionError):
+    def __init__(self, message: str, raw: list[dict] | None):
+        super().__init__(message)
+        self.raw = raw
+
+
 def _checked_completed(lab: Lab, store: Path, identifier: str, settings: dict,
-                       result: dict, source: dict) -> tuple[dict, list[dict]]:
-    """Apply identical evidence and qualification gates to baseline and changed loads."""
+                       result: dict, source: dict, comparison: dict | None = None) -> tuple[dict, list[dict]]:
+    """Retain readable observations before applying the unchanged numerical gates."""
     _check_source(source, result)
     failed_observations = [observation for item in result.get("evidence", [])
                            if isinstance(observation := item.get("observation"), dict)
                            and observation.get("status") == "FAIL"]
-    _require(result["status"] == "COMPLETED_REVIEW_REQUIRED" and result["solver_status"] == "COMPLETED"
-             and result["converged"] is True,
-             f"Native numerical checks failed: {identifier}; "
-             f"status={result['status']!r}, solver_status={result['solver_status']!r}, "
-             f"converged={result['converged']!r}; FAIL observations={failed_observations!r}; "
-             f"result.json={store / 'experiments' / identifier / 'result.json'}")
+    failure = (f"Native numerical checks failed: {identifier}; "
+               f"status={result['status']!r}, solver_status={result['solver_status']!r}, "
+               f"converged={result['converged']!r}; FAIL observations={failed_observations!r}; "
+               f"result.json={store / 'experiments' / identifier / 'result.json'}")
+    numerical_ok = (result["status"] == "COMPLETED_REVIEW_REQUIRED" and result["solver_status"] == "COMPLETED"
+                    and result["converged"] is True)
+    if comparison is None and not numerical_ok:
+        raise _NumericalFailure(failure, None)
     _require(result["decision"] == "NOT_RELEASED" and result["cad_revision"] is None,
              "Independent model qualification/CAD identity is invalid")
     _require(lab.inspect_experiment(identifier) == result, "Checked Core inspection differs")
@@ -93,11 +102,24 @@ def _checked_completed(lab: Lab, store: Path, identifier: str, settings: dict,
              and summary["model_revision"] == result["model_revision"], "Checked research summary differs")
     _require({"physical_validation", "model_qualification", "original_midas_replication"} <=
              set(summary["unknown"]), "Qualification UNKNOWN was lost")
-    _require(result["metrics"]["primary_response"]["valid"] is True, "Native primary response is invalid")
-    raw = load_json(store / "experiments" / identifier / "simulation/mesh_records.json")
-    _require(assess(settings, raw)["metrics"] == result["metrics"],
-             "Stored raw observations differ from Core metrics")
+    path = store / "experiments" / identifier / "simulation/mesh_records.json"
+    raw = load_json(path) if result["solver_status"] == "COMPLETED" and path.is_file() else None
+    assessment = assess(settings, raw) if raw is not None else None
+    if assessment is not None:
+        _require(assessment["metrics"] == result["metrics"], "Stored raw observations differ from Core metrics")
+    if comparison is not None:
+        comparison.update({"status": result["status"], "solver_status": result["solver_status"],
+            "converged": result["converged"], "reference": model_declaration(settings)["reference"],
+            "assessment": assessment, "failed_observations": failed_observations,
+            "missing_fields": [] if assessment is not None else ["complete_native_fields", "mesh_studies"],
+            "raw_result": str(path)})
+        print(json.dumps({"experiment_id": identifier, **comparison}, ensure_ascii=False), flush=True)
     _check_source(source, result)
+    if not numerical_ok:
+        raise _NumericalFailure(failure, raw)
+    if result["metrics"]["primary_response"]["valid"] is not True:
+        raise _NumericalFailure(f"Native primary response is invalid: {identifier}", raw)
+    _require(raw is not None, f"Complete native observations are missing: {path}")
     return summary, raw
 
 
@@ -177,7 +199,7 @@ def run(store: Path, source_commit: str) -> dict:
               "started_utc": utc_now(), "decision": "NOT_RELEASED",
               "definition_sha256": hashlib.sha256(definition_bytes).hexdigest(),
               "definition_id": definition["definition_id"], "source_identity": sources,
-              "experiments": [], "cross_solver": [],
+              "experiments": [], "cross_solver": [], "failures": [],
               "changed_load": [], "expected_rejections": [], "original_preservation": "PENDING",
               "original_midas_replication": "UNKNOWN", "openscience_research": "NOT_RUN",
               "human_gui": "NOT_RUN"}
@@ -188,6 +210,22 @@ def run(store: Path, source_commit: str) -> dict:
         "Verify three physical families through common evidence, retaining source conflicts and qualification UNKNOWN.")
     save_json(store / "acceptance.json", report)
     completed, snapshots = {}, {}
+
+    def execute(identifier: str, settings: dict, backend: str) -> tuple[dict, list[dict] | None]:
+        result = lab.run_model_analysis(study_id="S-structural-families", experiment_id=identifier,
+                                       backend=backend, settings=settings)
+        entry = {**lab.research_summary(identifier), "numerical_comparison": {}}
+        report["experiments"].append(entry)
+        try:
+            _, raw = _checked_completed(lab, store, identifier, settings, result, sources,
+                                        entry["numerical_comparison"])
+        except _NumericalFailure as error:
+            report["failures"].append({"experiment_id": identifier, "message": str(error)})
+            raw = error.raw
+        snapshots[identifier] = _freeze_experiment(store, identifier)
+        save_json(store / "acceptance.json", report)
+        return result, raw
+
     try:
         for case, load in CASES:
             settings = specification(case, load)
@@ -196,31 +234,36 @@ def run(store: Path, source_commit: str) -> dict:
                 suffix = "ccx" if backend.endswith("calculix") else "aster"
                 identifier = f"E-{case}-{load}-{suffix}"
                 print(f"Native {case}/{load}/{suffix}", flush=True)
-                result = lab.run_model_analysis(study_id="S-structural-families", experiment_id=identifier,
-                                               backend=backend, settings=settings)
-                report["experiments"].append(lab.research_summary(identifier))
-                save_json(store / "acceptance.json", report)
-                _, raw = _checked_completed(lab, store, identifier, settings, result, sources)
-                completed[(case, load, backend)] = result
-                snapshots[identifier] = _freeze_experiment(store, identifier)
+                result, raw = execute(identifier, settings, backend)
+                if raw is not None:
+                    completed[(case, load, backend)] = result
                 pair.append(result); raw_pair.append(raw)
+            if any(raw is None for raw in raw_pair):
+                report["cross_solver"].append({"case": case, "load_case": load, "status": "NOT_COMPARED",
+                    "missing_fields": [BACKENDS[index] + ":complete_native_fields"
+                                       for index, raw in enumerate(raw_pair) if raw is None]})
+                save_json(store / "acceptance.json", report)
+                continue
             _require(pair[0]["model_revision"] == pair[1]["model_revision"], "The solvers used different model revisions")
             comparison = _cross_fields(settings, *raw_pair, definition)
             report["cross_solver"].append({"case": case, "load_case": load, **comparison})
             save_json(store / "acceptance.json", report)
-            _require(comparison["status"] == "PASS", f"Cross-solver fields failed: {case}/{load}")
+            print(json.dumps({"case": case, "load_case": load, "cross_solver": comparison}, ensure_ascii=False), flush=True)
+            if comparison["status"] != "PASS":
+                report["failures"].append({"case": case, "load_case": load, "message": "Cross-solver fields failed"})
         for case, load in (CASES[2], CASES[3], CASES[4]):
             for backend in BACKENDS:
                 suffix = "ccx" if backend.endswith("calculix") else "aster"
                 identifier = f"E-{case}-{load}-half-{suffix}"
                 settings = specification(case, load, .5)
                 print(f"Changed load {case}/{suffix}", flush=True)
-                result = lab.run_model_analysis(study_id="S-structural-families", experiment_id=identifier,
-                                               backend=backend, settings=settings)
-                report["experiments"].append(lab.research_summary(identifier))
-                save_json(store / "acceptance.json", report)
-                _checked_completed(lab, store, identifier, settings, result, sources)
-                base = completed[(case, load, backend)]
+                result, raw = execute(identifier, settings, backend)
+                base = completed.get((case, load, backend))
+                if raw is None or base is None:
+                    report["changed_load"].append({"experiment_id": identifier, "status": "NOT_COMPARED",
+                        "missing_fields": ["complete_native_fields" if raw is None else "baseline_native_fields"]})
+                    save_json(store / "acceptance.json", report)
+                    continue
                 _require(result["model_revision"] != base["model_revision"], "Changed load did not produce a new model revision")
                 full = base["metrics"]["primary_response"]["value"]
                 half = result["metrics"]["primary_response"]["value"]
@@ -228,7 +271,8 @@ def run(store: Path, source_commit: str) -> dict:
                 report["changed_load"].append({"experiment_id": identifier, "response_scaling_relative_error": error,
                     "limit": 1e-7, "status": "PASS" if error <= 1e-7 else "FAIL"})
                 save_json(store / "acceptance.json", report)
-                _require(error <= 1e-7, "Linear load scaling failed")
+                if error > 1e-7:
+                    report["failures"].append({"experiment_id": identifier, "message": "Linear load scaling failed"})
                 _require(result["decision"] == "NOT_RELEASED" and lab.inspect_experiment(identifier) == result,
                          "Changed-load inspection or qualification failed")
                 snapshots[identifier] = _freeze_experiment(store, identifier)
@@ -257,6 +301,7 @@ def run(store: Path, source_commit: str) -> dict:
                      f"An original experiment changed: {identifier}")
         _require(DEFINITION.read_bytes() == definition_bytes, "Frozen benchmark definition changed during native execution")
         _check_source(sources)
+        _require(not report["failures"], "Native comparisons retained failures: " + json.dumps(report["failures"], ensure_ascii=False))
         report.update(status="PASS_BOUNDED_NATIVE_FAMILIES", completed_utc=utc_now(),
                       original_preservation="PASS", frozen_experiments=snapshots,
                       limitations=["Three bounded solid derivatives, not whole MIDAS/NAFEMS certification.",

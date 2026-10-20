@@ -55,7 +55,7 @@ def test_each_result_must_identify_the_frozen_clean_source(source, key, value):
 
 
 @pytest.fixture
-def completed(monkeypatch, source):
+def completed(monkeypatch, source, tmp_path):
     identifier = "E-roof-gravity-half-ccx"
     metrics = {"primary_response": {"value": .5, "unit": "mm", "valid": True}}
     result = {"status": "COMPLETED_REVIEW_REQUIRED", "solver_status": "COMPLETED", "converged": True,
@@ -66,6 +66,9 @@ def completed(monkeypatch, source):
                "unknown": ["physical_validation", "model_qualification", "original_midas_replication"]}
     lab = SimpleNamespace(inspect_experiment=lambda _: result, research_summary=lambda _: summary)
     raw = [{"actual_native_fields": "retained"}]
+    path = tmp_path / "experiments" / identifier / "simulation/mesh_records.json"
+    path.parent.mkdir(parents=True)
+    path.write_text("[]")
     monkeypatch.setattr(acceptance, "load_json", lambda _: raw)
     monkeypatch.setattr(acceptance, "assess", lambda *_: {"metrics": deepcopy(metrics)})
     return identifier, lab, result, summary, raw
@@ -116,3 +119,119 @@ def test_native_failure_identifies_actual_states_observations_and_result_path(
     assert "passing_check" not in message
     assert str(tmp_path / "experiments" / identifier / "result.json") in message
     assert result == original
+
+
+def test_failed_numerical_checks_keep_comparison_values_and_failures(
+        monkeypatch, tmp_path, source, completed, capsys):
+    identifier, lab, result, summary, raw = completed
+    settings = acceptance.specification("ansys_vmd1_regular", "Fz")
+    result["status"] = summary["status"] = "REJECTED"
+    result["metrics"]["primary_response"]["valid"] = False
+    summary["metrics"] = deepcopy(result["metrics"])
+    failed = {"code": "signed_moment_balance", "status": "FAIL", "observed": 0.0002, "limit": 1e-7}
+    result["evidence"] = [{"observation": failed}]
+    assessment = {"metrics": deepcopy(result["metrics"]), "checks": [failed],
+                  "reference": acceptance.model_declaration(settings)["reference"],
+                  "mesh_studies": [{"primary_response_mm": .5, "reference_relative_error": .01,
+                                    "reaction_relative_error": .0002, "moment_relative_error": .0002}]}
+    monkeypatch.setattr(acceptance, "assess", lambda *_: deepcopy(assessment))
+    comparison = {}
+    original = deepcopy(result)
+    with pytest.raises(acceptance._NumericalFailure) as error:
+        acceptance._checked_completed(lab, tmp_path, identifier, settings, result, source, comparison)
+    assert error.value.raw == raw
+    assert comparison["assessment"] == assessment
+    assert comparison["reference"]["units"]["response"] == "mm"
+    assert comparison["failed_observations"] == [failed]
+    assert comparison["status"] == "REJECTED" and comparison["missing_fields"] == []
+    assert comparison["assessment"]["metrics"]["primary_response"]["valid"] is False
+    assert '"signed_moment_balance"' in capsys.readouterr().out
+    assert result == original
+
+
+def test_execution_failure_explicitly_reports_missing_comparison_fields(tmp_path, source, completed, capsys):
+    identifier, lab, result, summary, _ = completed
+    result.update(status="FAILED_EXECUTION", solver_status="FAILED", converged=None)
+    summary["status"] = result["status"]
+    result["metrics"] = summary["metrics"] = {}
+    result["evidence"] = [{"observation": {"code": "model_analysis_execution", "status": "FAIL",
+        "observed": "RuntimeError: Native input/source mesh identity drifted"}}]
+    comparison = {}
+    with pytest.raises(acceptance._NumericalFailure) as error:
+        acceptance._checked_completed(lab, tmp_path, identifier,
+            acceptance.specification("ansys_vmd1_regular", "Fx"), result, source, comparison)
+    assert error.value.raw is None
+    assert "Native input/source mesh identity drifted" in str(error.value)
+    assert comparison["assessment"] is None
+    assert comparison["missing_fields"] == ["complete_native_fields", "mesh_studies"]
+    assert comparison["status"] == "FAILED_EXECUTION" and comparison["solver_status"] == "FAILED"
+    assert '"assessment": null' in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("failed_status", ["REJECTED", "FAILED_EXECUTION", "CANCELLED"])
+def test_independent_cases_continue_and_original_failure_still_fails_run(
+        monkeypatch, tmp_path, source, failed_status):
+    """Synthetic orchestration only; no native solver or physical result is produced."""
+    from caelab.storage import load_json, save_json
+    records, calls = {}, []
+    first_failure = "E-ansys_vmd1_regular-Fx-ccx"
+
+    def metrics(factor, failed):
+        return {"primary_response": {"value": factor, "unit": "mm", "valid": not failed}}
+
+    def summary(identifier):
+        result = records[identifier]
+        return {"experiment_id": identifier, **{key: deepcopy(result[key]) for key in
+            ("metrics", "status", "decision", "model_revision")},
+            "unknown": ["physical_validation", "model_qualification", "original_midas_replication"]}
+
+    def run_model_analysis(**arguments):
+        identifier, settings = arguments["experiment_id"], arguments["settings"]
+        calls.append(identifier)
+        refused, failed = identifier.startswith("E-refused"), identifier == first_failure
+        unreadable = failed and failed_status in {"FAILED_EXECUTION", "CANCELLED"}
+        result = {"status": failed_status if failed else "REJECTED" if refused else "COMPLETED_REVIEW_REQUIRED",
+            "solver_status": failed_status if unreadable else "NOT_RUN" if refused else "COMPLETED",
+            "converged": None if refused or unreadable else True,
+            "decision": "NOT_RELEASED", "cad_revision": None,
+            "model_revision": str((settings["case"], settings["load_case"], settings["load_factor"])),
+            "metrics": {} if refused or unreadable else metrics(settings["load_factor"], failed),
+            "evidence": [{"observation": {"code": "model_analysis_execution", "status": "FAIL",
+                "observed": "RuntimeError: Native input/source mesh identity drifted"}}] if failed else [],
+            "provenance": {"source_commit": source["core"]["core_commit"], **source["core"]}}
+        records[identifier] = result
+        folder = store / "experiments" / identifier
+        save_json(folder / "result.json", result)
+        save_json(store / "ledger" / (identifier + ".json"), {"synthetic_not_solved": True})
+        if not refused and not unreadable:
+            save_json(folder / "simulation/mesh_records.json",
+                      [{"synthetic_not_solved": True, "factor": settings["load_factor"], "failed": failed}])
+        return result
+
+    lab = SimpleNamespace(create_study=lambda *_: None, run_model_analysis=run_model_analysis,
+                          research_summary=summary, inspect_experiment=lambda identifier: records[identifier])
+    monkeypatch.setattr(acceptance, "Lab", lambda _: lab)
+    monkeypatch.setattr(acceptance.subprocess, "check_output",
+        lambda arguments, **_: source["core"]["core_commit"] + "\n" if arguments[-1] == "HEAD" else "")
+    monkeypatch.setattr(acceptance, "assess", lambda settings, raw: {
+        "metrics": metrics(raw[0]["factor"], raw[0]["failed"]), "checks": [],
+        "reference": acceptance.model_declaration(settings)["reference"], "mesh_studies": []})
+    monkeypatch.setattr(acceptance, "_cross_fields", lambda *_: {
+        "status": "PASS", "levels": [{"displacement_field_relative_error": 0.0}]})
+    store = tmp_path / "synthetic-run"
+    with pytest.raises(AssertionError, match="Native comparisons retained failures"):
+        acceptance.run(store, source["core"]["core_commit"])
+    report = load_json(store / "acceptance.json")
+    assert first_failure in calls and "E-scordelis_lo_solid-gravity-aster" in calls
+    assert len(report["cross_solver"]) == len(acceptance.CASES)
+    failed_entry = next(row for row in report["experiments"] if row["experiment_id"] == first_failure)
+    assert failed_entry["status"] == failed_status
+    if failed_status == "REJECTED":
+        assert failed_entry["numerical_comparison"]["assessment"]["metrics"]["primary_response"]["valid"] is False
+    else:
+        assert failed_entry["numerical_comparison"]["assessment"] is None
+        assert failed_entry["numerical_comparison"]["missing_fields"]
+        assert report["cross_solver"][0]["status"] == "NOT_COMPARED"
+    assert report["failures"][0]["experiment_id"] == first_failure
+    assert "Native input/source mesh identity drifted" in report["failures"][0]["message"]
+    assert report["status"] == "FAILED_OR_PARTIAL"

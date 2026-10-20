@@ -91,21 +91,49 @@ def test_fixed_nodes_and_same_mesh_elements_restore_selection_on_confirm(saved_p
     p.buffer.fields['fixed_nodes']=list(data['fixed_nodes']);p.show_errors()
     original=deepcopy(p.buffer.fields['fixed_nodes'])
     assert str(len(original)) in p.support_count.text()
-    def accept_nodes():
-        d=next(w for w in W.QApplication.topLevelWidgets() if isinstance(w,W.QDialog) and w.isVisible())
+
+    def confirm_dialogs(steps,open_dialog):
+        pending=list(steps);errors=[]
+        unrelated=W.QDialog();unrelated.setWindowTitle('다른 작업의 대화상자');unrelated.show()
+        elapsed=C.QElapsedTimer();elapsed.start()
+        timer=C.QTimer(p);timer.setInterval(10)
+        def confirm():
+            owned=[d for d in p.findChildren(W.QDialog) if d.parentWidget() is p and d.isVisible()]
+            try:
+                if elapsed.elapsed()>5000:
+                    raise AssertionError('Shell selection dialog did not reach '+pending[0][0])
+                matching=[d for d in owned if d.windowTitle()==pending[0][0]]
+                if not matching:return
+                dialog=matching[0];_,inspect=pending.pop(0)
+                inspect(dialog)
+                buttons=dialog.findChild(W.QDialogButtonBox)
+                assert buttons is not None
+                buttons.button(W.QDialogButtonBox.Ok).click()
+                if not pending:timer.stop()
+            except Exception as error:
+                errors.append(error);timer.stop()
+                for dialog in owned:dialog.reject()
+        timer.timeout.connect(confirm);timer.start()
+        try:
+            open_dialog()
+            if errors:raise errors[0]
+            assert not pending,'Shell selection did not open the expected dialogs'
+            assert unrelated.isVisible()
+        finally:
+            timer.stop();timer.deleteLater()
+            unrelated.close();unrelated.deleteLater()
+
+    def inspect_nodes(d):
         table=d.findChild(W.QTableWidget)
         ids=[int(table.item(i.row(),0).text()) for i in table.selectionModel().selectedRows()]
-        assert sorted(ids)==original;d.accept()
-    C.QTimer.singleShot(0,accept_nodes);p.choose_mesh_ids(True)
+        assert sorted(ids)==original
+    confirm_dialogs([('고정 절점',inspect_nodes)],lambda:p.choose_mesh_ids(True))
     assert p.buffer.fields['fixed_nodes']==original and not calls
-    def accept_mesh():
-        d=next(w for w in W.QApplication.topLevelWidgets() if isinstance(w,W.QDialog) and w.isVisible())
-        assert d.findChild(W.QComboBox).currentData()=='ShellMesh';d.accept()
-        C.QTimer.singleShot(0,accept_elements)
-    def accept_elements():
-        d=next(w for w in W.QApplication.topLevelWidgets() if isinstance(w,W.QDialog) and w.isVisible())
+    def inspect_mesh(d):
+        assert d.findChild(W.QComboBox).currentData()=='ShellMesh'
+    def inspect_elements(d):
         table=d.findChild(W.QTableWidget)
         ids=[int(table.item(i.row(),0).text()) for i in table.selectionModel().selectedRows()]
-        assert sorted(ids)==data['draft']['elements'];d.accept()
-    C.QTimer.singleShot(0,accept_mesh);p.choose_mesh_ids(False)
+        assert sorted(ids)==data['draft']['elements']
+    confirm_dialogs([('셸 메시',inspect_mesh),('셸 참여 요소',inspect_elements)],lambda:p.choose_mesh_ids(False))
     assert calls[-1]==('pre.shell.preview_rebind',{'analysis_id':'ShellAnalysis','mesh_id':'ShellMesh','elements':data['draft']['elements']})
