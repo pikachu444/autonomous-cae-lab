@@ -7,10 +7,15 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: Run the complete CI or selected existing pytest tests
+        description: Run complete CI, selected pytest tests or one existing CI job
         type: choice
-        options: [full, selected]
+        options: [full, selected, job]
         default: full
+      job_selection:
+        description: 'Job mode: run one existing CI job with its original runtime and checks'
+        type: choice
+        options: [core, research-driver-source, native, native-registration, structural, optimization, pde, codeaster, explicit, doe]
+        default: core
       test_selection:
         description: 'Selected mode: space-separated tests/file.py or tests/file.py::node (quote names containing spaces; use /)'
         type: string
@@ -25,7 +30,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: caelab-${{ github.ref }}${{ inputs.mode == 'selected' && format('-selected-{0}', github.run_id) || '' }}
+  group: caelab-${{ github.ref }}${{ (inputs.mode == 'selected' || inputs.mode == 'job') && format('-{0}-{1}', inputs.mode, github.run_id) || '' }}
   cancel-in-progress: true
 
 jobs:
@@ -140,7 +145,7 @@ jobs:
           retention-days: 30
 
   research-driver-source:
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' || (inputs.mode == 'job' && inputs.job_selection == 'research-driver-source') }}
     runs-on: windows-2025
     timeout-minutes: 25
     env:
@@ -223,7 +228,7 @@ jobs:
         run: .\scripts\verify-windows-install.ps1 -RuntimeRoot "$env:RUNNER_TEMP\cae-windows-runtime" -Port 18779
 
   core:
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' || (inputs.mode == 'job' && inputs.job_selection == 'core') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -328,7 +333,7 @@ jobs:
           retention-days: 30
 
   native:
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' || (inputs.mode == 'job' && inputs.job_selection == 'native') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -390,7 +395,7 @@ jobs:
           retention-days: 30
 
   native-registration:
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' || (inputs.mode == 'job' && inputs.job_selection == 'native-registration') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -436,7 +441,7 @@ jobs:
           retention-days: 30
 
   structural:
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' || (inputs.mode == 'job' && inputs.job_selection == 'structural') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -482,7 +487,7 @@ jobs:
           retention-days: 30
 
   optimization:
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' || (inputs.mode == 'job' && inputs.job_selection == 'optimization') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -524,7 +529,7 @@ jobs:
           retention-days: 30
 
   pde:
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' || (inputs.mode == 'job' && inputs.job_selection == 'pde') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -604,7 +609,7 @@ jobs:
           retention-days: 30
 
   codeaster:
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' || (inputs.mode == 'job' && inputs.job_selection == 'codeaster') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
@@ -677,7 +682,7 @@ jobs:
           retention-days: 30
 
   explicit:
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' || (inputs.mode == 'job' && inputs.job_selection == 'explicit') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
@@ -755,7 +760,7 @@ jobs:
           retention-days: 30
 
   doe:
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.mode == 'full' || (inputs.mode == 'job' && inputs.job_selection == 'doe') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
