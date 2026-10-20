@@ -4,6 +4,47 @@ import json
 from pathlib import Path
 
 
+def expert_projection(context):
+    """Keep engineering observations in the prompt; archived raw text stays readable."""
+    context = deepcopy(context)
+    def convergence(value):
+        if isinstance(value, list):
+            return [convergence(row) for row in value]
+        if not isinstance(value, dict):
+            return value
+        rows = value.get('rows', [])
+        if rows and all(isinstance(row, dict) and 'native_tokens' in row for row in rows):
+            value['columns'] = ['step', 'increment', 'attempt', 'iteration', 'contact_elements',
+                'residual_force_pct', 'correction_disp_pct', 'residual_flux_pct', 'correction_temp_pct']
+            value['line_numbers'] = [row.get('line') for row in rows]
+            value['sentinel_channels'] = [row.get('sentinel_channels', []) for row in rows]
+            value['rows'] = [row['native_tokens'] for row in rows]
+        return value
+    def observation(value):
+        if not isinstance(value, dict):
+            return value
+        for log in value.get('logs', []):
+            text = log.get('text')
+            if not isinstance(text, str) or len(text.encode('utf-8')) <= 512:
+                continue
+            lines = text.splitlines()
+            log.pop('text')
+            log['diagnostic_lines'] = [line for line in lines if any(word in line.lower() for word in
+                ('error', 'warning', 'fatal', 'no convergence', 'not converg', 'diverg', 'failed', 'cutback'))]
+            log['last_line'] = next((line for line in reversed(lines) if line.strip()), '')
+            log['raw_text'] = 'Retained locally; read the selected archive with knowledge.search/knowledge.source.'
+        if 'convergence' in value:
+            value['convergence'] = convergence(value['convergence'])
+        for source in value.get('sources', []):
+            observation(source)
+        return value
+    if 'engineering_context' in context:
+        context['engineering_context'] = observation(context['engineering_context'])
+    context['engineering_context_history'] = [observation(row)
+        for row in context.get('engineering_context_history', [])]
+    return context
+
+
 def read_context(workbench, identifier=None, *, selection=None):
     if selection is not None:
         if identifier is not None:

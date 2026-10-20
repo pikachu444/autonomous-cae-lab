@@ -261,6 +261,25 @@ def test_model_transmission_and_tool_scope_cannot_be_expanded(tmp_path):
     assert runtime.ask('materials', 'search', workspace_id='alpha')['status'] == 'FAILED'
 
 
+@pytest.mark.parametrize('missing', ['revision', 'discussion_collection', 'operator_collection'])
+def test_engineering_source_catalog_requires_existing_transmission_grants(missing, tmp_path):
+    from copy import deepcopy
+    generator = mock_generator([{'answer': 'Must not be invoked.', 'sources': []}])
+    knowledge, runtime = runtime_for(tmp_path, generator, external=True,
+        transmission={'allow_external_model': True, 'allow_question': True,
+                      'collections': [] if missing == 'operator_collection' else ['materials']})
+    document = ingest(knowledge, tmp_path, 'Private selected model evidence.')
+    reference = {'document_id': document['document_id'], 'revision': document['revision']}
+    context = {'selected_sources': [reference], 'engineering_context': {'model': {'kind': 'calculix-input'}},
+        'transmission_scope': {'allow_question': True,
+            'source_refs': [] if missing == 'revision' else [reference],
+            'collections': [] if missing == 'discussion_collection' else ['materials']}}
+    original = deepcopy(context)
+    with pytest.raises(PermissionError):
+        runtime.ask('materials', 'Read this selected model.', context, workspace_id='alpha')
+    assert generator.calls == [] and context == original
+
+
 def test_editable_plan_then_registered_real_calculation_result_and_followup(tmp_path):
     import numpy as np
     from scipy.stats import qmc

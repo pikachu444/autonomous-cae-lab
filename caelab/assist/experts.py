@@ -487,6 +487,8 @@ class ExpertRuntime:
         """Intersect selected immutable revisions with this role; never select latest."""
         context = deepcopy(context)
         selected, snippets = [], []
+        engineering = bool(context.get('engineering_context') or context.get('engineering_context_history'))
+        catalog = []
         for reference in selected_source_refs(context):
             archive = self.knowledge.source(**reference, workspace_id=workspace_id)
             if archive['collection'] not in collections:
@@ -499,7 +501,12 @@ class ExpertRuntime:
             if not archive['segments']:
                 raise ValueError('Selected source has no readable segments; inspect extraction before requesting a round')
             selected.append(reference)
-            snippets.extend(archive['segments'])
+            if engineering:
+                catalog.append({key: deepcopy(archive[key]) for key in
+                    ('document_id', 'revision', 'title', 'collection', 'sha256')})
+                catalog[-1]['segment_count'] = len(archive['segments'])
+            else:
+                snippets.extend(archive['segments'])
         context['selected_sources'] = selected
         context['selected_document_ids'] = [ref['document_id'] for ref in selected]
         permitted = {(ref['document_id'], ref['revision']) for ref in selected}
@@ -524,6 +531,14 @@ class ExpertRuntime:
             discussion['evidence'] = [reference for reference in discussion.get('evidence', [])
                 if isinstance(reference, dict) and ('job_id' in reference or 'paper_id' in reference
                     or (reference.get('document_id'), reference.get('revision')) in permitted)]
+        if engineering:
+            from ..engineering_context import expert_projection
+            context = expert_projection(context)
+            context['selected_source_catalog'] = catalog
+            context['source_reading'] = ('Engineering summaries preserve selected model/result observations. '
+                'The catalog lists exact selected archives, not already read text. Use knowledge.search '
+                'for relevant excerpts, then knowledge.source with an exact returned locator before citing raw evidence. '
+                'Full original snapshots, logs and archives remain retained locally.')
         return context, snippets
 
     def _check_knowledge(self, source, context, workspace_id, collections):

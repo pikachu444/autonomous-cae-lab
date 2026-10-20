@@ -205,6 +205,120 @@ def test_independent_file_context_history_save_restart_has_no_execution(tmp_path
         assert reopened.shutdown()['joined']
 
 
+@pytest.mark.parametrize('run_count', [2, 3])
+def test_archived_native_reruns_reach_expert_with_bounded_observations_and_readable_originals(run_count, tmp_path, monkeypatch):
+    """Public owner/jobs with a labelled injected provider; no live inference/solver."""
+    import json
+    import uuid
+    from caelab.storage import canonical_hash
+    calls, references, archived = [], [], []
+    policy = {'allow_external_model': True, 'allow_question': True, 'collections': ['materials']}
+    wb = Workbench(tmp_path / 'workbench', configuration={
+        'experts': [{'id': 'materials', 'instructions': 'Discuss actual selected observations.',
+                     'collections': ['materials'], 'tools': ['knowledge.search', 'knowledge.source']}],
+        'runtime': {'provider': 'openscience', 'model': 'openai-codex/injected-test-provider',
+                    'transmission': policy}})
+    def command(document, operation, arguments=None):
+        return wb.document_command(document['id'], operation, arguments or {},
+            session_id=document['session_id'], expected_generation=document['generation'],
+            command_id='C' + uuid.uuid4().hex)['document']
+    def provider(prompt, tools, _budget, _model, **_kwargs):
+        calls.append(prompt)
+        if len(calls) == 1:
+            raise RuntimeError('CONTROLLED prior model failure; preserve the user objection.')
+        payload = json.loads(prompt.split('Conversation and request JSON: ', 1)[1])
+        context = payload['context']
+        assert len(prompt.encode()) < 100_000
+        assert payload['source_segments'] == []
+        assert context['selected_sources'] == references
+        assert len(context['selected_source_catalog']) == run_count * 4
+        assert all(row['sha256'] and row['segment_count'] for row in context['selected_source_catalog'])
+        assert context['constraints'] == ['Keep the original mesh and material; compare only the imposed displacement.']
+        history = context['discussion']['turns']
+        assert any('CONTROLLED prior model failure' in json.dumps(row) for row in history)
+        assert any(row['text'] == 'The earlier answer ignored contact; retain this objection.' for row in history)
+        observations = context['engineering_context_history'][1:]
+        assert len(observations) == run_count
+        for index, observed in enumerate(observations):
+            value = .004 + .001 * index
+            model = observed['sources'][0]['model']
+            assert model['constraints'][0]['rows'] == [f'Loaded, 1, 1, {value:g}']
+            convergence = observed['convergence'][0]
+            assert convergence['columns'][1] == 'increment'
+            assert convergence['rows'][-1][1] == '20'
+            assert convergence['rows'][-1][5] == '1.0000E-03'
+            assert any('WARNING: retained contact warning' in line for log in observed['logs']
+                       for line in log.get('diagnostic_lines', []))
+        current = context['engineering_context']
+        assert current['source']['scope'] == {'association': 'POINTS', 'array': 'DISP', 'component': 'D1', 'time': 1.0}
+        assert current['result']['time'] == 1.0 and current['result']['units'] is None
+        assert current['result']['arrays'][0]['range'] == [0.0, .004 + .001 * (run_count - 1)]
+        original = tools['knowledge_source']['call'](**references[0])
+        assert 'Loaded, 1, 1, 0.004' in original['segments'][0]['text']
+        latest = tools['knowledge_source']['call'](**references[-1])
+        assert f'1199, {1199 * run_count / 1_000_000:.6f}' in ''.join(row['text'] for row in latest['segments'])
+        marker = {key: original['segments'][0][key] for key in ('document_id', 'revision', 'locator')}
+        return json.dumps({'answer': 'INJECTED TEST PROVIDER: observations and original archives are available.',
+                           'sources': [marker], 'assumptions': ['Units are not established.']})
+    monkeypatch.setattr('caelab.assist.openscience_host.run_openscience', provider)
+    try:
+        document = wb.desktop.selection_discussion(session_id=wb.session_id, command_id='Cinitial',
+            selection={'model_snapshot': {'kind': 'freecad-model', 'materials': [{'name': 'Preserved material'}]},
+                       'scope': {'objects': ['Loaded']}})['document']
+        draft = deepcopy(document['draft']); draft['participants'] = ['materials']
+        draft['composer']['text'] = 'Initial model question.'
+        draft['context']['transmission_scope'] = {'allow_question': True}
+        draft['context']['constraints'] = ['Keep the original mesh and material; compare only the imposed displacement.']
+        document = command(document, 'expert.update', {'draft': draft})
+        document = command(document, 'expert.ask')
+        finished(wb, {'id': document['runs'][-1]['job_id']})
+        document = wb.document_read(document['id'])
+        assert document['turns'][-1]['status'] == 'FAILED'
+        draft = deepcopy(document['draft']); draft['composer']['text'] = 'The earlier answer ignored contact; retain this objection.'
+        document = command(document, 'expert.update', {'draft': draft})
+        document = command(document, 'expert.intervene')
+        for index in range(run_count):
+            folder = tmp_path / str(index); folder.mkdir()
+            source = folder / 'Mesh.inp'
+            source.write_text('*NODE\n1,0,0,0\n*MATERIAL,NAME=Preserved\n*ELASTIC\n210000,.3\n'
+                f'*BOUNDARY\nLoaded, 1, 1, {.004 + .001 * index:g}\n*STEP\n*STATIC\n.05,1\n*END STEP\n')
+            source.with_suffix('.sta').write_text('INCREMENT 20 TOTAL TIME 1.0\n')
+            source.with_suffix('.cvg').write_text('SUMMARY OF CONVERGENCE INFORMATION\n' + ''.join(
+                f'1 {increment} 1 1 0 1.0000E-03 2.0000E-04 0.0000E+00 0.0000E+00\n' for increment in range(1, 21)))
+            source.with_suffix('.dat').write_text(''.join(
+                f'{node}, {node * (index + 1) / 1_000_000:.6f}\n' for node in range(1200)) + 'WARNING: retained contact warning\n')
+            selected = [source.with_suffix(extension) for extension in ('.inp', '.sta', '.cvg', '.dat')]
+            for path in selected:
+                uploaded = wb.upload(path.name, path.read_bytes())
+                archive = wb.assistance().knowledge.ingest(wb.input_path(uploaded['id']), 'materials',
+                    {'title': path.name}, workspace_id=wb.workspace_id)
+                references.append({key: archive[key] for key in ('document_id', 'revision')})
+                archived.append(wb.assistance().knowledge.source(**references[-1], workspace_id=wb.workspace_id))
+            document = wb.desktop.selection_discussion(session_id=wb.session_id, command_id='Crun' + str(index),
+                discussion_id=document['id'], source_refs=references[-4:],
+                selection={'sources': [{'path': str(path)} for path in selected]})['document']
+        document = wb.desktop.selection_discussion(session_id=wb.session_id, command_id='Cpost', discussion_id=document['id'],
+            selection={'path': str(source), 'scope': {'association': 'POINTS', 'array': 'DISP', 'component': 'D1', 'time': 1.0},
+                'result_metadata': {'time': 1.0, 'units': None, 'arrays': [{'name': 'DISP', 'component': 'D1',
+                    'range': [0.0, .004 + .001 * (run_count - 1)]}]}})['document']
+        draft = deepcopy(document['draft']); draft['composer']['text'] = 'Compare the actual archived runs and selected displacement.'
+        draft['context']['transmission_scope'] = {'allow_question': True, 'source_refs': deepcopy(references), 'collections': ['materials']}
+        document = command(document, 'expert.update', {'draft': draft})
+        original_context = deepcopy(document['draft']['context'])
+        assert len(json.dumps(archived, ensure_ascii=False).encode()) + len(json.dumps(original_context).encode()) > 100_000
+        document = command(document, 'expert.ask')
+        assert finished(wb, {'id': document['runs'][-1]['job_id']})['state'] == 'SUCCEEDED', wb.document_result(
+            document['id'], document['runs'][-1]['job_id'])
+        document = wb.document_read(document['id'])
+        assert document['turns'][-1]['status'] == 'ANSWERED' and len(calls) == 2
+        assert document['draft']['context'] == original_context
+        assert [canonical_hash(wb.assistance().knowledge.source(**ref, workspace_id=wb.workspace_id))
+                for ref in references] == [canonical_hash(row) for row in archived]
+        assert wb.config['runtime']['transmission'] == policy
+    finally:
+        wb.shutdown()
+
+
 def test_product_modules_do_not_import_test_or_example_code():
     root = Path(__file__).resolve().parents[1]
     violations = []
