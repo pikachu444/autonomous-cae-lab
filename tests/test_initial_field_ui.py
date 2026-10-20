@@ -265,7 +265,7 @@ def test_disconnected_apply_is_known_rejection_not_an_unresolved_submission(scen
     assert '연결이 끊겼습니다' in s.page.status.text() and not s.calls
 
 
-def test_production_fem_dock_initial_tab_focus_restores_existing_layout(scene, monkeypatch):
+def test_production_fem_dock_keeps_model_tree_and_one_full_height_editor(scene, monkeypatch):
     s = scene; main = W.QMainWindow(); main.setCentralWidget(W.QWidget())
     calculation = W.QDockWidget('계산', main); main.addDockWidget(C.Qt.BottomDockWidgetArea, calculation)
     model = W.QDockWidget('모형', main); model.setObjectName('Model'); main.addDockWidget(C.Qt.LeftDockWidgetArea, model)
@@ -291,13 +291,13 @@ def test_production_fem_dock_initial_tab_focus_restores_existing_layout(scene, m
         conn.show_panel('fem', owner=s.case.owner); s.app.processEvents()
         dock = conn.panels['Source']['fem']; original_width = dock.width()
         s.host.tabs.setCurrentWidget(s.page); s.app.processEvents()
-        assert not model.isVisible() and not calculation.isVisible() and not overlay.isVisible()
-        assert abs(dock.width() - 440) <= 2
+        assert model.isVisible() and not calculation.isVisible() and not overlay.isVisible()
+        assert abs(dock.width() - original_width) <= 2
         s.host.tabs.setCurrentWidget(other); s.app.processEvents()
-        assert model.isVisible() and calculation.isVisible() and overlay.isVisible()
+        assert model.isVisible() and not calculation.isVisible() and overlay.isVisible()
         assert abs(dock.width() - original_width) <= 2
         s.host.tabs.setCurrentWidget(s.page); s.app.processEvents()
-        assert not model.isVisible() and not overlay.isVisible()
+        assert model.isVisible() and not overlay.isVisible()
         conn.panels['Source']['fem'].close(); s.app.processEvents()
         assert model.isVisible() and calculation.isVisible() and overlay.isVisible()
         # A hidden dock's QWidget geometry may be deferred by QMainWindow.

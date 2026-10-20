@@ -76,14 +76,23 @@ def install(connection, open_model):
             main.addToolBar(self.toolbar)
             for title, callback in [('모델 열기…', open_model), ('프로젝트 저장', self.save),
                     ('다른 이름으로 저장…', lambda: self.save(as_new=True)),
+                    ('계산 목록…', lambda: connection.open_runner())]:
+                action = self.toolbar.addAction(title)
+                action.triggered.connect(lambda checked=False, callback=callback: self.invoke(callback))
+            menu = next((item for item in main.menuBar().findChildren(QtWidgets.QMenu)
+                         if item.title() == 'CAE 작업'), None)
+            if menu is None:
+                menu = main.menuBar().addMenu('CAE 작업')
+            tools = menu.addMenu('연구 도구')
+            for title, callback in [
                     ('설계 변수', lambda: connection.show_panel('parameters')),
                     ('조립 운동', lambda: connection.show_panel('motion')),
                     ('선택 자세 해석', lambda: connection.show_panel('assembly_candidate')),
-                    ('해석 설정', lambda: connection.show_panel('fem')),
+                    ('확장 조건 편집…', lambda: connection.show_panel('fem')),
                     ('변위 가져오기…', lambda: connection.show_panel('structural_transfer')),
                     ('빔 설정', lambda: connection.show_panel('beam')),
                     ('프로젝트', lambda: connection.show_panel('project'))]:
-                action = self.toolbar.addAction(title)
+                action = tools.addAction(title)
                 action.triggered.connect(lambda checked=False, callback=callback: self.invoke(callback))
             self.refresh()
 

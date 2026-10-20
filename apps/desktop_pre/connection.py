@@ -849,6 +849,8 @@ class Connection:
             dock.setWidget(widget); dock.resize(720, 520)
             self.Gui.getMainWindow().addDockWidget(self.QtCore.Qt.RightDockWidgetArea, dock)
             panels[kind] = dock
+            dock.visibilityChanged.connect(
+                lambda visible, dock=dock: self._editor_dock_visibility(dock, visible))
             if kind == 'structural_transfer':
                 dock.visibilityChanged.connect(lambda visible, dock=dock: self._transfer_task_visibility(dock, visible))
             elif kind == 'fem':
@@ -856,24 +858,65 @@ class Connection:
                 widget.tabs.currentChanged.connect(lambda _index, dock=dock: self._initial_task_visibility(dock))
         if existing and kind in ('structural_transfer', 'dynamic'):
             panels[kind].widget().refresh_context()
+        self._activate_editor_dock(panels[kind])
         panels[kind].show(); panels[kind].raise_()
+        if not existing:
+            main = self.Gui.getMainWindow()
+            width = min(840 if kind == 'fem' else 520, max(400, int(main.width() * .46)))
+            main.resizeDocks([panels[kind]], [width], self.QtCore.Qt.Horizontal)
         if kind == 'structural_transfer':
             self._transfer_task_visibility(panels[kind], True)
-            self.Gui.getMainWindow().resizeDocks([panels[kind]], [420], self.QtCore.Qt.Horizontal)
         elif kind == 'fem':
             self._initial_task_visibility(panels[kind])
         return panels[kind].widget()
 
+    def _activate_editor_dock(self, selected):
+        """Give one current editing task the dock area without discarding drafts."""
+        if getattr(self, '_switching_editor_dock', False):
+            return
+        self._switching_editor_dock = True
+        try:
+            for panels in self.panels.values():
+                for dock in panels.values():
+                    if dock is not selected and dock.isVisible():
+                        dock.hide()
+            main = self.Gui.getMainWindow()
+            auxiliaries = [self.dock] + [dock for dock in main.findChildren(self.QtWidgets.QDockWidget)
+                                         if dock.objectName() == 'CaeSelectionInspector']
+            retained = getattr(self, '_editor_hidden_auxiliaries', [])
+            for dock in auxiliaries:
+                if dock.isVisible():
+                    if dock not in retained:
+                        retained.append(dock)
+                    dock.hide()
+            self._editor_hidden_auxiliaries = retained
+            for dock in main.findChildren(self.QtWidgets.QDockWidget):
+                if dock.objectName() == 'Model':
+                    dock.show()
+        finally:
+            self._switching_editor_dock = False
+
+    def _editor_dock_visibility(self, dock, visible):
+        if getattr(self, '_switching_editor_dock', False) or self.closed:
+            return
+        if visible:
+            self._activate_editor_dock(dock)
+            return
+        def settled():
+            if self.closed or any(item.isVisible() for panels in self.panels.values() for item in panels.values()):
+                return
+            for auxiliary in getattr(self, '_editor_hidden_auxiliaries', []):
+                try:
+                    auxiliary.show()
+                except RuntimeError:
+                    pass
+            self._editor_hidden_auxiliaries = []
+        self.QtCore.QTimer.singleShot(0, settled)
+
     def _initial_task_visibility(self, dock):
         widget = dock.widget()
         active = dock.isVisible() and widget.tabs.currentWidget() is widget.initial_field_page
-        if active and not hasattr(dock, '_initial_original_width'):
-            dock._initial_original_width = dock.width()
-        elif not active:
-            self._restore_initial_task_width(dock)
         self._transfer_task_visibility(dock, active)
-        if active:
-            self.Gui.getMainWindow().resizeDocks([dock], [440], self.QtCore.Qt.Horizontal)
 
     def _restore_initial_task_width(self, dock):
         width = getattr(dock, '_initial_original_width', None)
@@ -896,16 +939,6 @@ class Connection:
             if first:
                 self._transfer_hidden_docks = [item for item in [self.dock] if item.isVisible()]
                 self._transfer_hidden_overlay = None
-                try:
-                    active = self.Gui.activeDocument()
-                    idle = not self.Gui.Control.activeDialog() and not (active and active.getInEdit())
-                except (AttributeError, RuntimeError):
-                    idle = False
-                if idle:
-                    main = self.Gui.getMainWindow()
-                    native = [item for item in main.findChildren(self.QtWidgets.QDockWidget)
-                              if item.objectName() == 'Model' and item.isVisible()]
-                    self._transfer_hidden_docks.extend(native)
                 for item in self._transfer_hidden_docks:
                     item.hide()
                 epoch = self._transfer_focus_epoch = getattr(self, '_transfer_focus_epoch', 0) + 1

@@ -310,12 +310,6 @@ def inspect_mesh_quality():
 
 def add_toolbar():
     main = Gui.getMainWindow()
-    bar = QtWidgets.QToolBar('CAE 작업', main)
-    bar.setObjectName('CaeMainOperations')
-    bar.setIconSize(QtCore.QSize(20, 20))
-    bar.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-    main.addToolBar(QtCore.Qt.TopToolBarArea, bar)
-    main.insertToolBarBreak(bar)
     menu = main.menuBar().addMenu('CAE 작업')
     actions = [
         ('모델 열기', 'document-open', open_model),
@@ -335,13 +329,11 @@ def add_toolbar():
     ]
     for item in actions:
         if item is None:
-            bar.addSeparator()
             menu.addSeparator()
             continue
         label, icon, fn = item
         action = QtGui.QAction(Gui.getIcon(icon), label, main)
         action.triggered.connect(guarded(fn))
-        bar.addAction(action)
         menu.addAction(action)
     menu.addSeparator()
     quality_action = menu.addAction('메시 품질 확인…')
@@ -350,7 +342,6 @@ def add_toolbar():
     compare_action = menu.addAction('메시 품질 비교…')
     compare_action.setObjectName('caeCompareMeshQuality')
     compare_action.triggered.connect(guarded(compare_mesh_quality))
-    KEEP.append(bar)
 
 
 def start(config_path):
@@ -366,9 +357,6 @@ def start(config_path):
             App.ParamGet('User parameter:BaseApp/Preferences/View').SetBool('UseNewSelection', True)
             Gui.activateWorkbench('FemWorkbench')
             add_toolbar()
-            inspector = Inspector()
-            Gui.getMainWindow().addDockWidget(QtCore.Qt.RightDockWidgetArea, inspector)
-            KEEP.append(inspector)
             for dock in Gui.getMainWindow().findChildren(QtWidgets.QDockWidget):
                 if dock.objectName() in ('Python console', 'Report view'):
                     dock.hide()
