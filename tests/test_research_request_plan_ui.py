@@ -125,7 +125,9 @@ def test_native_model_refresh_edits_the_plan_without_submitting(app, workbench, 
         window.open_document(draft=draft)
         wait(app, lambda: window.document is not None and not window._busy)
         assert window.native_update_button.isEnabled()
-        assert window.run_button.text()==('FreeCAD에서 모델 편집…' if missing_input else '현재 계획 실행')
+        assert window.run_button.text()==('계산 입력 준비…' if missing_input else '현재 계획 실행')
+        if missing_input:
+            assert window.model_open_button.text() == 'FreeCAD에서 모델 편집…'
         # Adding a different result to the conversation cannot redirect this
         # Plan away from the model selected when its source reply was requested.
         original_read = client.document_read
@@ -180,7 +182,7 @@ def test_independent_native_primary_action_opens_existing_fem_without_job(app,wo
     try:
         window.open_document(draft=draft)
         wait(app,lambda:window.document is not None and not window._busy)
-        assert window.run_button.isEnabled() and window.run_button.text()=='FreeCAD에서 모델 편집…'
+        assert window.run_button.isEnabled() and window.run_button.text()=='계산 입력 준비…'
         window.run_button.click()
         wait(app,lambda:not window._busy and bool(launched))
         assert launched==[{'source':state['model']['saved_path'],'discussion_id':discussion['id'],'workbench':state}]

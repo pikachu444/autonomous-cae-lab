@@ -255,7 +255,7 @@ class RequestPlanWindow(NumericalWindow):
         self.native_update_button = QPushButton('모델 입력 갱신')
         self.native_update_button.clicked.connect(self.refresh_native_input)
         model_row.addWidget(self.native_update_button)
-        form.addRow('계산 모델', model_row)
+        form.addRow('계산 도구', model_row)
         form.addRow('평가 횟수', self.evaluations)
         inputs_layout.addLayout(form)
         self.variables_button = QPushButton('변수 추가…')
@@ -315,11 +315,11 @@ class RequestPlanWindow(NumericalWindow):
         native_layout = QVBoxLayout(self.native_page)
         native_layout.setContentsMargins(18, 18, 18, 18)
         native_layout.setSpacing(14)
-        heading = QLabel('FreeCAD FEM에서 조건 편집')
+        heading = QLabel('FreeCAD FEM 모델로 계산')
         heading.setProperty('appearanceRole', 'section')
         native_layout.addWidget(heading)
-        self.native_instructions = QLabel('FreeCAD FEM에서 위 목적에 적힌 조건을 확인하고 수정하세요.\n\n'
-            '모델을 저장하고 CalculiX 계산을 실행한 뒤, 새 결과와 로그를 Workbench에서 선택해 원 대화에 추가하세요.')
+        self.native_instructions = QLabel('조건을 바꾸려면 “FreeCAD에서 모델 편집…”을 누르세요.\n\n'
+            '계산 입력을 준비해 실행하거나, FreeCAD에서 직접 CalculiX 계산을 실행하고 새 결과와 로그를 원 대화에 추가하세요.')
         self.native_instructions.setWordWrap(True)
         native_layout.addWidget(self.native_instructions)
         native_layout.addStretch()
@@ -2758,8 +2758,8 @@ class RequestPlanWindow(NumericalWindow):
         self.editor.setEnabled(present and not self._view_error and not (self._busy and not self._busy_background))
         self.apply_button.setEnabled(enabled and self.local_dirty and not self._view_error)
         needs_native_input = self._requires_native_input()
-        self.run_button.setText('FreeCAD에서 모델 편집…' if needs_native_input else '현재 계획 실행')
-        self.run_button.setToolTip('FreeCAD FEM에서 조건을 적용하고 모델을 저장한 뒤 CalculiX 계산을 실행하세요.'
+        self.run_button.setText('계산 입력 준비…' if needs_native_input else '현재 계획 실행')
+        self.run_button.setToolTip('모델의 현재 조건으로 계산 입력을 준비합니다. 독립 파일은 FreeCAD에서 열어 직접 계산합니다.'
                                   if needs_native_input else '')
         manual = (needs_native_input and self.operation.currentData() == 'evaluate'
                   and all(table.rowCount() == 0 for table in (self.variable_sheet, self.response_sheet, self.method_sheet)))
@@ -2778,7 +2778,7 @@ class RequestPlanWindow(NumericalWindow):
         backend = self.backend.text()
         self.model_label.setText('CalculiX / FreeCAD FEM' if backend.startswith('structure.calculix.')
                                  else backend_label(backend) or '모델을 선택하세요.')
-        self.model_open_button.setText('FreeCAD에서 열기' if needs_native_input else '모델 열기')
+        self.model_open_button.setText('FreeCAD에서 모델 편집…' if needs_native_input else '모델 열기')
         self.run_button.setEnabled(enabled and not self.local_dirty and not self._view_error and not self.document.get('diagnostics'))
         self.save_action.setEnabled(enabled)
         self.undo_action.setEnabled(enabled and (self._draft_history_index > 0 or not self.local_dirty and self.document.get('can_undo', False)))

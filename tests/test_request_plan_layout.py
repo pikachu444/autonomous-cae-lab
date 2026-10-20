@@ -68,7 +68,8 @@ def test_native_conditions_show_wrapped_purpose_and_freecad_instead_of_empty_tab
     assert window.input_tabs.currentWidget() is window.native_page
     assert not any(table.isVisible() for table in (window.variable_sheet, window.response_sheet, window.method_sheet))
     assert window.native_instructions.isVisible() and 'CalculiX' in window.native_instructions.text()
-    assert window.run_button.isEnabled() and window.run_button.text() == 'FreeCAD에서 모델 편집…'
+    assert window.run_button.isEnabled() and window.run_button.text() == '계산 입력 준비…'
+    assert window.model_open_button.text() == 'FreeCAD에서 모델 편집…'
     if os.environ.get('CAELAB_QT_CAPTURE_DIR'):
         from pathlib import Path
         folder = Path(os.environ['CAELAB_QT_CAPTURE_DIR'])
