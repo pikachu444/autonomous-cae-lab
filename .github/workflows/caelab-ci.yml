@@ -16,6 +16,11 @@ on:
         type: choice
         options: [core, research-driver-source, native, native-registration, structural, optimization, pde, codeaster, explicit, doe]
         default: core
+      codeaster_check:
+        description: 'Job mode, codeaster only: choose an existing check'
+        type: choice
+        options: [all, elasticity, structural-families, plasticity, material-point, model-optimization, material-inverse]
+        default: all
       test_selection:
         description: 'Selected mode: space-separated tests/file.py or tests/file.py::node (quote names containing spaces; use /)'
         type: string
@@ -642,6 +647,19 @@ jobs:
       MPLBACKEND: Agg
       OMP_NUM_THREADS: '2'
     steps:
+      - name: Validate Code_Aster check selection
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'job' }}
+        env:
+          CODEASTER_CHECK: ${{ inputs.codeaster_check }}
+        shell: python
+        run: |
+          import os
+          selection = os.environ['CODEASTER_CHECK']
+          allowed = {'all', 'elasticity', 'structural-families', 'plasticity',
+                     'material-point', 'model-optimization', 'material-inverse'}
+          if selection not in allowed:
+              raise SystemExit('Choose a Code_Aster check: ' + ', '.join(sorted(allowed)))
+          print('Selected Code_Aster check:', selection)
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         id: checkout
         with:
@@ -667,10 +685,10 @@ jobs:
           echo "CAELAB_CODEASTER_IMAGE=/tmp/caelab-codeaster.sif" >> "$GITHUB_ENV"
           echo "CAELAB_CODEASTER_IMAGE_SHA256=$(sha256sum /tmp/caelab-codeaster.sif | cut -d ' ' -f 1)" >> "$GITHUB_ENV"
       - name: Compare independent declared elasticity with analytical fields and signed reactions
-        if: ${{ !cancelled() && steps.python_deps.outcome == 'success' && steps.codeaster_runtime.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.python_deps.outcome == 'success' && steps.codeaster_runtime.outcome == 'success' && (github.event_name != 'workflow_dispatch' || inputs.mode != 'job' || inputs.codeaster_check == 'all' || inputs.codeaster_check == 'elasticity') }}
         run: python -m scripts.verify_codeaster --store artifacts/codeaster-lab
       - name: Compare complete beam, pressure cylinder and curved roof fields across two native solvers
-        if: ${{ !cancelled() && steps.python_deps.outcome == 'success' && steps.codeaster_runtime.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.python_deps.outcome == 'success' && steps.codeaster_runtime.outcome == 'success' && (github.event_name != 'workflow_dispatch' || inputs.mode != 'job' || inputs.codeaster_check == 'all' || inputs.codeaster_check == 'structural-families') }}
         id: family_acceptance
         shell: bash
         run: python -m scripts.verify_structural_families --store artifacts/structural-family-lab --source-commit "${GITHUB_SHA}" 2>&1 | tee "$RUNNER_TEMP/structural-family-check.log"
@@ -678,16 +696,16 @@ jobs:
         if: ${{ failure() && steps.family_acceptance.outcome == 'failure' }}
         run: python scripts/ci_annotate_failure.py "$RUNNER_TEMP/structural-family-check.log"
       - name: Verify complete native J2 load and unload histories on two meshes
-        if: ${{ !cancelled() && steps.python_deps.outcome == 'success' && steps.codeaster_runtime.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.python_deps.outcome == 'success' && steps.codeaster_runtime.outcome == 'success' && (github.event_name != 'workflow_dispatch' || inputs.mode != 'job' || inputs.codeaster_check == 'all' || inputs.codeaster_check == 'plasticity') }}
         run: python -m scripts.verify_plasticity --store artifacts/plasticity-lab
       - name: Verify real MGIS and MTest stress histories and consistent tangents
-        if: ${{ !cancelled() && steps.python_deps.outcome == 'success' && steps.codeaster_runtime.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.python_deps.outcome == 'success' && steps.codeaster_runtime.outcome == 'success' && (github.event_name != 'workflow_dispatch' || inputs.mode != 'job' || inputs.codeaster_check == 'all' || inputs.codeaster_check == 'material-point') }}
         run: python -m scripts.verify_material_point --store artifacts/material-point-lab
       - name: Search declared modulus using measured native fields with interruption and replay
-        if: ${{ !cancelled() && steps.python_deps.outcome == 'success' && steps.codeaster_runtime.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.python_deps.outcome == 'success' && steps.codeaster_runtime.outcome == 'success' && (github.event_name != 'workflow_dispatch' || inputs.mode != 'job' || inputs.codeaster_check == 'all' || inputs.codeaster_check == 'model-optimization') }}
         run: python -m scripts.verify_model_optimization --store artifacts/model-optimization-lab
       - name: Verify synthetic material inverse after sealed OCI runtime admission
-        if: ${{ !cancelled() && steps.python_deps.outcome == 'success' && steps.codeaster_runtime.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.python_deps.outcome == 'success' && steps.codeaster_runtime.outcome == 'success' && (github.event_name != 'workflow_dispatch' || inputs.mode != 'job' || inputs.codeaster_check == 'all' || inputs.codeaster_check == 'material-inverse') }}
         env:
           CAELAB_MFRONT_INVERSE_RUNTIME_PROFILE: SEALED_OCI
         run: python -m scripts.verify_material_inverse --store artifacts/material-inverse-lab
