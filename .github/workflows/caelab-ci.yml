@@ -129,7 +129,7 @@ jobs:
           Path('artifacts').mkdir(exist_ok=True)
           targets = json.loads(os.environ['VALIDATED_TARGETS'])
           raise SystemExit(subprocess.call([
-              sys.executable, '-m', 'pytest', '-q', '--maxfail=0',
+              sys.executable, '-m', 'pytest', '-v', '--durations=20', '--maxfail=0',
               '--continue-on-collection-errors',
               '-o', 'faulthandler_timeout=120',
               '-o', 'junit_suite_name=selected-tests-' + os.environ['RUNNER_OS'],
@@ -298,7 +298,7 @@ jobs:
           print(f"PySide6 {PySide6.__version__}; Qt {QtCore.qVersion()}; "
                 f"platform={app.platformName()}; offscreen widget/event loop OK")
           PY
-      - run: python -m pytest -q -o faulthandler_timeout=120 --junitxml=artifacts/core-tests.xml
+      - run: python -m pytest -v --durations=20 -o faulthandler_timeout=120 --junitxml=artifacts/core-tests.xml
         if: ${{ !cancelled() && steps.qt_preflight.outcome == 'success' && steps.freecad_reference.outcome == 'success' }}
       - name: Preserve core test failures and skips
         if: always()
