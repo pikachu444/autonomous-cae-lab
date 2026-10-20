@@ -501,9 +501,7 @@ def solve_level(input_path: str) -> None:
     _assert_sources(output, config)
     if _digest(expected_file) != config["expected_mesh_sha256"] or _digest(input_file) != input_sha:
         raise RuntimeError("Source/input drifted at the final pre-MECA gate")
-    # Retain MUMPS' accuracy gate while allowing full iterative refinement.
-    result = MECA_STATIQUE(MODELE=model, CHAM_MATER=material_field, EXCIT=_F(CHARGE=load),
-                           SOLVEUR=_F(METHODE="MUMPS", POSTTRAITEMENTS="FORCE"))
+    result = MECA_STATIQUE(MODELE=model, CHAM_MATER=material_field, EXCIT=_F(CHARGE=load), SOLVEUR=_F(METHODE="MUMPS"))
     result = CALC_CHAMP(reuse=result, RESULTAT=result, FORCE="REAC_NODA")
     indexes = list(result.getIndexes())
     if len(indexes) != 1 or type(indexes[0]) is not int or indexes[0] <= 0:

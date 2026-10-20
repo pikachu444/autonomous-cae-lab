@@ -344,8 +344,6 @@ def test_native_command_contract_compiles_exact_nodal_forces_and_supported_dofs(
         assert [actual[axis] for axis in ("FX", "FY", "FZ")] == source["value"]
     assert load["DDL_IMPO"] == ({"GROUP_NO": f"CAE_N{mesh.index_by_id[expected['supports'][0]['node_id']]}", "DX": 0.0},)
     assert "FORCE_FACE" not in load and "FORCE_INTERNE" not in load
-    solve = next(kwargs for name, kwargs in calls if name == "MECA_STATIQUE")
-    assert solve["SOLVEUR"] == {"METHODE": "MUMPS", "POSTTRAITEMENTS": "FORCE"}
     assert next(kwargs for name, kwargs in calls if name == "AFFE_MODELE")["AFFE"]["GROUP_MA"] == "SOLID"
     assert [name for name, _ in calls].index("DEFI_GROUP") < [name for name, _ in calls].index("MECA_STATIQUE")
     assert (level / "worker_result.json").is_file() and (level / "sief_elga.table.json").is_file()

@@ -165,6 +165,7 @@ def test_missing_sentinel_failed_partial_are_not_plotted_as_physical_zero(app):
 
 @pytest.mark.parametrize('wrong_attempt',[False,True])
 def test_legacy_log_button_verifies_exact_attempt_and_keeps_selection(app,tmp_path,monkeypatch,wrong_attempt):
+    import hashlib
     import shutil
     source=supplied()
     old=deepcopy(source)
@@ -173,6 +174,11 @@ def test_legacy_log_button_verifies_exact_attempt_and_keeps_selection(app,tmp_pa
     old['increment_history']['rows']=old['increment_history']['rows'][1:]
     solver=tmp_path/'solver';solver.mkdir()
     for name in ('contact.cvg','ccx_contact.stdout.log'):
+        # These are retained Windows solver bytes, not normalized test text.
+        # Keep their recorded pins so a changed fixture cannot silently pass.
+        pin=next(p for p in source['artifacts'] if p['relative']=='solver/'+name)
+        raw=(FIXTURE/name).read_bytes()
+        assert len(raw)==pin['bytes'] and hashlib.sha256(raw).hexdigest()==pin['sha256']
         shutil.copyfile(FIXTURE/name,solver/name)
     if wrong_attempt:
         for pin in source['artifacts']:
@@ -191,7 +197,7 @@ def test_legacy_log_button_verifies_exact_attempt_and_keeps_selection(app,tmp_pa
     for i,r in enumerate(d.rows):
         if r['increment']==8:d.attempts.selectRow(i);break
     monkeypatch.setattr(W.QFileDialog,'getOpenFileName',lambda *_:(str(path),''))
-    d.open_logs();app.processEvents()
+    d.logs_button.click();app.processEvents()
     if wrong_attempt:
         assert parent.errors and not d.history.get('rows')
     else:

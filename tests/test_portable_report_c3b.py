@@ -388,20 +388,51 @@ def test_never_saved_report_uses_existing_working_owner_not_fake_saved_head(tmp_
         assert wb.shutdown()['joined']
 
 
-def test_literature_is_not_republished_without_the_pending_scope_contract(tmp_path):
+def test_literature_is_not_republished_without_the_pending_scope_contract(tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QFileDialog
+    from apps.research.portable_research_report import export_checked
+    from test_portable_study_report_export import window
     with store(tmp_path / 'source') as wb:
         report = wb.document_open(kind='report')
         source = {'status': 'AVAILABLE', 'document_id': 'paper', 'revision': 1, 'segments': [{'text': 'scoped source'}], 'sha256': 'a' * 64}
         ref = {'kind': 'knowledge', 'document_id': 'paper', 'revision': 1, 'locator': {'segment_id': '0'},
                'source_sha256': 'a' * 64, 'content_sha256': canonical_hash(source)}
         wb.report_documents.resolve_reference = lambda r: {'kind': 'knowledge', 'source': deepcopy(source)}
-        binding = wb.report_documents.capture(report['id'], ref)
+        binding = wb.report_capture(report['id'], ref)
         draft = deepcopy(report['draft']); draft['sections'] = [section(binding)]
         report = save(wb, command(wb, report, 'report.update', {'draft': draft}))
         before = file_tree(tmp_path / 'source')
         plan = inspect_copy(wb, [report['id']])
         assert plan['status'] == 'BLOCKED'
-        assert any(row['code'] == 'REPORT_KNOWLEDGE_SCOPE_REQUIRED' for row in plan['issues'])
+        assert any(row['code'] == 'KNOWLEDGE_ACCESS_DENIED' for row in plan['issues']), plan['issues']
+        destination = tmp_path / 'copy'
+        with pytest.raises(ValueError):
+            create_copy(wb, plan, destination, approved=True, command_id='Cdenied', session_id=wb.session_id)
+        assert not destination.exists()
+
+        # Exercise the menu's real Markdown exporter and current owner read;
+        # only the file picker and scheduling are controlled, not publication.
+        output = tmp_path / 'summary.md'; output.write_text('KEEP OLD OUTPUT', encoding='utf-8')
+        monkeypatch.setattr(QFileDialog, 'getSaveFileName', lambda *args: (str(output), 'Markdown (*.md)'))
+        host = window(wb, report); host.client = wb; host._pending = None
+        def call(read, accepted):
+            accepted(read())
+            return True
+        host._call = call
+        assert export_checked(host, 'md')
+        assert output.read_text(encoding='utf-8') == 'KEEP OLD OUTPUT'
+        assert host.assets[binding['id']]['snapshot_status'] == 'SCOPE_REQUIRED'
+        assert 'content' not in host.assets[binding['id']]
+
+        host.draft['sections'][0]['include'] = False
+        summary = '원문을 제외한 사용자 작성 요약입니다.'
+        host.draft['sections'].append({'id': 'Esummary', 'title': '작성 요약', 'text': summary,
+            'include': True, 'table': False, 'curve': False})
+        assert export_checked(host, 'md')
+        exported = output.read_text(encoding='utf-8')
+        assert summary in exported and 'scoped source' not in exported
+        assert ref['document_id'] not in exported
+        assert wb.document_read(report['id'])['draft'] == report['draft']
         assert file_tree(tmp_path / 'source') == before
 
 
