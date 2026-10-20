@@ -100,8 +100,9 @@ def _checked_completed(lab: Lab, store: Path, identifier: str, settings: dict,
     _require(summary["experiment_id"] == identifier and summary["metrics"] == result["metrics"]
              and summary["status"] == result["status"] and summary["decision"] == result["decision"]
              and summary["model_revision"] == result["model_revision"], "Checked research summary differs")
-    _require({"physical_validation", "model_qualification", "original_midas_replication"} <=
-             set(summary["unknown"]), "Qualification UNKNOWN was lost")
+    if result["solver_status"] == "COMPLETED":
+        _require({"physical_validation", "model_qualification", "original_midas_replication"} <=
+                 set(summary["unknown"]), "Qualification UNKNOWN was lost")
     path = store / "experiments" / identifier / "simulation/mesh_records.json"
     raw = load_json(path) if result["solver_status"] == "COMPLETED" and path.is_file() else None
     assessment = assess(settings, raw) if raw is not None else None

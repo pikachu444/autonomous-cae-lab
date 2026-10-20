@@ -151,8 +151,9 @@ def test_failed_numerical_checks_keep_comparison_values_and_failures(
 
 def test_execution_failure_explicitly_reports_missing_comparison_fields(tmp_path, source, completed, capsys):
     identifier, lab, result, summary, _ = completed
-    result.update(status="FAILED_EXECUTION", solver_status="FAILED", converged=None)
+    result.update(status="FAILED_EXECUTION", solver_status="FAILED_EXECUTION", converged=None)
     summary["status"] = result["status"]
+    summary["unknown"] = ["model_qualification", "physical_validation"]
     result["metrics"] = summary["metrics"] = {}
     result["evidence"] = [{"observation": {"code": "model_analysis_execution", "status": "FAIL",
         "observed": "RuntimeError: Native input/source mesh identity drifted"}}]
@@ -164,7 +165,7 @@ def test_execution_failure_explicitly_reports_missing_comparison_fields(tmp_path
     assert "Native input/source mesh identity drifted" in str(error.value)
     assert comparison["assessment"] is None
     assert comparison["missing_fields"] == ["complete_native_fields", "mesh_studies"]
-    assert comparison["status"] == "FAILED_EXECUTION" and comparison["solver_status"] == "FAILED"
+    assert comparison["status"] == "FAILED_EXECUTION" and comparison["solver_status"] == "FAILED_EXECUTION"
     assert '"assessment": null' in capsys.readouterr().out
 
 
@@ -183,7 +184,9 @@ def test_independent_cases_continue_and_original_failure_still_fails_run(
         result = records[identifier]
         return {"experiment_id": identifier, **{key: deepcopy(result[key]) for key in
             ("metrics", "status", "decision", "model_revision")},
-            "unknown": ["physical_validation", "model_qualification", "original_midas_replication"]}
+            "unknown": ["model_qualification", "physical_validation"]
+                if result["solver_status"] in {"FAILED_EXECUTION", "CANCELLED"}
+                else ["physical_validation", "model_qualification", "original_midas_replication"]}
 
     def run_model_analysis(**arguments):
         identifier, settings = arguments["experiment_id"], arguments["settings"]
@@ -235,3 +238,38 @@ def test_independent_cases_continue_and_original_failure_still_fails_run(
     assert report["failures"][0]["experiment_id"] == first_failure
     assert "Native input/source mesh identity drifted" in report["failures"][0]["message"]
     assert report["status"] == "FAILED_OR_PARTIAL"
+
+
+@pytest.mark.parametrize("failed_status", ["FAILED_EXECUTION", "CANCELLED"])
+def test_actual_lab_failure_summary_remains_collectable_without_completed_qualification(
+        monkeypatch, tmp_path, source, failed_status):
+    from caelab import Lab
+    from caelab.execution_control import ExecutionCancelled
+
+    def fail(output, settings):
+        if failed_status == "CANCELLED":
+            raise ExecutionCancelled("test-only cancellation; no native solve")
+        raise RuntimeError("test-only execution failure; no native solve")
+
+    adapter = SimpleNamespace(backend="test.structural.failure", version="test-only",
+        domain="structure", physics_domain="solid_mechanics", analysis_type="linear_static",
+        default_metrics=["primary_response"], describe_model=acceptance.model_declaration, solve=fail)
+    monkeypatch.setattr("caelab.declared_model.source_identity", lambda *_: deepcopy(source["core"]))
+    lab = Lab(tmp_path / "actual-lab", model_analysis_adapters={adapter.backend: adapter})
+    lab.create_study("S-failure", "Test-only failure record", "Does failure retain its actual summary?",
+                     "A failed solve has no completed numerical qualification", "No native solver is used")
+    settings = acceptance.specification("ansys_vmd1_regular", "Fz")
+    identifier = "E-test-failure"
+    result = lab.run_model_analysis(study_id="S-failure", experiment_id=identifier,
+                                   backend=adapter.backend, settings=settings)
+    summary = lab.research_summary(identifier)
+    assert result["status"] == summary["status"] == failed_status
+    assert summary["metrics"] == {}
+    assert set(summary["unknown"]) == {"model_qualification", "physical_validation"}
+    comparison = {}
+    with pytest.raises(acceptance._NumericalFailure, match=failed_status) as error:
+        acceptance._checked_completed(lab, lab.store, identifier, settings, result, source, comparison)
+    assert error.value.raw is None
+    assert comparison["status"] == comparison["solver_status"] == failed_status
+    assert comparison["assessment"] is None and comparison["missing_fields"]
+    assert lab.inspect_experiment(identifier) == result
