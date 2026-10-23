@@ -12,6 +12,7 @@ import json
 import math
 import os
 import sys
+import uuid
 
 from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Qt, Signal
 from PySide6.QtGui import QAction, QKeySequence
@@ -44,6 +45,18 @@ def text_value(value):
 def short_value(value, limit=140):
     text = text_value(value)
     return text if len(text) <= limit else text[:limit] + "…"
+
+
+def candidate_state(row):
+    status = row.get("execution_status", "UNKNOWN")
+    if row.get("prediction_status") == "PREDICTED" and status != "PREDICTED":
+        return "PREDICTED — imported status: " + str(status)
+    return status
+
+
+def actual_candidate(row):
+    return (row.get("execution_status") == "SUCCEEDED"
+            and row.get("prediction_status") != "PREDICTED")
 
 
 def request_error(error):
@@ -177,8 +190,8 @@ class RunnerWindow(QMainWindow):
         self.result_metadata = None
         self._ledger = []
         self._ledger_kind = None
+        self._on_open_origin = on_open_origin
         self._build_ui()
-        self.origin_button.setVisible(on_open_origin is not None)
         if on_open_origin is not None:
             self.open_origin.connect(on_open_origin)
         self.timer = QTimer(self)
@@ -192,6 +205,14 @@ class RunnerWindow(QMainWindow):
         self.setWindowTitle("Runner — existing executions")
         self.resize(1420, 940)
         self.setMinimumSize(900, 650)
+        tools = self.menuBar().addMenu("&Tools")
+        for kind, label in (("pre", "CAD/FE — FreeCAD…"), ("post", "Post — external result…"),
+                            ("data", "Data…"), ("material", "Material…"), ("numerical", "Numerical Plan…"),
+                            ("pde", "PDE…"), ("simulation", "Simulation…"), ("evaluation", "Evaluation definition…"),
+                            ("study", "Study…"), ("expert", "Expert discussion…")):
+            action = QAction(label, self)
+            action.triggered.connect(lambda checked=False, tool=kind: self.open_tool(tool))
+            tools.addAction(action)
         toolbar = QToolBar("Execution records")
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
@@ -205,9 +226,15 @@ class RunnerWindow(QMainWindow):
         self.cancel_button.clicked.connect(self.cancel_selected)
         toolbar.addWidget(self.cancel_button)
         self.origin_button = QPushButton("Open source document")
-        self.origin_button.clicked.connect(lambda: self.open_origin.emit(self.selected_job_id) if self.selected_job_id else None)
+        self.origin_button.clicked.connect(self.open_selected_origin)
         toolbar.addWidget(self.origin_button)
+        self.post_button = QPushButton("Open retained field in Post")
+        self.post_button.clicked.connect(self.open_selected_post)
+        toolbar.addWidget(self.post_button)
 
+        self.study_button = QPushButton('Use selected result in Study')
+        self.study_button.clicked.connect(self.open_selected_study)
+        toolbar.addWidget(self.study_button)
         root = QWidget()
         layout = QVBoxLayout(root)
         self.message = QLabel("Reading existing service jobs…")
@@ -467,12 +494,72 @@ class RunnerWindow(QMainWindow):
             self.message.setText(identifier + " · " + state_description(job))
         self._request("cancel:" + identifier, lambda: self.client.cancel(identifier), received)
 
+    def open_selected_origin(self):
+        identifier, epoch = self.selected_job_id, self._selection_epoch
+        if not identifier:
+            return
+        self.message.setText("Finding the exact source document…")
+        def received(navigation, _ticket):
+            origin = navigation.get("origin_document") or {}
+            if origin.get("kind") == "material" and self._on_open_origin is not None:
+                # Material's existing callback owns its unapplied local edits.
+                self.open_origin.emit(identifier)
+                return
+            from .desktop import open_origin
+            def opened(receipt, _ticket):
+                self.message.setText("Source document: " + text_value(receipt.get("status")))
+            self._request("open-origin:" + identifier,
+                          lambda: open_origin(self.client, identifier), opened)
+        self._request("navigation-origin:" + identifier, lambda: self.client.job_navigation(identifier), received,
+                      relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
+
+    def open_selected_study(self):
+        identifier, epoch = self.selected_job_id, self._selection_epoch
+        if not identifier:
+            return
+        def opened():
+            from .desktop import launch_tool
+            navigation=self.client.job_navigation(identifier)
+            origin=navigation.get('origin_document') or {}
+            if not origin.get('id') or origin.get('kind') in {'pre','post','expert'}:
+                raise ValueError('Select a saved research result; native project evidence remains in its source project')
+            reference=self.client.document_result_reference(origin['id'],identifier)
+            receipt=self.client.result_followup(reference,'study',session_id=origin['session_id'],command_id='C'+uuid.uuid4().hex)
+            return launch_tool(self.client,'study',document_id=receipt['document']['id'])
+        return self._request('study:'+str(identifier),opened,
+            lambda result,ticket:self.message.setText('Opened an independent Study with the exact retained result; no calculation or inference was submitted.'),
+            relevant=lambda:self.selected_job_id==identifier and self._selection_epoch==epoch)
+
+    def open_tool(self, tool):
+        from .desktop import launch_tool
+        self._request("launch-tool:" + tool, lambda: launch_tool(self.client, tool),
+                      lambda receipt, _ticket: self.message.setText(tool.title() + ": " + text_value(receipt.get("status"))))
+
+    def open_selected_post(self):
+        identifier, epoch = self.selected_job_id, self._selection_epoch
+        if not identifier:
+            return
+        self.message.setText("Finding this job's retained native field…")
+        def received(navigation, _ticket):
+            post = navigation.get("post_input")
+            if not post:
+                self.message.setText("This job has no retained VTU/PVD field for Post. Its original responses remain available here.")
+                return
+            from .desktop import launch_post
+            def launched(receipt, _ticket):
+                self.message.setText("Post preparation started in a separate helper; any native preparation error will be shown.")
+            self._request("open-post:" + identifier,
+                          lambda: launch_post(self.client, post["id"], job_id=identifier), launched)
+        self._request("navigation-post:" + identifier, lambda: self.client.job_navigation(identifier), received,
+                      relevant=lambda: (identifier, epoch) == (self.selected_job_id, self._selection_epoch))
+
     def _update_actions(self):
         job = self.jobs.get(self.selected_job_id, {})
         state = job.get("state")
         self.refresh_action.setEnabled("catalog" not in self._pending)
         self.result_button.setEnabled(bool(job.get("result_refs")) and not any(key.startswith(f"result:{self.selected_job_id}:") for key in self._pending))
-        self.origin_button.setEnabled(bool(job))
+        self.origin_button.setEnabled(bool(job) and not any(key.endswith(":" + str(self.selected_job_id)) and "origin" in key for key in self._pending))
+        self.post_button.setEnabled(bool(job.get("result_refs")) and not any(key.endswith(":" + str(self.selected_job_id)) and "post" in key for key in self._pending))
         self.cancel_button.setEnabled(state in {"QUEUED", "RUNNING", "CLEANUP_PENDING"} and "cancel:" + str(self.selected_job_id) not in self._pending)
         operation = job.get("operation")
         self.cancel_button.setText("Cancellation requested" if state == "CANCEL_REQUESTED" else
@@ -640,19 +727,19 @@ class RunnerWindow(QMainWindow):
         start = self.ledger_start.value()
         rows = self._ledger[start:start + MAX_LEDGER_ROWS]
         candidate = self._ledger_kind == "candidates"
-        headers = ["Candidate", "Execution", "Variables", "Valid objective", "Penalty", "Failed / penalized objective", "Failure", "Scalar responses"] if candidate else list(dict.fromkeys(key for row in rows if isinstance(row, dict) for key in row))[:12]
+        headers = ["Candidate", "Execution / prediction", "Variables", "Valid objective", "Penalty", "Failed / penalized / predicted objective", "Failure", "Scalar responses"] if candidate else list(dict.fromkeys(key for row in rows if isinstance(row, dict) for key in row))[:12]
         self.ledger_table.setColumnCount(len(headers))
         self.ledger_table.setHorizontalHeaderLabels(headers)
         self.ledger_table.setRowCount(len(rows))
         self.ledger_label.setText(f"Returned {self._ledger_kind or 'records'}: {len(self._ledger)}. Showing [{start}, {start + len(rows)}). " +
-            ("Valid objectives exclude failed or penalized evaluations. Cancellation applies to the whole parent execution." if candidate else "Select a row to inspect the complete returned record."))
+            ("Valid objectives exclude failed, penalized or predicted evaluations. Cancellation applies to the whole parent execution." if candidate else "Select a row to inspect the complete returned record."))
         for index, row in enumerate(rows):
             if not isinstance(row, dict):
                 continue
             if candidate:
-                eligible = row.get("execution_status") == "SUCCEEDED" and "penalty_applied" not in row
+                eligible = actual_candidate(row) and "penalty_applied" not in row
                 scalar = {name: f"{text_value(value.get('value'))} {value.get('unit', 'unit not recorded')}" for name, value in row.get("responses", {}).items() if value.get("kind") == "scalar"}
-                values = [row.get("candidate_id"), row.get("execution_status"), short_value(row.get("values")),
+                values = [row.get("candidate_id"), candidate_state(row), short_value(row.get("values")),
                     row.get("objective") if eligible else "—", row.get("penalty_applied", "—"),
                     row.get("objective") if not eligible else "—", row.get("failure_reason", "—"), short_value(scalar)]
             else:
@@ -693,14 +780,7 @@ def main(argv=None):
         parser.error("--service or CAELAB_SERVICE_URL must identify the existing local service")
     app = QApplication.instance() or QApplication(sys.argv[:1])
     client = Client(args.service)
-    material_window = None
-    def open_origin(identifier):
-        nonlocal material_window
-        from .material_window import MaterialWindow
-        if material_window is None:
-            material_window = MaterialWindow(client, auto_open=False)
-        material_window.open_run_origin(identifier)
-    window = RunnerWindow(client, job_id=args.job_id, on_open_origin=open_origin)
+    window = RunnerWindow(client, job_id=args.job_id)
     window.show()
     return app.exec()
 

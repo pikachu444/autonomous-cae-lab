@@ -1,15 +1,16 @@
 """Immutable VTU/PVD snapshots; native readers retain the format's meaning."""
 from pathlib import Path, PureWindowsPath
 import hashlib
+import json
 import math
 import os
 import xml.etree.ElementTree as ET
 
 from .evaluation import file_hash
-from .storage import save_json, utc_now
+from .storage import save_json, utc_now, canonical_hash
 
 
-NATIVE_EXTENSIONS = {'.vtu', '.pvd'}
+NATIVE_EXTENSIONS = {'.vtu', '.pvd', '.fcstd', '.caepre'}
 
 
 def _identity(stat):
@@ -78,11 +79,43 @@ def _files(source, root):
     return paths, parsed_sha
 
 
-def register_native_input(workbench_root, approved_root, source, identifier, *, root_id, relative, limit):
-    """Publish a receipt only after the entire referenced file set is copied."""
-    root = Path(approved_root).resolve(strict=True)
-    source = _within_root(source, root)
-    paths, parsed_sha = _files(source, root)
+def _frozen_files(source, root):
+    if source.stat().st_size > 8 * 1024 * 1024:
+        raise ValueError('FEM snapshot manifest exceeds 8 MiB')
+    with source.open('rb') as stream:
+        payload = stream.read(8 * 1024 * 1024 + 1)
+    if len(payload) > 8 * 1024 * 1024:
+        raise ValueError('FEM snapshot manifest exceeds 8 MiB')
+    manifest = json.loads(payload)
+    if manifest.get('kind') != 'freecad-fem-frozen' or manifest.get('schema_version') != '1':
+        raise ValueError('A completed FreeCAD FEM snapshot is required')
+    entries = manifest.get('files', [])
+    names = [entry.get('relative') for entry in entries]
+    inp = manifest.get('input_file', '')
+    expected = {'editable.FCStd', 'mesh.json', inp}
+    if manifest.get('editable_project') == 'editable.caepre':
+        expected.add('editable.caepre')
+    elif manifest.get('editable_project') is not None:
+        raise ValueError('Unsupported editable native project member')
+    if (len(entries) != len(expected) or not isinstance(inp, str) or Path(inp).suffix.lower() != '.inp'
+            or set(names) != expected):
+        raise ValueError('FEM snapshot must retain its native CAD, mesh and unsplit input')
+    paths = [source]
+    for entry in entries:
+        name = entry['relative']
+        if not isinstance(name, str) or Path(name).name != name or any(char in name for char in '/\\:\x00'):
+            raise ValueError('FEM snapshot dependencies require plain filenames')
+        path = _within_root(source.parent / name, root)
+        if path.stat().st_size != entry.get('bytes') or file_hash(path) != entry.get('sha256'):
+            raise ValueError('FEM snapshot file changed or is incomplete')
+        paths.append(path)
+    return paths, hashlib.sha256(payload).hexdigest()
+
+
+def _register_set(workbench_root, root, source, paths, parsed_sha, identifier, *, root_id, relative, limit, kind, format, native_metadata=None):
+    if native_metadata is not None:
+        if not isinstance(native_metadata, dict) or len(json.dumps(native_metadata, allow_nan=False).encode('utf-8')) > 64 * 1024:
+            raise ValueError('Native metadata must be a bounded explicit object')
     before = {path: _identity(path.stat()) for path in paths}
     if any(identity[2] < 1 for identity in before.values()):
         raise ValueError('Native inputs and dependencies must not be empty')
@@ -111,17 +144,54 @@ def register_native_input(workbench_root, approved_root, source, identifier, *, 
                       'file': destination.relative_to(workbench_root).as_posix(),
                       'bytes': total, 'sha256': digest.hexdigest()})
     if parsed_sha is not None and files[0]['sha256'] != parsed_sha:
-        raise ValueError('PVD collection changed while its dependencies were registered')
+        raise ValueError('Native manifest changed while its dependencies were registered')
     # Recheck the set together: an early frame may change while a later one copies.
     for path, entry in zip(paths, files):
         _within_root(path, root)
         if _identity(path.stat()) != before[path] or file_hash(path) != entry['sha256']:
             raise ValueError('Source changed during native registration')
     entry = files[0]
+    if kind == 'frozen_fem':
+        # The copied bytes must match the manifest too, including a change before copying.
+        _frozen_files(Path(workbench_root) / entry['file'], folder.resolve())
     receipt = {'id': identifier, 'name': source.name, 'file': entry['file'],
                'bytes': entry['bytes'], 'sha256': entry['sha256'], 'created_utc': utc_now(),
-               'kind': 'native_result', 'format': source.suffix.lower()[1:],
+               'kind': kind, 'format': format,
                'files': files, 'total_bytes': sum(item['bytes'] for item in files),
                'origin': {'mode': 'LOCAL_SNAPSHOT', 'root_id': root_id, 'relative': relative}}
+    if native_metadata is not None:
+        receipt.update(native_metadata=native_metadata, native_metadata_sha256=canonical_hash(native_metadata))
     save_json(folder / 'input.json', receipt)
     return receipt
+
+
+def register_native_input(workbench_root, approved_root, source, identifier, *, root_id, relative, limit, native_metadata=None):
+    """Publish a receipt only after the entire referenced file set is copied."""
+    root = Path(approved_root).resolve(strict=True)
+    source = _within_root(source, root)
+    if source.suffix.lower() in {'.fcstd', '.caepre'}:
+        from .native_cad import dependency_files, inspect_project
+        if native_metadata is not None:
+            raise ValueError('Native design metadata is extracted from its registered file set')
+        if source.suffix.lower() == '.caepre':
+            inspect_project(source, limit=limit)
+            paths = [source]
+        else:
+            paths = dependency_files(source, root)
+        return _register_set(workbench_root, root, source, paths, None, identifier,
+            root_id=root_id, relative=relative, limit=limit, kind='native_design', format=source.suffix.lower()[1:],
+            native_metadata={'kind': 'native_design_dependencies',
+                'original_locations': {path.relative_to(root).as_posix(): str(path) for path in paths}})
+    paths, parsed_sha = _files(source, root)
+    return _register_set(workbench_root, root, source, paths, parsed_sha, identifier,
+                         root_id=root_id, relative=relative, limit=limit,
+                         kind='native_result', format=source.suffix.lower()[1:], native_metadata=native_metadata)
+
+
+def register_frozen_input(workbench_root, approved_root, source, identifier, *, root_id, relative, limit):
+    root = Path(approved_root).resolve(strict=True)
+    source = _within_root(source, root)
+    paths, parsed_sha = _frozen_files(source, root)
+    return _register_set(workbench_root, root, source, paths, parsed_sha, identifier,
+                         root_id=root_id, relative=relative, limit=limit,
+                         kind='frozen_fem', format='freecad-fem')

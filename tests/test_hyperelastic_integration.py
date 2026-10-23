@@ -110,5 +110,9 @@ def test_hyperelastic_preset_is_independent_and_keeps_native_qualification_open(
     second = service.presets()["material_hyperelastic"]
     assert second["settings"] == canonical_settings()
     assert second["operation"] == "model_analysis_run" and second["backend"] == MFrontHyperelasticAdapter.backend
-    assert second["status"] == "EXPERIMENTAL" and second["declared_inputs"] is False
+    assert second["status"] == "EXPERIMENTAL" and second["declared_inputs"] is True
+    declared = {row['id']: row['unit'] for row in MFrontHyperelasticAdapter().describe_inputs(second['settings'])}
+    assert declared == {'youngs_modulus_mpa': 'MPa', 'poisson_ratio': '1', 'temperature_k': 'K',
+                        'final_time_s': 's', **{'final_deformation_gradient_' + component: '1'
+                                               for component in F_COMPONENTS}}
     assert "검증 대기" in second["scope"] and "UNKNOWN" in second["scope"]

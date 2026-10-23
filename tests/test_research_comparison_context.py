@@ -150,7 +150,12 @@ def test_context_refuses_linked_comparison_before_reading_it(lab, tmp_path):
     outside.mkdir()
     (outside / "record.json").write_text('{"private":"must not be read"}')
     (folder / "record.json").unlink()
-    (folder / "record.json").symlink_to(outside / "record.json")
+    try:
+        (folder / "record.json").symlink_to(outside / "record.json")
+    except OSError as exc:
+        if getattr(exc, 'winerror', None) == 1314:
+            pytest.skip('This Windows account cannot create symlinks; no privilege change is requested')
+        raise
     context = lab.research_summary("E-test")["comparison_context"]
     assert context["records"] == [] and context["unverified"][0]["integrity"] == "UNKNOWN"
     assert "private" not in str(context)

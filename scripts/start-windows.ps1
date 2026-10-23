@@ -4,6 +4,10 @@ param(
     [switch]$NoBrowser,
     [switch]$InstallOnly,
     [switch]$ResearchUI,
+    [switch]$Expert,
+    [switch]$Documents,
+    [switch]$MCP,
+    [switch]$Sensitivity,
     [string]$RuntimeRoot = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\windows-runtime'),
     [ValidateRange(1024,65535)][int]$Port = 8766,
     [string]$Store = (Join-Path $env:LOCALAPPDATA 'AutonomousCAELab\research-store')
@@ -17,7 +21,7 @@ function Normalize-Directory([string]$Path) {
 }
 $runtime = Normalize-Directory $RuntimeRoot
 $storePath = Normalize-Directory $Store
-& (Join-Path $PSScriptRoot 'install-windows.ps1') -RuntimeRoot $runtime -ResearchUI:$ResearchUI
+& (Join-Path $PSScriptRoot 'install-windows.ps1') -RuntimeRoot $runtime -ResearchUI:$ResearchUI -Expert:$Expert -Documents:$Documents -MCP:$MCP -Sensitivity:$Sensitivity
 if (-not $?) { throw 'Private Python installation failed.' }
 if ($InstallOnly) { return }
 New-Item -ItemType Directory -Force -Path $storePath | Out-Null
@@ -88,8 +92,9 @@ if (Test-Path -LiteralPath $pidPath -PathType Leaf) {
             if ($launch.pid -ne $oldPid -or $launch.store -ne $storePath -or
                 $launch.source_root -ne $install.source_root -or $launch.project_sha256 -ne $install.project_sha256 -or
                 $launch.source_fingerprint -ne $sourceFingerprint -or
-                $launch.config_path -ne $operatorConfig -or $launch.config_sha256 -ne $configSha) {
-                throw "Port $Port is running a different store, source or operator configuration. Stop that owned server explicitly or choose another -Port."
+                $launch.config_path -ne $operatorConfig -or $launch.config_sha256 -ne $configSha -or
+                @($install.installed_extras | Where-Object { $_ -notin $launch.installed_extras }).Count -ne 0) {
+                throw "Port $Port is running a different store, source, operator configuration or optional dependency set. Stop that owned server explicitly or choose another -Port."
             }
             $reuse = $true
         }
@@ -119,7 +124,7 @@ if (-not $reuse) {
     }
     [ordered]@{pid=$process.Id;port=$Port;store=$storePath;source_root=$install.source_root;
         project_sha256=$install.project_sha256;
-        source_fingerprint=$sourceFingerprint;config_path=$operatorConfig;config_sha256=$configSha;
+        source_fingerprint=$sourceFingerprint;config_path=$operatorConfig;config_sha256=$configSha;installed_extras=$install.installed_extras;
         launched_utc=[DateTime]::UtcNow.ToString('o')} |
         ConvertTo-Json -Depth 3 | Set-Content -LiteralPath $launchPath -Encoding UTF8
 }

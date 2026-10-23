@@ -12,6 +12,9 @@ import secrets
 import threading
 import time
 import uuid
+from copy import deepcopy
+
+from caelab.native_transport import DispatchGate
 
 from paraview import simple as p
 
@@ -73,6 +76,11 @@ class Owner:
             raise ValueError("The current Post bridge supports independent external-result documents")
         self.document_id = document_id or doc.get("document_id") or "D" + uuid.uuid4().hex
         self.project_root = Path(doc.get("project_root", path.parent)).resolve()
+        self.project_path = Path(path)
+        self.project_document = deepcopy(doc)
+        if hasattr(external, 'recovery_records') and external.recovery_records():
+            self.project_document['repair'] = external.recovery_records()
+            self.project_document['partial_workspace'] = True
         self.title = path.parent.name
         self.saved_revision = doc.get("workspace_sha256")
         self.saved_generation = 0
@@ -86,7 +94,31 @@ class Owner:
         self._observers = {}
         self.completed = {}
         self.modified_events = 0
+        self.workspace = None
+        if 'sources' in doc:
+            try:
+                from .workspace import Workspace
+            except ImportError:
+                from workspace import Workspace
+            self.workspace = Workspace(self, self.project_document)
+            self.workspace.restore_selection()
         self.refresh()
+
+    native_properties = staticmethod(properties)
+    proxy_id = staticmethod(proxy_id)
+
+    def current_project(self):
+        self.assert_thread()
+        return self.project_path, deepcopy(self.project_document)
+
+    def operations(self):
+        if self.workspace is None:
+            return OPERATIONS
+        try:
+            from .workspace import OPERATIONS as extra
+        except ImportError:
+            from workspace import OPERATIONS as extra
+        return OPERATIONS + extra
 
     def assert_thread(self):
         if threading.get_ident() != self.thread:
@@ -135,7 +167,9 @@ class Owner:
                          "pid": os.getpid(), "sources": list(sources.values()), "views": list(views.values()),
                          "representations": representations, "time": view_state["time"],
                          "active_source_id": view_state["active_source_id"], "active_view_id": view_state["active_view_id"],
-                         "fresh": True, "supports": list(OPERATIONS), "supports_cancel": "queued_only"}
+                         "fresh": True, "supports": list(self.operations()), "supports_cancel": "queued_only"}
+        if self.workspace is not None:
+            self.snapshot['analysis'] = self.workspace.describe()
         return self.snapshot
 
     def _modified(self, source):
@@ -154,21 +188,33 @@ class Owner:
         return {"id": self.document_id, "kind": "post", "title": self.title,
                 "generation": self.generation, "view_generation": self.view_generation,
                 "dirty": (self.generation != self.saved_generation or self.view_generation != self.saved_view_generation),
-                "saved_revision": self.saved_revision, "capabilities": list(OPERATIONS), "state": self.snapshot}
+                "saved_revision": self.saved_revision, "capabilities": list(self.operations()), "state": self.snapshot}
 
     def save_project(self):
         """Complete the same managed save for human macros and typed commands."""
         self.refresh()
         if any(item["pending_properties"] for item in self.snapshot["sources"] + self.snapshot["views"] + list(self.snapshot["representations"].values())):
             raise ValueError("BUSY_EDIT: native properties contain unapplied changes")
-        path, doc = commands.verify_sources()
+        # External save verifies the healthy sources and retained analysis, and
+        # preserves unavailable branches with explicit repair records. A global
+        # source check here would make a partially recovered document unsavable.
+        path, doc = commands.project()
         if (doc.get("kind") != external.KIND or doc.get("document_id", self.document_id) != self.document_id
                 or Path(doc.get("project_root", path.parent)).resolve() != self.project_root):
             raise ValueError("STALE_DOCUMENT: managed save belongs to a different document")
+        if self.workspace is not None:
+            self.workspace.prepare_for_save()
+            self.refresh()
         generation, view_generation = self.generation, self.view_generation
-        saved = external.save_project(path, dict(doc, document_id=self.document_id,
-                                                generation=generation, view_generation=view_generation))
-        revision = json.loads(saved.read_text(encoding="utf-8"))["workspace_sha256"]
+        source_doc = self.project_document if self.workspace is not None else doc
+        options = {'prepare': self.workspace.prepare_save} if self.workspace is not None else {}
+        saved = external.save_project(path, dict(source_doc, document_id=self.document_id,
+                                                generation=generation, view_generation=view_generation), **options)
+        saved_doc = json.loads(saved.read_text(encoding="utf-8"))
+        revision = saved_doc["workspace_sha256"]
+        self.project_path = Path(saved)
+        self.project_document.clear()
+        self.project_document.update(saved_doc)
         self.refresh()
         # Publish save completion only after the native save and manifest succeed.
         self.saved_revision = revision
@@ -196,7 +242,7 @@ class Owner:
             if type(expected) is not int or expected != self.generation:
                 raise ValueError("STALE_DOCUMENT: generation changed")
             operation = request.get("operation")
-            if operation not in OPERATIONS:
+            if operation not in self.operations():
                 raise ValueError("UNSUPPORTED_COMMAND: " + str(operation))
             arguments = request.get("arguments", {})
             if not isinstance(arguments, dict):
@@ -218,6 +264,11 @@ class Owner:
                     if available and float(p.GetAnimationScene().AnimationTime) not in available:
                         raise ValueError("TIME_SELECTION_UNSUPPORTED: select an exact native frame before inspecting its values")
                     payload["data"] = external.inspect_result(source)
+            elif operation not in OPERATIONS:
+                if target:
+                    raise ValueError('Analysis commands use stable source_ref/object_ref arguments')
+                payload = self.workspace.dispatch(operation, arguments)
+                self.refresh()
             else:
                 if any(item["pending_properties"] for item in self.snapshot["sources"] + self.snapshot["views"] + list(self.snapshot["representations"].values())):
                     raise ValueError("BUSY_EDIT: native properties contain unapplied changes")
@@ -260,6 +311,7 @@ class GuiDispatch:
         self.last_tick = None
         self._last_heartbeat = None
         self.broker_stop = None
+        self.command_gate = DispatchGate()
 
     def install(self, interval=100):
         self.owner.assert_thread()
@@ -279,6 +331,10 @@ class GuiDispatch:
 
     def _tick(self, *_):
         self.owner.assert_thread()
+        if self.command_gate.executing:
+            return
+        if self.broker_stop is not None and self.broker_stop.is_set():
+            return
         self.ticks += 1
         self.last_tick = time.monotonic()
         self.owner.refresh()
@@ -291,13 +347,16 @@ class GuiDispatch:
             self.outgoing.put({"event": "heartbeat", "documents": [descriptor]})
             self._last_heartbeat = self.last_tick
         self._published = descriptor
-        if self.broker_stop is not None and self.broker_stop.is_set():
+        if self.command_gate.request is None:
+            try:
+                request = self.incoming.get_nowait()
+            except queue.Empty:
+                return
+            self.command_gate.stage(request, self.outgoing)
             return
-        try:
-            request = self.incoming.get_nowait()
-        except queue.Empty:
+        request = self.command_gate.take()
+        if request is None:
             return
-        self.outgoing.put({"event": "started", "command_id": request["command_id"]})
         try:
             result = self.owner.dispatch(request)
         except Exception as error:
@@ -308,6 +367,8 @@ class GuiDispatch:
             outcome["error"] = {"code": message.split(":", 1)[0], "message": message}
         self.outgoing.put({"event": "finished", "command_id": request["command_id"], "outcome": outcome,
                            "documents": [self.owner.descriptor()]})
+        self.last_tick = time.monotonic()
+        self.command_gate.complete()
 
     def close(self):
         self.owner.assert_thread()
@@ -317,77 +378,13 @@ class GuiDispatch:
             self.interactor.RemoveObserver(self.observer)
 
 
-class BrokerIO:
+from caelab.native_transport import BrokerIO as _NativeBrokerIO
+
+
+class BrokerIO(_NativeBrokerIO):
     def __init__(self, dispatcher, service_url, *, log=None, tick_timeout=30):
-        self.dispatcher = dispatcher
-        self.service_url = service_url
-        self.log = log or (lambda *_args, **_kwargs: None)
-        self.stop = threading.Event()
-        dispatcher.broker_stop = self.stop
-        self.tick_timeout = tick_timeout
-        self.registration_nonce = secrets.token_urlsafe(32)
-        self.host_id = "H" + uuid.uuid4().hex
-        self.session_id = dispatcher.owner.session_id
-        self.version = str(p.GetParaViewVersion())
-        self.worker = threading.Thread(target=self.run, name="CAE Post broker I/O", daemon=True)
-
-    def start(self):
-        self.worker.start()
-        return self
-
-    def require_tick(self):
-        if self.dispatcher.last_tick is None or time.monotonic() - self.dispatcher.last_tick > self.tick_timeout:
-            raise RuntimeError("GUI_DISPATCH_UNAVAILABLE: native owner timer stopped; I/O polling is not an owner heartbeat")
-
-    def run(self):
-        # This worker handles only JSON/queues/HTTP; it never reads native proxies.
-        import sys
-        repository = str(Path(__file__).resolve().parents[2])
-        sys.path.insert(0, repository)
-        try:
-            from caelab.workbench_client import Client
-        finally:
-            sys.path.remove(repository)
-        try:
-            client = Client(self.service_url)
-            ready = None
-            while not self.stop.is_set() and ready is None:
-                try:
-                    ready = self.dispatcher.outgoing.get(timeout=.2)
-                except queue.Empty:
-                    continue
-            if ready is None:
-                return
-            self.require_tick()
-            receipt = client.request("/api/workbench/hosts/register", {
-                "host_id": self.host_id, "session_id": self.session_id, "application": "paraview",
-                "version": self.version, "execution_mode": "gui", "documents": ready["documents"],
-                "registration_nonce": self.registration_nonce})
-            identity = {"session_id": self.session_id, "host_token": receipt["host_token"]}
-            self.log("bridge_registered", host_id=self.host_id, session_id=self.session_id)
-            while not self.stop.is_set():
-                while not self.dispatcher.outgoing.empty():
-                    event = self.dispatcher.outgoing.get_nowait()
-                    client.request("/api/workbench/hosts/" + self.host_id + "/events", dict(identity, **event))
-                    if event["event"] == "closed":
-                        return
-                self.require_tick()
-                response = client.request("/api/workbench/hosts/" + self.host_id + "/commands/next", identity)
-                request = response.get("command")
-                if request is not None:
-                    if request.get("host_id") != self.host_id or request.get("session_id") != self.session_id:
-                        raise RuntimeError("Broker delivered a command for a different owner")
-                    self.dispatcher.incoming.put(request, timeout=1)
-                self.stop.wait(.2)
-        except Exception as error:
-            # Reconnecting after response loss must not replay an applied mutation.
-            self.log("bridge_io_stopped", error_type=type(error).__name__, message=str(error))
-            self.stop.set()
-        finally:
-            self.stop.set()
-
-    def close(self):
-        self.dispatcher.outgoing.put({"event": "closed"})
+        super().__init__(dispatcher, service_url, application="paraview",
+                         version=str(p.GetParaViewVersion()), log=log, tick_timeout=tick_timeout)
 
 
 def start(service_url, *, log=None):

@@ -302,7 +302,11 @@ def test_native_timer_drains_on_owner_thread_and_refuses_headless(bridge):
     dispatcher.incoming.put(command(owner))
     assert dispatcher.ready is False
     bridge.view.interactor.callbacks[1](None, "TimerEvent")
-    events = [dispatcher.outgoing.get_nowait() for _ in range(3)]
+    events = [dispatcher.outgoing.get_nowait() for _ in range(2)]
+    assert [event["event"] for event in events] == ["ready", "started"]
+    dispatcher.command_gate.acknowledge_started(events[-1]['command_id'])
+    bridge.view.interactor.callbacks[1](None, "TimerEvent")
+    events.append(dispatcher.outgoing.get_nowait())
     assert [event["event"] for event in events] == ["ready", "started", "finished"]
     assert events[-1]["outcome"]["state"] == "SUCCEEDED"
     dispatcher.close()
@@ -342,6 +346,8 @@ def test_broker_io_moves_only_json_while_timer_owns_proxy_dispatch(bridge, monke
     broker.start()
     queued = dispatcher.incoming.get(timeout=2)
     dispatcher.incoming.put(queued)
+    dispatcher._tick()
+    assert dispatcher.command_gate.started.wait(2)
     dispatcher._tick()
     assert completed.wait(2)
     broker.close()

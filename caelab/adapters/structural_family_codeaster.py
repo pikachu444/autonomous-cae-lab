@@ -6,6 +6,8 @@ It does not resume the deferred LE10 implementation or qualify physical strength
 """
 from __future__ import annotations
 
+from . import declared_native_inputs as native_inputs
+
 from copy import deepcopy
 import hashlib
 import importlib
@@ -150,7 +152,19 @@ class StructuralFamilyCodeAsterAdapter:
     analysis_type = "linear_static"
     version = "1.2"
     default_metrics = ["primary_response"]
-    input_source_files = tuple(_SOURCE_PATHS.values())
+    input_source_files = (*_SOURCE_PATHS.values(), native_inputs.SOURCE)
+
+    def describe_inputs(self, settings):
+        return native_inputs.describe(self.backend, settings)
+
+    def bind_inputs(self, settings, values):
+        return native_inputs.bind(self.backend, settings, values)
+
+    def expected_input_declaration(self, settings):
+        return native_inputs.expected_declaration(self.backend, settings)
+
+    def input_runtime_identity(self):
+        return native_inputs.aster_runtime_identity()
 
     def describe_model(self, settings: dict) -> dict:
         return _domain().model_declaration(deepcopy(settings))

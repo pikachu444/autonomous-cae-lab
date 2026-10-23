@@ -69,7 +69,55 @@ def preview_table(text, *, truncated=False):
             'column_keys': list(range(len(first))), 'has_header': has_header,
             'skip_rows': first_index + int(has_header),
             'rows': [values for _, values in data[:8]],
+            'row_numbers': [index for index, _ in data[:8]],
             'truncated': bool(truncated or len(data) > 8)}
+
+
+def validate_row_selection(selection):
+    """Original row IDs are zero-based physical lines (or NPZ array indexes)."""
+    keys = {'include_ranges', 'exclude_ranges', 'exclude_rows', 'reasons',
+            'quality_rows', 'quality_reasons', 'display_hidden_rows'}
+    if not isinstance(selection, dict) or set(selection) - keys:
+        raise ValueError('Row selection has unsupported fields')
+    for key in ('include_ranges', 'exclude_ranges'):
+        if key in selection:
+            ranges = selection[key]
+            if not isinstance(ranges, list) or any(not isinstance(pair, list) or len(pair) != 2 or
+                any(type(value) is not int or value < 0 for value in pair) or pair[0] > pair[1] for pair in ranges):
+                raise ValueError(f'{key} needs inclusive original-row intervals [[first,last],...]')
+    for key in ('exclude_rows', 'quality_rows', 'display_hidden_rows'):
+        rows = selection.get(key, [])
+        if not isinstance(rows, list) or any(type(value) is not int or value < 0 for value in rows):
+            raise ValueError(f'{key} needs original row IDs')
+    for key in ('reasons', 'quality_reasons'):
+        reasons = selection.get(key, {})
+        if not isinstance(reasons, dict) or any(not isinstance(row, str) or not row.isdigit() or
+                not isinstance(reason, str) for row, reason in reasons.items()):
+            raise ValueError(f'{key} maps original row IDs to explicit reason text')
+    return selection
+
+
+def _row_state(rows, selection):
+    validate_row_selection(selection)
+    known = set(rows.tolist())
+    for key in ('exclude_rows', 'quality_rows', 'display_hidden_rows'):
+        unknown = set(selection.get(key, [])) - known
+        if unknown:
+            raise ValueError(f'{key} names absent original rows: {sorted(unknown)}')
+    included = np.ones(len(rows), dtype=bool)
+    if 'include_ranges' in selection:
+        included[:] = False
+        for first, last in selection['include_ranges']:
+            included |= (rows >= first) & (rows <= last)
+    excluded = np.isin(rows, selection.get('exclude_rows', []))
+    for first, last in selection.get('exclude_ranges', []):
+        excluded |= (rows >= first) & (rows <= last)
+    return included & ~excluded, ~np.isin(rows, selection.get('quality_rows', [])), ~np.isin(rows, selection.get('display_hidden_rows', []))
+
+
+def _retained_numbers(values):
+    # Raw bytes remain authoritative. JSON text distinguishes NaN/Inf from zero.
+    return [float(value) if np.isfinite(value) else str(float(value)) for value in values]
 
 
 def read_table(path, mapping):
@@ -90,44 +138,95 @@ def read_table(path, mapping):
         with np.load(source, allow_pickle=False) as archive:
             data = {key: archive[key] for key in archive.files}
         named = True
+        source_rows = None
     else:
         # Explicitly support Fortran scientific exponents in numeric text.
         import re
+        source_rows = []
         with source.open(encoding='utf-8-sig') as stream:
-            lines=(re.sub(r'(?<=\d)[dD](?=[+-]?\d)', 'E', line) for line in stream)
-            data = np.genfromtxt(lines, delimiter=delimiter, names=True if named else None,
+            def lines():
+                header_seen = not named
+                for index, line in enumerate(stream):
+                    if index >= int(mapping.get('skip_header', 0)):
+                        if not header_seen and line.strip():
+                            header_seen = True  # NumPy also accepts a commented name row.
+                        elif line.split('#', 1)[0].strip():
+                            source_rows.append(index)
+                    yield re.sub(r'(?<=\d)[dD](?=[+-]?\d)', 'E', line)
+            data = np.genfromtxt(lines(), delimiter=delimiter, names=True if named else None,
                              dtype=float, encoding='utf-8', skip_header=int(mapping.get('skip_header', 0)),
                              invalid_raise=True, ndmin=1 if named else 2,
                              converters={})
     def column(spec):
         index = spec['column']
         try:
-            values = np.atleast_1d(data[index] if named else data[:, int(index)]).astype(float)
+            raw = np.atleast_1d(data[index] if named else data[:, int(index)]).astype(float)
         except (ValueError, IndexError, KeyError) as error:
             raise ValueError(f'Missing or invalid table column: {index}') from error
-        values = values * float(spec.get('scale', 1)) + float(spec.get('offset', 0))
-        if values.ndim != 1 or not len(values) or not np.isfinite(values).all():
-            raise ValueError(f'Column {index} contains missing or nonfinite data; no zero substitution')
-        return values
+        if raw.ndim != 1 or not len(raw):
+            raise ValueError(f'Column {index} must be a nonempty scalar channel')
+        with np.errstate(over='ignore', invalid='ignore'):
+            values = raw * float(spec.get('scale', 1)) + float(spec.get('offset', 0))
+        return raw, values
     responses = {}
     for name, spec in columns.items():
-        values = column(spec)
+        raw_values, values = column(spec)
         if not spec.get('unit') or not spec.get('component') or not spec.get('location'):
             raise ValueError(f'{name}: unit, component and location must be declared')
+        if source_rows is not None and len(source_rows) != len(values):
+            raise ValueError('Cannot associate parsed records with original physical lines; use an explicit extractor')
+        rows = np.asarray(source_rows if source_rows is not None else range(len(values)), dtype=int)
+        selection = spec.get('row_selection', {})
+        calculation, quality, visible = _row_state(rows, selection)
+        if not calculation.any():
+            raise ValueError(f'{name}: calculation selection contains no original rows')
         axis_spec = spec.get('axis')
         axes = []
+        raw_axis = axis = None
+        finite = np.isfinite(values)
         if axis_spec:
-            axis = column(axis_spec)
-            if len(axis) != len(values) or not axis_spec.get('unit') or not axis_spec.get('name') or np.any(np.diff(axis) <= 0):
-                raise ValueError('Axes need explicit meaning/units and strictly increasing values; select restart segments explicitly')
-            axes = [{'name': axis_spec['name'], 'unit': axis_spec['unit'], 'values': axis}]
-        responses[name] = {'kind': 'series' if axes else 'field', 'value': values,
-                           'unit': spec['unit'], 'component': spec['component'], 'location': spec['location'],
-                           'reduction': spec.get('reduction', 'none'), 'axes': axes,
-                           'mapping': deepcopy(spec),
-                           'coordinate_system':spec.get('coordinate_system','UNSPECIFIED'),
-                           'source_selector':{'file':source.name,'column':spec['column'],
-                                              'axis':deepcopy(axis_spec)}}
+            raw_axis, axis = column(axis_spec)
+            if len(axis) != len(values) or not axis_spec.get('unit') or not axis_spec.get('name'):
+                raise ValueError('Axes need explicit meaning/units and equal row counts')
+            finite &= np.isfinite(axis)
+        if not finite[calculation].all():
+            raise ValueError(f'{name}: selected original rows contain missing or nonfinite data; explicitly exclude rows, no zero substitution')
+        if axis is not None:
+            if np.any(np.diff(axis[calculation]) <= 0):
+                raise ValueError('Axes need strictly increasing selected values; select restart segments explicitly')
+            axes = [{'name': axis_spec['name'], 'unit': axis_spec['unit'], 'values': axis[calculation]}]
+        selected_indexes = np.flatnonzero(calculation)
+        groups = np.split(selected_indexes, np.flatnonzero(np.diff(selected_indexes) != 1) + 1)
+        segments = []
+        offset = 0
+        for group in groups:
+            segments.append({'rows': [offset, offset + len(group)], 'source_rows': rows[group].tolist(),
+                **({'axis_range': [float(axis[group[0]]), float(axis[group[-1]])]} if axis is not None else {})})
+            offset += len(group)
+        response = {'kind': 'series' if axes else 'field', 'value': values[calculation],
+            'unit': spec['unit'], 'component': spec['component'], 'location': spec['location'],
+            'reduction': spec.get('reduction', 'none'), 'axes': axes,
+            **{key: deepcopy(spec[key]) for key in ('frame', 'measure') if key in spec},
+            'mapping': deepcopy(spec), 'source_rows': rows[calculation],
+            'source_row_kind': 'physical_line' if source_rows is not None else 'array_index',
+            'coordinate_system': spec.get('coordinate_system', 'UNSPECIFIED'),
+            'source_selector': {'file': source.name, 'column': spec['column'], 'axis': deepcopy(axis_spec)}}
+        # Older unmasked imports keep their response shape. Explicit masks add an
+        # audit table and gap boundaries, separate from Plan experiment roles.
+        if selection:
+            response.update(segments=segments, has_calculation_gaps=len(segments) > 1,
+                raw_samples={'source_rows': rows.tolist(), 'value': _retained_numbers(raw_values),
+                    'axis': _retained_numbers(raw_axis) if raw_axis is not None else None,
+                    'transformed_value': _retained_numbers(values),
+                    'transformed_axis': _retained_numbers(axis) if axis is not None else None,
+                    'finite': finite.tolist(), 'quality_valid': (quality & finite).tolist(),
+                    'calculation_valid': calculation.tolist(), 'display_visible': visible.tolist(),
+                    'exclusion_reasons': [selection.get('reasons', {}).get(str(row),
+                        'outside explicit calculation selection' if not used else '') for row, used in zip(rows, calculation)],
+                    'quality_reasons': [selection.get('quality_reasons', {}).get(str(row),
+                        'nonfinite original or transformed sample' if not ok else
+                        'explicit raw quality flag' if row in selection.get('quality_rows', []) else '') for row, ok in zip(rows, finite)]})
+        responses[name] = response
     after = source.stat()
     if (before.st_size, before.st_mtime_ns) != (after.st_size, after.st_mtime_ns):
         raise ValueError('Input table changed during reading; wait for a completed extraction')

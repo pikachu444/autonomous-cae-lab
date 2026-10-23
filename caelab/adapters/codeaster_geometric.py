@@ -7,6 +7,8 @@ It reuses the pinned image, execution policy and owned process supervisor.
 
 from __future__ import annotations
 
+from . import declared_native_inputs as native_inputs
+
 import hashlib
 from copy import deepcopy
 import json
@@ -215,6 +217,7 @@ def _checked_worker(level: Path, expected: dict, input_sha: str, settings: dict,
 
 
 class _RecordedMesh:
+
     """Read-only native catalogue view for a second source/mapping check.
 
     This checks saved evidence, and never substitutes for the real worker's
@@ -263,6 +266,7 @@ class _RecordedMesh:
 
 
 class CodeAsterGeometricAdapter:
+    input_source_files = (*_SOURCES.values(), native_inputs.SOURCE)
     backend = "structural.code_aster.geometric_nonlinearity"
     domain = "geometric_nonlinearity"
     physics_domain = "structural"
@@ -272,6 +276,15 @@ class CodeAsterGeometricAdapter:
         "derived_bending_energy", "max_position_error", "finest_position_error", "max_rotation_error", "max_force_error",
         "max_moment_error", "max_section_force_error", "max_section_moment_error", "max_curvature_error",
         "max_derived_energy_error", "minimum_mesh_rate"]
+
+    def describe_inputs(self, settings):
+        return native_inputs.describe(self.backend, settings)
+
+    def bind_inputs(self, settings, values):
+        return native_inputs.bind(self.backend, settings, values)
+
+    def input_runtime_identity(self):
+        return native_inputs.aster_runtime_identity()
 
     def describe_model(self, settings: dict) -> dict:
         declaration = domain.model_declaration(settings)

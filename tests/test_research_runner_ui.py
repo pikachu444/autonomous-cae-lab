@@ -52,6 +52,10 @@ class RecordsClient:
         if blocker:
             assert blocker.wait(4), "Test did not release the queued service response"
 
+    def job_navigation(self, identifier):
+        self._read("navigation", identifier)
+        return {"origin_document": {"id":"Dmaterial", "kind":"material", "connected":True}, "post_input":None}
+
     def request(self, path):
         assert path == "/api/workbench"
         self._read("catalog")
@@ -204,15 +208,21 @@ def test_partial_candidate_penalty_and_unsupported_field_remain_explicit(runner,
             {"candidate_id": "C0", "execution_status": "SUCCEEDED", "values": {"E": 1234}, "objective": .25},
             {"candidate_id": "C1", "execution_status": "FAILED", "values": {"E": -1}, "objective": 1e6,
              "penalty_applied": 1e6, "failure_reason": "Invalid modulus", "responses": {}},
+            {"candidate_id": "C2", "execution_status": "SUCCEEDED", "prediction_status": "PREDICTED",
+             "values": {"E": 1200}, "objective": .1, "responses": {}},
         ]}
     viewer.result_button.click()
-    until(app, lambda: viewer.ledger_table.rowCount() == 2 and not viewer._pending)
+    until(app, lambda: viewer.ledger_table.rowCount() == 3 and not viewer._pending)
     assert "not a successful full execution" in viewer.result_summary.text()
     assert viewer.ledger_table.item(0, 3).text() == "0.25"
     assert viewer.ledger_table.item(1, 3).text() == "—"
     assert viewer.ledger_table.item(1, 4).text() == "1000000.0"
     assert viewer.ledger_table.item(1, 5).text() == "1000000.0"
     assert viewer.ledger_table.item(1, 6).text() == "Invalid modulus"
+    assert "PREDICTED" in viewer.ledger_table.item(2, 1).text()
+    assert viewer.ledger_table.item(2, 3).text() == "—"
+    assert viewer.ledger_table.item(2, 5).text() == "0.1"
+    assert client.results["JA"]["candidates"][2]["execution_status"] == "SUCCEEDED"
     assert "retained-field-hash" in viewer.response_details.toPlainText()
     assert not viewer.axes.lines and not viewer.read_rows_button.isEnabled()
     assert not any(call[0] == "response" for call in client.calls)
@@ -228,6 +238,7 @@ def test_refresh_and_close_reopen_preserve_selection_and_origin_without_submit(r
     assert viewer.selected_job_id == "JB"
     assert viewer.job_table.item(viewer.job_table.currentRow(), 1).text() == "JB"
     viewer.origin_button.click()
+    until(app, lambda: not viewer._pending)
     assert origins == ["JB"]
     viewer.close()
     client.jobs["JB"]["state"] = "INTERRUPTED"

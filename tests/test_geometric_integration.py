@@ -92,7 +92,7 @@ def test_geometric_http_preserves_six_component_units_and_refuses_unsupported_lo
         assert client.request('/api/experiments/E-beam-http-reject')['result'] == rejected
 
 
-def test_geometric_preset_is_independent_and_does_not_advertise_input_bindings(tmp_path):
+def test_geometric_preset_is_independent_and_advertises_existing_input_bindings(tmp_path):
     service = LabService(tmp_path)
     first = service.presets()['codeaster_geometric']
     first['settings']['history']['moments_n_mm'][-1] = -1
@@ -100,5 +100,7 @@ def test_geometric_preset_is_independent_and_does_not_advertise_input_bindings(t
     assert second['settings'] == default_settings()
     assert second['operation'] == 'model_analysis_run'
     assert second['backend'] == CodeAsterGeometricAdapter.backend
-    assert second['status'] == 'EXPERIMENTAL' and second['declared_inputs'] is False
+    assert second['status'] == 'EXPERIMENTAL' and second['declared_inputs'] is True
+    assert {row['id']: row['unit'] for row in CodeAsterGeometricAdapter().describe_inputs(second['settings'])} == {
+        'youngs_modulus_mpa': 'MPa', 'poisson_ratio': '1', 'final_time_s': 's', 'final_moment_n_mm': 'N mm'}
     assert '검증 대기' in second['scope'] and 'UNKNOWN' in second['scope']

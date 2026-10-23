@@ -219,6 +219,14 @@ def bind(adapter, settings, assignments):
     baseline = declaration(adapter, settings)
     _locations(before, settings, baseline)
     expected_model = expected_declaration(baseline, before, assignments)
+    builder = getattr(adapter, 'expected_input_declaration', None)
+    if builder is not None:
+        if not callable(builder) or canonical_hash(_validated_declaration(builder(deepcopy(settings)))) != canonical_hash(baseline):
+            raise ValueError('The independent domain declaration builder differs from the advertised model')
+        # Some existing domain declarations contain derived loads/reference
+        # quantities. Build those only from Core's independently bound settings,
+        # never from the adapter setter output or user-supplied expressions.
+        expected_model = _validated_declaration(builder(deepcopy(expected)))
     try:
         bound = deepcopy(adapter.bind_inputs(deepcopy(settings), deepcopy(assignments)))
     except ValueError as exc:

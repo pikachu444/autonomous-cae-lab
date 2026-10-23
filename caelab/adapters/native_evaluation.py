@@ -4,8 +4,9 @@ from pathlib import Path
 import uuid
 from ..backends import get_backend
 from ..contracts import CapabilityUnavailable
-from ..evaluation import PreparedEvaluation, run
+from ..evaluation import PreparedEvaluation, run, save_evaluation, file_hash, read_result
 from ..model_parameters import bind
+from ..storage import canonical_hash, save_json, load_json
 
 
 class NativeEvaluationFactory:
@@ -14,10 +15,39 @@ class NativeEvaluationFactory:
     This is file execution, not an in-memory material model or an implicit Study.
     Only inputs advertised by the native adapter can be changed.
     """
-    def __init__(self, backend, output, response_selection=None):
+    def __init__(self, backend, output, response_selection=None, *, retained_root=None):
         self.backend = backend
         self.output = str(Path(output).resolve())
         self.response_selection = deepcopy(response_selection)
+        self.retained_root = str(Path(retained_root).resolve()) if retained_root is not None else None
+        if self.retained_root and not Path(self.output).is_relative_to(self.retained_root):
+            raise ValueError('Native candidate output must be inside its retained result')
+        self.completed = []
+
+    def retained_attempts(self):
+        """Collect completed worker-owned receipts after an engine failure.
+
+        A process pool has a separate factory instance, so its in-memory list
+        is not the controller's journal. Read only already-published exact
+        candidate inputs/results; never execute or assign algorithm ranks here.
+        """
+        if not self.retained_root:
+            return deepcopy(self.completed)
+        records = []
+        for path in sorted(Path(self.output).glob('candidate-*/candidate_input.json')):
+            folder = path.parent.resolve()
+            if path.parent.is_symlink() or not folder.is_relative_to(self.retained_root):
+                raise ValueError('Native candidate receipt is outside its retained result')
+            request = load_json(path)
+            saved = read_result(folder, selection={'responses': [], 'include_settings': True})
+            if (request.get('backend') != self.backend or saved.get('backend') != self.backend or
+                    canonical_hash(saved.get('settings')) != request.get('settings_sha256')):
+                raise ValueError('Native candidate receipt differs from its exact evaluated input')
+            records.append({'relative': folder.relative_to(self.retained_root).as_posix(),
+                'result_sha256': file_hash(folder / 'result.json'), 'backend': self.backend,
+                'execution_status': saved['execution_status'], 'input_sha256': request['settings_sha256'],
+                'selected_execution_status': request['selected_execution_status'], 'values': deepcopy(request['values'])})
+        return records
 
     def prepare(self, settings, *, runtime=None):
         if runtime and set(runtime) - {'threads', 'memory_mb'}:
@@ -34,9 +64,36 @@ class NativeEvaluationFactory:
         adapter.describe_inputs(template)
         def candidate(values):
             bound = bind(adapter, template, values)
-            result = run(adapter, bound, output=Path(self.output)/('candidate-'+uuid.uuid4().hex),
-                         selection=self.response_selection)
-            result['diagnostics']['evaluation_mode'] = 'FILE_BASED_NATIVE'
+            folder = Path(self.output)/('candidate-'+uuid.uuid4().hex)
+            try:
+                result = run(adapter, bound, output=folder, selection=self.response_selection)
+            except Exception as error:
+                from ..execution_control import ExecutionCleanupFailed, ExecutionCancelled
+                if isinstance(error, ExecutionCleanupFailed):
+                    raise
+                # run already retains the actual native files. A failed
+                # selector must not erase a completed native calculation or
+                # quietly rerun it to obtain a different response.
+                result = {'execution_status': 'CANCELLED' if isinstance(error, ExecutionCancelled) else 'FAILED',
+                          'responses': {}, 'checks': [],
+                          'backend': self.backend, 'settings': deepcopy(bound),
+                          'diagnostics': {'reason': str(error), 'error_type': type(error).__name__}}
+                if not (folder / 'result.json').exists():
+                    save_evaluation(result, folder, existing=folder.exists())
+            result.setdefault('diagnostics', {})['evaluation_mode'] = 'FILE_BASED_NATIVE'
             result['diagnostics']['candidate_values'] = deepcopy(values)
+            if self.retained_root:
+                saved = read_result(folder, selection={'responses': [], 'metadata_only': True})
+                request = {'backend': self.backend, 'values': deepcopy(values),
+                           'settings_sha256': canonical_hash(bound),
+                           'response_selection': deepcopy(self.response_selection),
+                           'selected_execution_status': result['execution_status']}
+                save_json(folder / 'candidate_input.json', request)
+                reference = {'relative': folder.relative_to(self.retained_root).as_posix(),
+                    'result_sha256': file_hash(folder / 'result.json'), 'backend': self.backend,
+                    'execution_status': saved['execution_status'], 'input_sha256': canonical_hash(bound),
+                    'selected_execution_status': result['execution_status']}
+                self.completed.append({**deepcopy(reference), 'values': deepcopy(values)})
+                result['evaluation_refs'] = [reference]
             return result
         return PreparedEvaluation(candidate, template)

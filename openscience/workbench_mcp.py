@@ -22,6 +22,11 @@ def backends_list() -> dict:
     return {'backends':data['backends'],'operations':data['operations'],'workspace_id':data['workspace_id']}
 
 @mcp.tool()
+def model_inputs_describe(request: dict) -> dict:
+    """Read the chosen adapter's actual input IDs/units/bounds; this is declaration lookup, not an installation probe."""
+    return client().describe_inputs(request)
+
+@mcp.tool()
 def local_roots_list() -> dict:
     """List existing approved read/snapshot roots; this grants no new file access."""
     return client().local_roots()
@@ -48,12 +53,12 @@ def native_input_resolve(input_id: str) -> dict:
 
 @mcp.tool()
 def documents_list() -> dict:
-    """List service-owned Material drafts and actual registered native documents."""
+    """List independent Data/Material/PDE/Numerical/Expert drafts and native Pre/Post documents."""
     return client().documents()
 
 @mcp.tool()
-def document_open(kind: str='material', title: str='Material research', draft: dict | None=None, document_id: str | None=None) -> dict:
-    """Create or reopen a Material draft without evaluation; Post opens in its native host."""
+def document_open(kind: str='material', title: str | None=None, draft: dict | None=None, document_id: str | None=None) -> dict:
+    """Create/reopen material, data, pde, numerical or expert without execution; native docs open in their host."""
     return client().document_open(kind=kind,title=title,draft=draft,document_id=document_id)
 
 @mcp.tool()
@@ -70,7 +75,7 @@ def document_command(document_id: str, operation: str, arguments: dict, session_
 
 @mcp.tool()
 def document_result_read(document_id: str, job_id: str, selection: dict | None=None) -> dict:
-    """Read the Material document's original retained curve and diagnostics, without recomputation."""
+    """Read this document's retained import/evaluation/search result without recomputation."""
     return client().document_result(document_id,job_id,selection=selection)
 
 @mcp.tool()
@@ -87,6 +92,303 @@ def command_status(command_id: str) -> dict:
 def command_cancel(command_id: str) -> dict:
     """Cancel a queued native command; dispatched commands explicitly refuse unsupported cancellation."""
     return client().command_cancel(command_id)
+
+@mcp.tool()
+def backend_readiness(backend: str) -> dict:
+    """Inspect one registered runtime's existing dependency discovery; no solve, credentials or configuration changes."""
+    return client().backend_readiness(backend)
+
+@mcp.tool()
+def pre_project(document_id: str, action: str, session_id: str, expected_generation: int,
+                command_id: str, input_id: str | None = None, job_id: str | None = None) -> dict:
+    """Read/save an editable CAD+Link bundle, open a registered design, or retain an exact design job. Same native GUI owner."""
+    operations = {'inspect': 'pre.project.inspect', 'save': 'pre.project.save',
+                  'open': 'pre.project.open', 'retain_job': 'pre.links.record'}
+    if action not in operations:
+        raise ValueError('Choose inspect/save/open/retain_job')
+    arguments = {'input_id': input_id} if action == 'open' else {'job_id': job_id} if action == 'retain_job' else {}
+    if (action != 'open' and input_id is not None) or (action != 'retain_job' and job_id is not None):
+        raise ValueError('Only the selected action accepts its exact registered input/job ID')
+    return client().document_command(document_id, operations[action], arguments,
+        session_id=session_id, expected_generation=expected_generation, command_id=command_id)
+
+@mcp.tool()
+def pre_edit(document_id: str, operation: str, arguments: dict, target: dict,
+             session_id: str, expected_generation: int, command_id: str) -> dict:
+    """Apply advertised live pre.parameters.*, pre.motion.*, pre.joint.*, pre.assembly.*, pre.fem.* commands. Read the owner's capabilities/selection first; operation receipts are not solver jobs."""
+    if not operation.startswith(('pre.parameters.', 'pre.motion.', 'pre.joint.', 'pre.assembly.', 'pre.fem.')):
+        raise ValueError('Use an advertised Pre research/Assembly/FEM operation')
+    if 'target' in arguments:
+        raise ValueError('Target is supplied separately')
+    return client().document_command(document_id, operation, {**arguments, 'target': target},
+        session_id=session_id, expected_generation=expected_generation, command_id=command_id)
+
+@mcp.tool()
+def native_analysis_submit(command_id: str) -> dict:
+    """Submit the exact completed pre.freeze command's retained FEM input; identical retries reuse its job."""
+    return client().native_submit(command_id)
+
+@mcp.tool()
+def job_navigation(job_id: str) -> dict:
+    """Get this job's original document, retained editable design and verified Post input references."""
+    return client().job_navigation(job_id)
+
+@mcp.tool()
+def data_source_preview(document_id: str) -> dict:
+    """Read a bounded source preview through the Data owner, including its retained source copy."""
+    return client().document_source_preview(document_id)
+
+@mcp.tool()
+def data_compare(source: dict, prediction_source: dict) -> dict:
+    """Compare and retain exact Data/Material/PDE/Simulation curves with explicit units/frame/measure; never rerun a solver."""
+    return client().document_compare(source,prediction_source)
+
+@mcp.tool()
+def research_compare_curves(source: dict, prediction_source: dict) -> dict:
+    """Use the same owner comparison command as the research GUI. Both inputs name exact document/job/response; raw curves and alignment are saved in source's owner."""
+    return client().document_compare(source,prediction_source)
+
+@mcp.tool()
+def data_comparison_read(document_id: str, comparison_id: str, start: int=0, count: int=4096) -> dict:
+    """Read a bounded page of an actual saved comparison including its frozen input identities."""
+    return client().document_comparison(document_id,comparison_id,start=start,count=count)
+
+@mcp.tool()
+def data_followup(source: dict, kind: str, session_id: str, command_id: str,
+                  material_document_id: str | None=None) -> dict:
+    """Open an unexecuted Plan for an explicit Material protocol, or an Expert discussion from Data."""
+    return client().data_followup(source,kind,session_id=session_id,command_id=command_id,
+                                  material_document_id=material_document_id)
+
+@mcp.tool()
+def document_result_reference(document_id: str, job_id: str) -> dict:
+    """Read a bounded exact retained result reference for later Plan inputs without sending its large table."""
+    return client().document_result_reference(document_id,job_id)
+
+@mcp.tool()
+def document_result_metadata(document_id: str, job_id: str) -> dict:
+    """Read actual scalar/series physical definitions, available reductions and failure counts, without curves."""
+    return client().document_result_metadata(document_id,job_id)
+
+@mcp.tool()
+def document_response_locations(document_id: str, job_id: str, channel: str,
+                                start: int = 0, count: int = 128, search: str = '') -> dict:
+    """Page/search every advertised node or Gauss location of one exact retained channel, without sending field arrays."""
+    return client().document_response_locations(document_id,job_id,channel,start=start,count=count,search=search)
+
+@mcp.tool()
+def result_followup(source_ref: dict, kind: str, session_id: str, command_id: str,
+                    request: dict | None=None) -> dict:
+    """Create a saved-result discussion or explicit editable request; creation performs no inference/evaluation."""
+    return client().result_followup(source_ref,kind,session_id=session_id,command_id=command_id,request=request)
+
+@mcp.tool()
+def post_add_result(document_id: str, input_id: str, session_id: str, expected_generation: int,
+                    command_id: str, label_text: str | None=None) -> dict:
+    """Add a registered VTU/PVD reader to the same native document without replacing its layout/selection."""
+    args={'input_id':input_id}
+    if label_text is not None: args['label_text']=label_text
+    return client().document_command(document_id,'post.source_add',args,session_id=session_id,
+                                    expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def post_analysis_edit(document_id: str, kind: str, draft: dict, session_id: str,
+                       expected_generation: int, command_id: str, object_ref: str | None=None) -> dict:
+    """Edit comparison/filter/measurement in the live owner; invalid drafts remain visible and cannot Apply."""
+    if kind not in ('comparison','filter','measurement'):
+        raise ValueError('Choose comparison, filter or measurement')
+    return client().document_command(document_id,'post.'+kind+'_edit',{'draft':draft,'object_ref':object_ref},
+        session_id=session_id,expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def post_analysis_action(document_id: str, action: str, object_ref: str, session_id: str,
+                         expected_generation: int, command_id: str, view_id: str | None=None) -> dict:
+    """Preview/Apply/Show/Reset/Undo/Redo one owned analysis; an exact native view may overlay actual curves."""
+    operations={'preview':'post.mapping_validate','apply':'post.apply','show':'post.show_analysis',
+                'reset':'post.reset','undo':'post.undo','redo':'post.redo'}
+    if action not in operations: raise ValueError('Choose preview/apply/show/reset/undo/redo')
+    args={'object_ref':object_ref}
+    if view_id is not None:
+        if action not in ('apply','show'): raise ValueError('A target view is used only when applying or showing a result')
+        args['view_id']=view_id
+    return client().document_command(document_id,operations[action],args,
+        session_id=session_id,expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def post_samples(document_id: str, object_ref: str, session_id: str, expected_generation: int,
+                 command_id: str, preview: bool=True, offset: int=0, limit: int=100,
+                 point_index: int | None=None) -> dict:
+    """Read bounded native values/masks; selecting a point retains its exact A/B values and native highlight."""
+    return client().document_command(document_id,'post.sample',dict(object_ref=object_ref,preview=preview,
+        offset=offset,limit=limit,point_index=point_index),session_id=session_id,
+        expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def post_repair_source(document_id: str, source_ref: str, input_id: str, session_id: str,
+                        expected_generation: int, command_id: str) -> dict:
+    """Repair only an identical registered result/dependency content set at its new location; never relabel changed data."""
+    return client().document_command(document_id,'post.source_repair',dict(source_ref=source_ref,input_id=input_id),
+        session_id=session_id,expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def simulation_edit(document_id: str, draft: dict, session_id: str, expected_generation: int, command_id: str) -> dict:
+    """Edit the actual supported simulation declaration; invalid drafts remain saveable."""
+    return client().document_command(document_id,'simulation.update',{'draft':draft},session_id=session_id,
+        expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def simulation_run(document_id: str, session_id: str, expected_generation: int, command_id: str) -> dict:
+    """Submit exactly the visible simulation input to the existing Runner."""
+    return client().document_command(document_id,'simulation.evaluate',{},session_id=session_id,
+        expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def evaluation_definition_edit(document_id: str, draft: dict, session_id: str, expected_generation: int, command_id: str) -> dict:
+    """Edit ordered stages, declared transfers, bindings, iteration and explicit reuse."""
+    return client().document_command(document_id,'evaluation.update',{'draft':draft},session_id=session_id,
+        expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def evaluation_definition_inspect(document_id: str) -> dict:
+    """Read actual source ports and inputs, including diagnostics for disconnected drafts."""
+    return client().evaluation_inspect(document_id)
+
+@mcp.tool()
+def evaluation_definition_run(document_id: str, session_id: str, expected_generation: int, command_id: str) -> dict:
+    """Run the frozen stages under one existing job; job_cancel stops subsequent stages."""
+    return client().document_command(document_id,'evaluation.run',{},session_id=session_id,
+        expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def evaluation_progress(document_id: str, job_id: str) -> dict:
+    """Read actual attempts/transfers/convergence for the selected evaluation job."""
+    return client().evaluation_progress(document_id,job_id)
+
+@mcp.tool()
+def evaluation_stage_result(document_id: str, job_id: str, attempt_id: str, selection: dict | None=None) -> dict:
+    """Read a bounded selection from this exact retained stage; never rerun it."""
+    return client().evaluation_stage_result(document_id,job_id,attempt_id,selection=selection or {'metadata_only':True})
+
+@mcp.tool()
+def numerical_evaluation_result(document_id: str, job_id: str, candidate_id: str,
+        evaluation_index: int | None=None, attempt_id: str | None=None, selection: dict | None=None) -> dict:
+    """Select an actual candidate's retained stage evaluation; omitted index lists existing evaluations."""
+    return client().numerical_evaluation_result(document_id,job_id,candidate_id,evaluation_index=evaluation_index,
+        attempt_id=attempt_id,selection=(selection or {'metadata_only':True}) if evaluation_index is not None else selection)
+
+@mcp.tool()
+def domain_plan_open(document_id: str, session_id: str, expected_generation: int, command_id: str) -> dict:
+    """Create the same unexecuted Numerical Plan used by Simulation/Evaluation GUI."""
+    return client().domain_plan(document_id,session_id=session_id,expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def study_edit(document_id: str, draft: dict, session_id: str, expected_generation: int, command_id: str) -> dict:
+    """Edit question, competing hypotheses, evidence and explicit provisional decisions."""
+    return client().document_command(document_id,'study.update',{'draft':draft},session_id=session_id,
+        expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def study_references(document_id: str) -> dict:
+    """Check the original saved evidence identities without executing research."""
+    return client().study_references(document_id)
+
+@mcp.tool()
+def research_reference_read(reference: dict) -> dict:
+    """Read the selected saved document/result/Expert turn, not its replacement draft."""
+    return client().research_reference(reference)
+
+@mcp.tool()
+def study_followup(context: dict, kind: str, session_id: str, command_id: str) -> dict:
+    """Open the selected saved Study issue in Expert/Numerical without inference or calculation."""
+    return client().study_followup(context,kind,session_id=session_id,command_id=command_id)
+
+@mcp.tool()
+def pde_edit(document_id: str, draft: dict, session_id: str, expected_generation: int,
+             command_id: str | None=None) -> dict:
+    """Edit the same opened PDE declaration as the GUI; invalid drafts remain saveable."""
+    return client().document_command(document_id,'pde.update',{'draft':draft},session_id=session_id,
+        expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def pde_evaluate(document_id: str, session_id: str, expected_generation: int,
+                 command_id: str | None=None) -> dict:
+    """Freeze the valid PDE input and return its existing managed job; no CAD is required."""
+    return client().document_command(document_id,'pde.evaluate',{},session_id=session_id,
+        expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def pde_plan_open(document_id: str, session_id: str, expected_generation: int, command_id: str) -> dict:
+    """Copy this exact saved PDE input into an editable Numerical request, with no calculation."""
+    return client().pde_plan(document_id,session_id=session_id,
+        expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def expert_discussion_edit(document_id: str, draft: dict, session_id: str, expected_generation: int,
+                           command_id: str | None=None) -> dict:
+    """Edit topics, selected registered roles and the exact question/scope on the same owner."""
+    return client().document_command(document_id,'expert.update',{'draft':draft},session_id=session_id,
+        expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def expert_discussion_control(document_id: str, action: str, session_id: str, expected_generation: int,
+                              command_id: str | None=None) -> dict:
+    """ask/intervene/pause/resume/advance through the GUI's discussion owner; pause does not cancel calculations."""
+    if action not in {'ask','intervene','pause','resume','advance'}:
+        raise ValueError('Choose ask, intervene, pause, resume or advance')
+    return client().document_command(document_id,'expert.'+action,{},session_id=session_id,
+        expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def expert_plan_open(discussion_id: str, turn_id: str, proposal_index: int, session_id: str,
+                     command_id: str) -> dict:
+    """Open the selected actual proposal as an editable Numerical document; it submits no calculation."""
+    return client().discussion_plan(discussion_id,turn_id,proposal_index,
+        session_id=session_id,command_id=command_id)
+
+@mcp.tool()
+def numerical_plan_edit(document_id: str, draft: dict, session_id: str, expected_generation: int,
+                        command_id: str | None=None) -> dict:
+    """Edit a Material-bound Plan or actual calculation request; source references are preserved."""
+    return client().document_command(document_id,'numerical.update',{'draft':draft},session_id=session_id,
+        expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def numerical_plan_run(document_id: str, session_id: str, expected_generation: int,
+                       command_id: str | None=None) -> dict:
+    """Explicitly submit the frozen current Plan through the existing numerical engine and JobManager."""
+    return client().document_command(document_id,'numerical.run',{},session_id=session_id,
+        expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def numerical_candidate_adopt(document_id: str, job_id: str, candidate_id: str, material_document_id: str,
+                              session_id: str, expected_generation: int, command_id: str) -> dict:
+    """Adopt one actual candidate through the original Material owner; reject changed input or stale generation."""
+    return client().numerical_adopt(document_id,job_id,candidate_id,material_document_id=material_document_id,
+        session_id=session_id,expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def pde_candidate_preview(plan_id: str, job_id: str, candidate_id: str) -> dict:
+    """Prepare a reviewable PDE edit from the actual retained candidate and supported native binding; no evaluation."""
+    return client().pde_candidate_preview(plan_id,job_id,candidate_id)
+
+@mcp.tool()
+def domain_candidate_preview(plan_id: str, job_id: str, candidate_id: str) -> dict:
+    """Review actual candidate changes to Simulation or saved Evaluation stage branches."""
+    return client().domain_candidate_preview(plan_id,job_id,candidate_id)
+
+@mcp.tool()
+def domain_candidate_adopt(plan_id: str, job_id: str, candidate_id: str, target_document_id: str,
+        session_id: str, expected_generation: int, command_id: str) -> dict:
+    """Explicitly adopt reviewed inputs on their owner. Stage branches preserve the original source documents."""
+    return client().domain_candidate_adopt(plan_id,job_id,candidate_id,target_document_id=target_document_id,
+        session_id=session_id,expected_generation=expected_generation,command_id=command_id)
+
+@mcp.tool()
+def pde_candidate_adopt(plan_id: str, job_id: str, candidate_id: str, pde_document_id: str,
+                        session_id: str, expected_generation: int, command_id: str) -> dict:
+    """Explicitly adopt into the originally bound PDE owner; retain past inputs/results and reject changed target drafts."""
+    return client().pde_adopt(plan_id,job_id,candidate_id,pde_document_id=pde_document_id,
+        session_id=session_id,expected_generation=expected_generation,command_id=command_id)
 
 @mcp.tool()
 def calculation_submit(operation: str, arguments: dict, request_id: str | None=None, resources: dict | None=None) -> dict:

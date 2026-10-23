@@ -1,0 +1,454 @@
+"""Pinned native-API-shaped protocol tests; no FreeCAD or kinematic solver runs.
+
+Frames are explicit recorded-output doubles. They test ownership/restoration and
+native API calls, never supply an alternative interpolation or dynamics engine.
+"""
+from contextlib import contextmanager
+from copy import deepcopy
+from types import SimpleNamespace as NS
+
+import pytest
+
+from apps.desktop_pre.motion import Motion, JOINT_TYPES, _pose
+
+
+class Vector:
+    def __init__(self, x=0, y=0, z=0): self.x, self.y, self.z = x, y, z
+
+
+class Rotation:
+    def __init__(self, *q): self.Q = q or (0, 0, 0, 1)
+
+
+class Placement:
+    def __init__(self, base=None, rotation=None):
+        self.Base, self.Rotation = base or Vector(), rotation or Rotation()
+    def copy(self): return deepcopy(self)
+    def multVec(self, point):
+        return Vector(self.Base.x + point.x, self.Base.y + point.y, self.Base.z + point.z)
+
+
+class Shape:
+    def __init__(self, brep='native-shape'): self.brep, self.Placement = brep, Placement()
+    def copy(self): return deepcopy(self)
+    def isNull(self): return False
+    def exportBrepToString(self): return self.brep
+    def getElement(self, name):
+        if name not in ('Face1', 'Edge1', 'Vertex1'): raise ValueError('missing native topology')
+        return Shape(name)
+
+
+class Object:
+    def __init__(self, doc, name, kind):
+        self.Document, self.Name, self.Label, self.TypeId = doc, name, name, kind
+        self.Placement, self.Group, self.OutList = Placement(), [], []
+        self.ViewObject = NS()
+        doc.Objects.append(self)
+    def isDerivedFrom(self, kind):
+        return self.TypeId == kind or kind == 'App::GeoFeature' and self.TypeId in ('App::Link', 'Part::Feature', 'Assembly::AssemblyObject')
+    def newObject(self, kind, name):
+        obj = self.Document.addObject(kind, name)
+        self.Group.append(obj); self.OutList.append(obj)
+        return obj
+    def setLink(self, obj): self.LinkedObject, self.Shape = obj, obj.Shape
+    def getLinkedObject(self): return self.LinkedObject
+    @property
+    def Joints(self):
+        raise AssertionError('Native Assembly.Joints must not be used for non-mutating inspection/ground admission')
+    def generateSimulation(self, simulation):
+        assert self.Document.owner.preview_depth > 0
+        self.Document.calls.append(('generateSimulation', simulation.Name))
+        self.Placement = Placement(Vector(100))  # native generation may leave temporary poses
+        self.Document.moving.Placement = Placement(Vector(99))
+        return self.Document.status
+    def numberOfFrames(self): return len(self.Document.frames)
+    def updateForFrame(self, index):
+        assert self.Document.owner.preview_depth > 0
+        self.Document.calls.append(('updateForFrame', index))
+        self.Document.moving.Placement = self.Document.frames[index].copy()
+        if self.Document.frame_error == index: raise RuntimeError('native frame failure')
+
+
+class Document:
+    def __init__(self):
+        self.Name, self.Objects, self.calls = 'Design', [], []
+        self.frames = [Placement(Vector(0)), Placement(Vector(4)), Placement(Vector(9))]
+        self.status, self.frame_error = 0, None
+    def addObject(self, kind, name):
+        stem, n = name, 1
+        while self.getObject(name): name = stem + str(n); n += 1
+        return Object(self, name, kind)
+    def getObject(self, name): return next((o for o in self.Objects if o.Name == name), None)
+    def removeObject(self, name):
+        obj = self.getObject(name); self.Objects.remove(obj)
+        for other in self.Objects:
+            other.Group = [o for o in other.Group if o is not obj]
+            other.OutList = [o for o in other.OutList if o is not obj]
+    def recompute(self):
+        self.calls.append(('recompute',))
+        if self.owner.preferences.GetBool('SolveOnRecompute', True):
+            self.frames = []  # native frame cache is not persistent after recompute
+
+
+class Preferences:
+    def __init__(self): self.values = {}
+    def GetBools(self): return list(self.values)
+    def GetBool(self, name, default): return self.values.get(name, default)
+    def SetBool(self, name, value): self.values[name] = value
+    def RemBool(self, name): self.values.pop(name, None)
+
+
+class JointProxy:
+    def setJointType(self, obj, kind): obj.JointType = kind
+    def setJointConnectors(self, obj, refs): obj.Reference1, obj.Reference2 = refs
+
+
+class Timer:
+    def __init__(self): self.active = False; self.timeout = NS(connect=lambda callback: setattr(self, 'callback', callback))
+    def start(self, interval): self.active, self.interval = True, interval
+    def stop(self): self.active = False
+
+
+class Owner:
+    def __init__(self):
+        self.doc, self.generation, self.metadata, self.preview_depth = Document(), 0, {}, 0
+        self.doc.owner = self
+        self.preferences = Preferences()
+        self.App = NS(Vector=Vector, Rotation=Rotation, Placement=Placement, GuiUp=False,
+                      ParamGet=lambda name: self.preferences)
+        self.Gui, self.QtCore, self.transactions = NS(), NS(QTimer=Timer), []
+    def assert_thread(self): pass
+    def _object(self, name):
+        obj = self.doc.getObject(name)
+        if obj is None: raise ValueError('STALE_TARGET: missing native object')
+        return obj
+    def read_metadata(self): return deepcopy(self.metadata)
+    def write_metadata(self, value):
+        assert self.transactions and self.transactions[-1][0] == 'open'
+        self.metadata = deepcopy(value)
+    def _transaction(self, title, change):
+        self.transactions.append(('open', title))
+        try:
+            change(); self.doc.recompute(); self.generation += 1
+        except Exception:
+            self.transactions.append(('abort', title)); raise
+        self.transactions.append(('commit', title))
+    @contextmanager
+    def preview_changes(self):
+        self.preview_depth += 1
+        try: yield
+        finally: self.preview_depth -= 1
+
+
+def group(assembly, kind, name):
+    return next((o for o in assembly.OutList if o.TypeId == kind), None) or assembly.newObject(kind, name)
+
+
+def native_modules():
+    def joint(obj, index):
+        obj.Proxy, obj.JointType = JointProxy(), JOINT_TYPES[index]
+        obj.Reference1 = obj.Reference2 = None
+        for key in ('Placement1', 'Placement2', 'Offset1', 'Offset2'): setattr(obj, key, Placement())
+        obj.Detach1 = obj.Detach2 = False
+    def grounded(obj, occurrence): obj.ObjectToGround = occurrence
+    def simulation(obj): obj.aTimeStart, obj.bTimeEnd, obj.cTimeStepOutput, obj.fGlobalErrorTolerance, obj.jFramesPerSecond = 0, 1, .1, 1e-6, 30
+    def motion(obj, kind, joint, formula): obj.MotionType, obj.Joint, obj.Formula = kind, (joint, []), formula
+    utils = NS(getMovablePartsWithin=lambda a: [o for o in a.Group if o.TypeId == 'App::Link'],
+               getJointGroup=lambda a: group(a, 'Assembly::JointGroup', 'Joints'),
+               getSimulationGroup=lambda a: group(a, 'Assembly::SimulationGroup', 'Simulations'),
+               getGlobalPlacement=lambda ref, obj: obj.Placement)
+    return utils, NS(Joint=joint, GroundedJoint=grounded, JointTypes=list(JOINT_TYPES)), NS(Simulation=simulation, Motion=motion)
+
+
+@pytest.fixture
+def setup():
+    owner = Owner(); motion = Motion(owner); motion._modules = native_modules()
+    source = owner.doc.addObject('Part::Feature', 'Solid'); source.Shape = Shape()
+    aid = motion.dispatch('pre.assembly.create', {'label': 'Native mechanism'}, {})['assembly_id']
+    target = {'assembly_id': aid}
+    fixed = motion.dispatch('pre.assembly.link', {'source_id': source.Name, 'label': 'Base'}, target)['occurrence_id']
+    moving = motion.dispatch('pre.assembly.link', {'source_id': source.Name, 'label': 'Arm'}, target)['occurrence_id']
+    owner.doc.moving = owner._object(moving)
+    motion.dispatch('pre.joint.create', {'type': 'Grounded', 'occurrence_id': fixed}, target)
+    jid = motion.dispatch('pre.joint.create', {'type': 'Revolute', 'connectors': [
+        {'object_id': fixed, 'subelement': 'Face1'}, {'object_id': moving, 'subelement': ''}]}, target)['joint_id']
+    definition = {'time': {'start': 2., 'end': 3., 'step': .5, 'unit': 's'}, 'fps': 20,
+        'native_error_tolerance': 1e-6, 'drives': [{'joint_id': jid, 'type': 'Angular', 'formula': '0.5*time', 'unit': 'rad'}],
+        'traces': [{'id': 'Tip', 'occurrence_id': moving, 'point': [1., 2., 0.], 'frame': 'occurrence_local',
+                    'coordinate_unit': 'mm', 'output_frame': 'document_global'}]}
+    motion.dispatch('pre.motion.configure', {'definition': definition}, target)
+    # Controlled retained native-output fixture, restored after configure recompute.
+    owner.doc.frames = [Placement(Vector(0)), Placement(Vector(4)), Placement(Vector(9))]
+    return owner, motion, target, definition
+
+
+def calculate(setup):
+    owner, motion, target, _ = setup
+    result = motion.dispatch('pre.motion.calculate', {}, target)
+    return owner, motion, target, result
+
+
+def test_native_construct_calculate_frames_path_save_restores(setup):
+    owner, motion, target, result = calculate(setup)
+    assert result['frame_count'] == 3 and result['native_status'] == 0
+    assert _pose(owner.doc.moving.Placement) == [0, 0, 0, 0, 0, 0, 1]
+    generation = owner.generation
+    motion.dispatch('pre.motion.frame', {'calculation_id': result['id'], 'frame': 2}, target)
+    assert owner.doc.moving.Placement.Base.x == 9 and owner.generation == generation
+    path = motion.dispatch('pre.motion.path', {'calculation_id': result['id'], 'trace_id': 'Tip', 'start': 0, 'count': 3}, target)
+    assert [row['point'] for row in path['rows']] == [[1, 2, 0], [5, 2, 0], [10, 2, 0]]
+    assert [row['nominal_time'] for row in path['rows']] == [2, 2.5, 3]
+    assert 'not an exposed solver time array' in path['clock']
+    assert motion.descriptor()['path'] == path
+    assert owner.doc.moving.Placement.Base.x == 0
+    motion.before_design_action('save')
+    assert motion.descriptor()['calculation'] is None
+    assert owner.metadata['motion']['last_completed']['path'] == path
+    reopened = Motion(owner)
+    assert reopened.descriptor()['state'] == 'UNCOMPUTED'
+    assert reopened.descriptor()['definition']['last_completed']['frame_count'] == 3
+
+
+@pytest.mark.parametrize('action', ['pre.motion.stop', 'pre.motion.cancel'])
+def test_finish_cancel_restore_design_pose(setup, action):
+    owner, motion, target, result = calculate(setup)
+    motion.dispatch('pre.motion.frame', {'calculation_id': result['id'], 'frame': 1}, target)
+    motion.dispatch(action, {}, target)
+    assert owner.doc.moving.Placement.Base.x == 0 and not motion.descriptor()['preview']
+    assert not owner.preview_depth
+
+
+def test_play_pause_completion_and_close_restore(setup):
+    owner, motion, target, result = calculate(setup)
+    motion.dispatch('pre.motion.play', {'calculation_id': result['id'], 'direction': 1}, target)
+    assert motion._timer.active
+    motion._timer.callback(); assert motion.descriptor()['frame'] == 0
+    motion.dispatch('pre.motion.pause', {}, target)
+    assert not motion._timer.active and motion.descriptor()['preview']
+    motion.dispatch('pre.motion.play', {'calculation_id': result['id'], 'direction': 1}, target)
+    for _ in range(3): motion._timer.callback()
+    assert motion.descriptor()['state'] == 'COMPLETED'
+    assert owner.doc.moving.Placement.Base.x == 0 and not motion._timer.active
+    motion.close(); assert motion.descriptor()['calculation'] is None
+
+
+@pytest.mark.parametrize('change', ['geometry', 'drive', 'definition', 'generation'])
+def test_stale_scene_cannot_reuse_native_frames(setup, change):
+    owner, motion, target, result = calculate(setup)
+    motion.dispatch('pre.motion.frame', {'calculation_id': result['id'], 'frame': 1}, target)
+    if change == 'geometry': owner._object('Solid').Shape.brep = 'edited body'
+    if change == 'drive': owner._object(owner.metadata['motion']['simulation_id']).Group[0].Formula = 'time'
+    if change == 'definition': owner.metadata['motion']['definition']['traces'][0]['point'][0] = 3
+    if change == 'generation': owner.generation += 1
+    with pytest.raises(ValueError, match='STALE_SCENE'):
+        motion.dispatch('pre.motion.frame', {'calculation_id': result['id'], 'frame': 2}, target)
+    assert owner.doc.moving.Placement.Base.x == 0
+
+
+def test_human_pose_preserved_and_save_reports_stale(setup):
+    owner, motion, target, result = calculate(setup)
+    motion.dispatch('pre.motion.frame', {'calculation_id': result['id'], 'frame': 1}, target)
+    owner.doc.moving.Placement = Placement(Vector(37))
+    with pytest.raises(ValueError, match='human-edited'):
+        motion.before_design_action('FEM transition')
+    assert owner.doc.moving.Placement.Base.x == 37
+    assert owner._object(target['assembly_id']).Placement.Base.x == 0
+
+
+def test_native_failure_restores_and_records_no_result(setup):
+    owner, motion, target, _ = setup
+    owner.doc.status = -1
+    with pytest.raises(RuntimeError, match='status -1'): motion.dispatch('pre.motion.calculate', {}, target)
+    assert motion.descriptor()['state'] == 'FAILED'
+    assert motion.descriptor()['calculation'] is None and owner.doc.moving.Placement.Base.x == 0
+
+
+def test_native_frame_failure_restores(setup):
+    owner, motion, target, result = calculate(setup)
+    owner.doc.frame_error = 1
+    with pytest.raises(RuntimeError, match='native frame failure'):
+        motion.dispatch('pre.motion.frame', {'calculation_id': result['id'], 'frame': 1}, target)
+    assert owner.doc.moving.Placement.Base.x == 0
+
+
+def test_only_explicit_adopt_changes_design_and_preserves_preferences(setup):
+    owner, motion, target, result = calculate(setup)
+    with pytest.raises(ValueError, match='current preview'):
+        motion.dispatch('pre.motion.adopt_pose', {'calculation_id': result['id'], 'frame': 1}, target)
+    motion.dispatch('pre.motion.frame', {'calculation_id': result['id'], 'frame': 1}, target)
+    result = motion.dispatch('pre.motion.adopt_pose', {'calculation_id': result['id'], 'frame': 1}, target)
+    assert owner.doc.moving.Placement.Base.x == 4
+    assert result['adopted_pose']['frame'] == 1
+    assert owner.preferences.values == {}
+    motion.before_design_action('save')
+    assert owner.doc.moving.Placement.Base.x == 4
+
+
+@pytest.mark.parametrize('field,value,match', [('time', {'start': 0,'end': 1,'step': .3,'unit':'s'}, 'integer'),
+    ('time', {'start':0,'end':100,'step':.001,'unit':'s'}, 'bounded'), ('fps', True, 'fps'),
+    ('native_error_tolerance', 0., 'positive')])
+def test_explicit_definition_budget_and_units(setup, field, value, match):
+    owner, motion, target, definition = setup
+    definition[field] = value
+    before = len(owner.transactions)
+    with pytest.raises(ValueError, match=match): motion.dispatch('pre.motion.configure', {'definition': definition}, target)
+    assert len(owner.transactions) == before
+
+
+def test_no_python_formula_no_implicit_units_or_stale_frame(setup):
+    owner, motion, target, definition = setup
+    definition['drives'][0]['formula'] = '__import__("os")'
+    with pytest.raises(ValueError, match='native formula'):
+        motion.dispatch('pre.motion.configure', {'definition': definition}, target)
+    definition['drives'][0]['formula'] = 'time'; definition['drives'][0]['unit'] = 'deg'
+    with pytest.raises(ValueError, match='Angular rad'):
+        motion.dispatch('pre.motion.configure', {'definition': definition}, target)
+    with pytest.raises(ValueError, match='STALE_FRAME'):
+        motion.dispatch('pre.motion.frame', {'calculation_id': 'old', 'frame': 0}, target)
+
+
+def test_joint_edit_exact_native_connectors_and_remove(setup):
+    owner, motion, target, definition = setup
+    joint = owner._object(definition['drives'][0]['joint_id'])
+    motion.dispatch('pre.joint.update', {'type': 'Slider', 'connectors': [
+        {'object_id': joint.Reference1[0].Name, 'subelement': ''},
+        {'object_id': joint.Reference2[0].Name, 'subelement': 'Edge1', 'placement': {
+            'translation': [1, 2, 3], 'quaternion': [0, 0, 0, 1], 'unit': 'mm', 'frame': 'reference_local'}}],
+        'parameters': {'Distance': {'value': 4, 'unit': 'mm'}}}, {**target, 'joint_id': joint.Name})
+    assert joint.JointType == 'Slider' and joint.Detach2 and joint.Placement2.Base.y == 2
+    assert joint.Distance == 4
+    motion.dispatch('pre.joint.remove', {}, {**target, 'joint_id': joint.Name})
+    assert owner.doc.getObject(joint.Name) is None
+
+
+@pytest.fixture
+def qt_panel(setup):
+    import os
+    os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+    pytest.importorskip('PySide6')
+    from PySide6 import QtCore, QtWidgets
+    from apps.desktop_pre.motion_panel import make_panel
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    owner, motion, target, definition = setup
+    queued = []
+    def descriptor():
+        return {'id': 'Dnative', 'session_id': 'Snative', 'motion': motion.descriptor(),
+            'objects': [{'id': o.Name, 'label': o.Label, 'type': o.TypeId} for o in owner.doc.Objects]}
+    def submit(op, args, target, done):
+        queued.append((op, deepcopy(args), deepcopy(target), done)); return {'queued': True}
+    widget = make_panel(QtCore, QtWidgets, submit, read=descriptor)
+    widget.refresh(descriptor()); panel = widget.motion_controller
+    panel._inspect_value(motion.dispatch('pre.motion.inspect', {}, target))
+    widget.resize(1000, 800); widget.show(); app.processEvents()
+    yield app, widget, panel, queued, descriptor, setup
+    widget.close(); widget.deleteLater(); app.processEvents()
+
+
+def test_injected_qt_editor_sends_explicit_native_definition(qt_panel):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    assert panel.drives.cellWidget(0, 0).currentData() == setup[3]['drives'][0]['joint_id']
+    assert panel.traces.cellWidget(0, 1).currentData() == setup[3]['traces'][0]['occurrence_id']
+    panel.time['end'].setText('invalid end'); panel._mark_edited()
+    panel._configure()
+    op, args, target, done = queued[-1]
+    assert op == 'pre.motion.configure' and target == setup[2]
+    assert args['definition']['time']['end'] == 'invalid end'
+    assert args['definition']['drives'][0]['unit'] == 'rad'
+    assert args['definition']['traces'][0]['frame'] == 'occurrence_local'
+    assert panel._busy and all(not b.isEnabled() for b in panel._buttons)
+    done({'status': 'FAILED', 'error': {'message': 'Explicit numeric end required'}})
+    assert panel.time['end'].text() == 'invalid end'
+    assert 'numeric end' in panel.status.text() and not panel._busy
+    widget.refresh(descriptor())
+    assert panel.time['end'].text() == 'invalid end'  # Poll/read never erases edits.
+
+
+def test_injected_qt_actual_frame_receipt_and_path(qt_panel):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    owner, motion, target, definition = setup
+    panel._send('pre.motion.calculate', {})
+    op, args, selected, done = queued[-1]
+    done({'status': 'COMPLETED', 'result': motion.dispatch(op, args, selected)})
+    assert panel.frame.maximum() == 2 and 'native frames: 3' in panel.status.text()
+    panel.frame.setValue(2); panel._send('pre.motion.frame', panel._frame_args())
+    op, args, selected, done = queued[-1]
+    assert args['frame'] == 2 and args['calculation_id'] == motion.descriptor()['calculation']['id']
+    done({'status': 'COMPLETED', 'result': motion.dispatch(op, args, selected)})
+    assert owner.doc.moving.Placement.Base.x == 9
+    panel._send('pre.motion.path', {'calculation_id': panel._calculation_id(), 'trace_id': 'Tip', 'start': 0, 'count': 3})
+    op, args, selected, done = queued[-1]
+    done({'status': 'COMPLETED', 'result': motion.dispatch(op, args, selected)})
+    assert panel.path.rowCount() == 3 and panel.path.item(2, 2).text() == '10.0'
+    assert owner.doc.moving.Placement.Base.x == 0
+
+
+def test_injected_qt_late_receipt_reopened_session_is_ignored(qt_panel):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    panel._send('pre.motion.inspect', {}, inspect=True)
+    done = queued[-1][3]
+    changed = descriptor(); changed['session_id'] = 'Snew'; changed['motion']['state'] = 'UNCOMPUTED'
+    widget.refresh(changed)
+    done({'status': 'COMPLETED', 'result': {'state': 'PLAYING', 'occurrences': [{'id': 'Old', 'label': 'Old'}], 'joints': []}})
+    assert panel._session == 'Snew' and panel._motion['state'] == 'UNCOMPUTED'
+    assert panel.connector_a.findData('Old') == -1
+    assert all(b.isEnabled() for b in panel._buttons)
+
+
+def test_injected_qt_units_survive_deleted_drive_row(qt_panel):
+    app, widget, panel, queued, descriptor, setup = qt_panel
+    panel._drive_row(setup[3]['drives'][0])
+    kind = panel.drives.cellWidget(1, 1)
+    panel.drives.removeRow(0)
+    kind.setCurrentText('Linear'); app.processEvents()
+    assert panel.drives.rowCount() == 1
+    assert panel.drives.item(0, 3).text() == 'mm'
+
+
+def test_native_cache_replaced_by_external_recompute_rejected(setup):
+    owner, motion, target, result = calculate(setup)
+    motion.dispatch('pre.motion.frame', {'calculation_id': result['id'], 'frame': 1}, target)
+    owner.doc.recompute()  # No design change, but native cache replaced.
+    with pytest.raises(ValueError, match='STALE_SCENE'):
+        motion.dispatch('pre.motion.frame', {'calculation_id': result['id'], 'frame': 2}, target)
+    assert owner.doc.moving.Placement.Base.x == 0
+
+
+def test_missing_native_simulation_restores_without_creating_group(setup):
+    owner, motion, target, result = calculate(setup)
+    motion.dispatch('pre.motion.frame', {'calculation_id': result['id'], 'frame': 1}, target)
+    owner.doc.removeObject(owner.metadata['motion']['simulation_id'])
+    before = len(owner.doc.Objects)
+    with pytest.raises(ValueError, match='missing native object'):
+        motion.dispatch('pre.motion.frame', {'calculation_id': result['id'], 'frame': 2}, target)
+    assert owner.doc.moving.Placement.Base.x == 0 and len(owner.doc.Objects) == before
+
+
+def test_adopt_preference_recovery_failure_is_exposed(setup):
+    owner, motion, target, result = calculate(setup)
+    motion.dispatch('pre.motion.frame', {'calculation_id': result['id'], 'frame': 1}, target)
+    def fail(name): raise RuntimeError('native preference write unavailable')
+    owner.preferences.RemBool = fail
+    with pytest.raises(RuntimeError, match='RECOVERY_REQUIRED'):
+        motion.dispatch('pre.motion.adopt_pose', {'calculation_id': result['id'], 'frame': 1}, target)
+    assert 'SolveOnRecompute' in motion.descriptor()['error']
+    assert motion.descriptor()['state'] == 'FAILED' and motion.descriptor()['calculation'] is None
+
+
+def test_readonly_native_joint_group_includes_grounded_and_rejects_incomplete(setup):
+    owner, motion, target, definition = setup
+    inspection = motion.dispatch('pre.motion.inspect', {}, target)
+    assert [j['type'] for j in inspection['joints']] == ['Grounded', 'Revolute']
+    joint = owner._object(definition['drives'][0]['joint_id']); joint.Reference2 = None
+    before = len(owner.doc.Objects)
+    inspection = motion.dispatch('pre.motion.inspect', {}, target)
+    assert len(inspection['joints']) == 2 and len(owner.doc.Objects) == before
+    with pytest.raises(ValueError, match='incomplete native joint'):
+        motion.dispatch('pre.motion.calculate', {}, target)
+    assert owner.doc.getObject(joint.Name) is joint
+    assert not any(call[0] == 'generateSimulation' for call in owner.doc.calls)
+
+
+def test_empty_native_assembly_can_be_inspected():
+    owner = Owner(); motion = Motion(owner); motion._modules = native_modules()
+    target = motion.dispatch('pre.assembly.create', {'label': 'New native assembly'}, {})
+    assert motion.dispatch('pre.motion.inspect', {}, target)['occurrences'] == []

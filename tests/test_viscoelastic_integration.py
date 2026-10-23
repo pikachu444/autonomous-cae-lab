@@ -122,5 +122,10 @@ def test_viscoelastic_preset_is_independent_with_binding_and_qualification_open(
     second = service.presets()["material_viscoelastic"]
     assert second["settings"] == canonical_settings()
     assert second["operation"] == "model_analysis_run" and second["backend"] == MFrontViscoelasticAdapter.backend
-    assert second["status"] == "EXPERIMENTAL" and second["declared_inputs"] is False
+    assert second["status"] == "EXPERIMENTAL" and second["declared_inputs"] is True
+    declared = {row['id']: row['unit'] for row in MFrontViscoelasticAdapter().describe_inputs(second['settings'])}
+    assert declared == {'equilibrium_bulk_modulus_mpa': 'MPa', 'equilibrium_shear_modulus_mpa': 'MPa',
+                        'branch_bulk_modulus_mpa': 'MPa', 'branch_shear_modulus_mpa': 'MPa',
+                        'relaxation_time_s': 's', 'temperature_k': 'K', 'final_time_s': 's',
+                        **{'final_strain_' + component: '1' for component in COMPONENTS}}
     assert "검증 대기" in second["scope"] and "UNKNOWN" in second["scope"]

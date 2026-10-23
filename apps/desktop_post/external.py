@@ -4,6 +4,8 @@ Run in the native ParaView Python environment. Input paths are exact local files
 managed callers supply the entry path of their registered dependency snapshot.
 """
 from datetime import datetime, timezone
+from copy import deepcopy
+import hashlib
 import json
 import math
 import os
@@ -12,7 +14,7 @@ import re
 import uuid
 import xml.etree.ElementTree as ET
 
-from paraview import simple as p
+from paraview import simple as p, servermanager
 
 try:
     from .commands import sha, reader_input_files
@@ -22,6 +24,11 @@ except ImportError:
 
 KIND = "external-result"
 READERS = {".vtu": "XMLUnstructuredGridReader", ".pvd": "PVDReader"}
+_recovery = []
+
+
+def recovery_records():
+    return deepcopy(_recovery)
 
 
 def source_files(entry):
@@ -128,8 +135,120 @@ def set_time(source, time=None):
     return selected
 
 
+def _metadata_hash(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"),
+                                    ensure_ascii=False, allow_nan=False).encode()).hexdigest()
+
+
+def validate_declared_metadata(source, metadata):
+    """Validate an explicit source-owner declaration against exact native arrays."""
+    required_keys = {"coordinate_units", "coordinate_frame", "static", "arrays"}
+    if not isinstance(metadata, dict) or not required_keys <= set(metadata) or set(metadata) - required_keys - {"time"}:
+        raise ValueError("Native metadata requires coordinate units/frame, explicit state/clock and declared arrays")
+    for key in ("coordinate_units", "coordinate_frame"):
+        if not isinstance(metadata[key], str) or not metadata[key].strip():
+            raise ValueError("Native coordinate units and frame must be explicitly declared")
+    static = metadata["static"]
+    clock = metadata.get("time")
+    if static is not None:
+        if not isinstance(static, dict) or set(static) != {"step", "increment", "load_parameter"} or clock is not None:
+            raise ValueError("Static metadata requires step, increment and load_parameter; it is not time in seconds")
+        if any(type(static[key]) is not int or static[key] < 1 for key in ("step", "increment")):
+            raise ValueError("Static step and increment must be positive integers")
+        if type(static["load_parameter"]) not in (int, float) or not math.isfinite(static["load_parameter"]):
+            raise ValueError("Static load parameter must be finite")
+    elif "time" not in metadata:
+        raise ValueError("A declared field must explicitly distinguish no clock from an omitted clock")
+    if clock is None:
+        if source.GetXMLName() != "XMLUnstructuredGridReader" or times(source):
+            raise ValueError("Declared non-temporal metadata requires its exact VTU reader")
+    else:
+        if (not isinstance(clock, dict) or set(clock) != {"unit", "semantics", "values"}
+                or not ((clock["unit"] == "1" and clock["semantics"] == "DIMENSIONLESS_MODEL_TIME")
+                        or (clock["unit"] == "s" and isinstance(clock["semantics"], str) and clock["semantics"].strip()))
+                or not isinstance(clock["values"], list) or not clock["values"]
+                or any(type(t) not in (int, float) or not math.isfinite(t) for t in clock["values"])
+                or any(b <= a for a, b in zip(clock["values"], clock["values"][1:]))
+                or source.GetXMLName() != "PVDReader" or times(source) != clock["values"]):
+            raise ValueError("Declared dimensionless/seconds clock differs from the exact native PVD timesteps")
+    arrays = metadata["arrays"]
+    if not isinstance(arrays, list) or not arrays or len(arrays) > 128:
+        raise ValueError("Declare a bounded nonempty array list")
+    seen = set()
+    for declaration in arrays:
+        required = {"association", "name", "components", "units", "frame", "measure"}
+        if not isinstance(declaration, dict) or not required <= set(declaration) or set(declaration) - required - {"component_names", "quantity"}:
+            raise ValueError("Each declared array requires exact association/name/components and units/frame/measure")
+        for key in ("name", "units", "frame", "measure"):
+            if not isinstance(declaration[key], str) or not declaration[key].strip():
+                raise ValueError("Declared array meaning must be nonempty explicit text")
+        if 'quantity' in declaration and (not isinstance(declaration['quantity'], str) or not declaration['quantity'].strip()):
+            raise ValueError('Declared quantity must be explicit nonempty text')
+        association = declaration["association"]
+        if association not in ("POINTS", "CELLS", "FIELD"):
+            raise ValueError("Declared array association must match POINTS, CELLS or FIELD")
+        identity = association, declaration["name"]
+        if identity in seen:
+            raise ValueError("Declared array identities must be distinct")
+        seen.add(identity)
+        data = {"POINTS": source.PointData, "CELLS": source.CellData, "FIELD": source.FieldData}[association]
+        if declaration["name"] not in data.keys():
+            raise ValueError("Declared array is absent from its exact native association: " + str(identity))
+        array = data[declaration["name"]]
+        count = declaration["components"]
+        if type(count) is not int or count < 1 or count != array.GetNumberOfComponents():
+            raise ValueError("Declared array component count differs from the native source")
+        if "component_names" in declaration and declaration["component_names"] != [array.GetComponentName(i) for i in range(count)]:
+            raise ValueError("Declared component names differ from the native source")
+    return deepcopy(metadata)
+
+
+def _same_proxy(a, b):
+    a, b = getattr(a, "SMProxy", a), getattr(b, "SMProxy", b)
+    if hasattr(a, "GetGlobalIDAsString") and hasattr(b, "GetGlobalIDAsString"):
+        return a.GetGlobalIDAsString() == b.GetGlobalIDAsString()
+    return a is b
+
+
+def _source_metadata(source):
+    """Only the exact pinned original reader may use a retained declaration."""
+    location = os.environ.get("CAE_POST_PROJECT")
+    if not location or not Path(location).is_file():
+        return None
+    path = Path(location)
+    try:
+        from . import commands
+    except ImportError:
+        import commands
+    path, doc = commands.project()
+    if doc.get("kind") != KIND:
+        return None
+    for record in doc.get("sources", {}).values():
+        if record.get("native_metadata") is None:
+            continue
+        readers = [candidate for (label, _), candidate in p.GetSources().items()
+                   if label == record["reader_name"]]
+        if len(readers) != 1 or not _same_proxy(readers[0], source):
+            continue  # No derived/filter mapping is implied by its input lineage.
+        if source.GetXMLName() != record["reader_type"]:
+            raise RuntimeError("Declared source reader type changed")
+        if reader_input_files(source) != [Path(record["entry_path"]).resolve(strict=True)]:
+            raise RuntimeError("Declared source reader path changed")
+        if not record.get("input_id") or _metadata_hash(record["native_metadata"]) != record.get("native_metadata_sha256"):
+            raise RuntimeError("Retained native metadata identity changed or lacks a registered input")
+        verify_sources(path, {**doc, 'sources': {'selected': record}})
+        return validate_declared_metadata(source, record["native_metadata"])
+    return None
+
+
 def inspect_result(source, time=None):
+    return _inspect_result(source, time, _source_metadata(source))
+
+
+def _inspect_result(source, time=None, native_metadata=None):
     selected = set_time(source, time)
+    declaration = validate_declared_metadata(source, native_metadata) if native_metadata is not None else None
+    declared = {(row["association"], row["name"]): row for row in declaration["arrays"]} if declaration else {}
     info = source.GetDataInformation()
     arrays = []
     for association, data in (("POINTS", source.PointData), ("CELLS", source.CellData), ("FIELD", source.FieldData)):
@@ -138,11 +257,19 @@ def inspect_result(source, time=None):
             components = array.GetNumberOfComponents()
             arrays.append({"name": name, "association": association, "components": components,
                            "component_names": [array.GetComponentName(i) for i in range(components)],
-                           "range": [value if math.isfinite(value) else None for value in array.GetRange()], "units": None})
+                           "range": [value if math.isfinite(value) else None for value in array.GetRange()],
+                           **{key: declared.get((association, name), {}).get(key) for key in ("units", "frame", "measure", "quantity")},
+                           "metadata_status": "DECLARED" if (association, name) in declared else "UNKNOWN"})
     return {"reader": source.GetXMLName(), "points": info.GetNumberOfPoints(),
             "cells": info.GetNumberOfCells(), "bounds": list(info.GetBounds()),
-            "timesteps": times(source), "time": selected, "time_units": None,
-            "coordinate_units": None, "arrays": arrays, "qualification": "UNKNOWN"}
+            "timesteps": times(source), "time": selected,
+            "time_units": (declaration.get("time") or {}).get("unit") if declaration else None,
+            "time_semantics": (declaration.get("time") or {}).get("semantics") if declaration else None,
+            "coordinate_units": declaration["coordinate_units"] if declaration else None,
+            "coordinate_frame": declaration["coordinate_frame"] if declaration else None,
+            "static": deepcopy(declaration["static"]) if declaration else None,
+            "metadata_status": "DECLARED" if declaration else "UNKNOWN",
+            "arrays": arrays, "qualification": "UNKNOWN"}
 
 
 def select_array(source, association, array, component=None, time=None, view=None):
@@ -163,16 +290,21 @@ def select_array(source, association, array, component=None, time=None, view=Non
     component_names = [data[array].GetComponentName(i) for i in range(data[array].GetNumberOfComponents())]
     if component is not None and component != "Magnitude" and component not in component_names:
         raise ValueError("Unknown native array component: " + str(component))
-    # Validate the complete selection before changing the native time or active view.
+    # Validate source declarations before changing native time or active view.
+    native_metadata = _source_metadata(source)
     p.SetActiveView(view)
-    metadata = inspect_result(source, time)
+    metadata = _inspect_result(source, time, native_metadata)
     display = p.Show(source, view)
     selection = (association, array) if component is None else (association, array, component)
     p.ColorBy(display, selection)
     display.RescaleTransferFunctionToDataRange(True, False)
     display.SetScalarBarVisibility(view, True)
     p.SetActiveSource(source)
-    return {"association": association, "array": array, "component": component, "time": metadata["time"], "units": None}
+    selected_metadata = next(row for row in metadata["arrays"] if row["association"] == association and row["name"] == array)
+    return {"association": association, "array": array, "component": component,
+            "time": metadata["time"], "time_units": metadata["time_units"], "time_semantics": metadata["time_semantics"],
+            **{key: selected_metadata[key] for key in ("units", "frame", "measure", "metadata_status")},
+            **{key: deepcopy(metadata[key]) for key in ("coordinate_units", "coordinate_frame", "static")}}
 
 
 def physical_input(source, arrays):
@@ -195,11 +327,42 @@ def physical_input(source, arrays):
     return selected
 
 
-def save_project(path, doc):
-    verify_sources(path, doc)
-    verify_readers(doc)
+def _verify_metadata_records(doc, *, live=False):
+    for record in doc.get("sources", {}).values():
+        metadata = record.get("native_metadata")
+        if metadata is None:
+            continue
+        if not record.get("input_id") or _metadata_hash(metadata) != record.get("native_metadata_sha256"):
+            raise RuntimeError("Retained native metadata identity changed or lacks a registered input")
+        if live:
+            validate_declared_metadata(p.FindSource(record["reader_name"]), metadata)
+
+
+def save_project(path, doc, *, prepare=None):
+    try:
+        from .source_repair import source_issues
+    except ImportError:
+        from source_repair import source_issues
+    issues = source_issues(doc)
+    missing = {row['source_ref'] for row in issues}
+    healthy = {**doc, 'sources': {ref: record for ref, record in doc['sources'].items() if ref not in missing}}
+    missing_readers = {row['reader_name'] for row in issues}
+    healthy['native_readers'] = [row for row in doc.get('native_readers', []) if row['reader_name'] not in missing_readers]
+    verify_sources(path, healthy)
+    verify_readers(healthy)
+    _verify_metadata_records(healthy, live=True)
     output = Path(doc["project_root"]) / "saved" / (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:6])
     output.mkdir(parents=True, exist_ok=False)
+    # The native owner adds only its analysis records/files in this unpublished
+    # revision. A failed filter/export/state write never replaces the last save.
+    doc = deepcopy(doc)
+    doc['repair'] = issues
+    if prepare is not None:
+        doc = prepare(doc, output)
+    active=p.GetActiveSource() if hasattr(p,'GetActiveSource') else None
+    view=p.GetActiveView() if hasattr(p,'GetActiveView') else None
+    doc['active_selection']={'source_name':next((name for (name,_),item in p.GetSources().items() if _same_proxy(item,active)),None),
+        'view_name':next((name for (name,_),item in servermanager.ProxyManager().GetProxiesInGroup('views').items() if _same_proxy(item,view)),None)}
     native_files = {}
     native_readers = []
     for (label, _), source in p.GetSources().items():
@@ -212,12 +375,19 @@ def save_project(path, doc):
                 native_files[str(file)] = sha(file)
     state = output / "analysis.pvsm"
     p.SaveState(str(state))
-    verify_sources(path, doc)
+    verify_sources(path, healthy)
     for file, expected in native_files.items():
         if sha(file) != expected:
             raise RuntimeError("Reader input changed while saving: " + file)
     saved = dict(doc, workspace_file=state.name, workspace_sha256=sha(state), native_reader_files=native_files, native_readers=native_readers,
                  saved_utc=datetime.now(timezone.utc).isoformat(), parent_project=str(path))
+    if os.environ.get("CAE_POST_PROJECT") and Path(os.environ["CAE_POST_PROJECT"]).resolve() == Path(path).resolve():
+        # Runtime reconnection belongs to this newly saved revision. Merely
+        # opening a past project never rewrites its stored connection fields.
+        for variable, field in (("CAELAB_ORIGIN_JOB_ID", "origin_job_id"), ("CAELAB_DESKTOP_PYTHON", "desktop_python"),
+                                ("CAELAB_REPO_ROOT", "repo_root"), ("CAE_POST_SERVICE_URL", "service_url")):
+            if os.environ.get(variable):
+                saved[field] = os.environ[variable]
     project = output / "project.json"
     project.write_text(json.dumps(saved, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     os.environ["CAE_POST_PROJECT"] = str(project)
@@ -225,40 +395,117 @@ def save_project(path, doc):
     return project
 
 
-def restore_workspace(path, doc):
-    verify_sources(path, doc)
+def restore_workspace(path, doc, *, allow_repair=False):
+    global _recovery
+    _recovery = []
+    _verify_metadata_records(doc)
     state = path.parent / doc["workspace_file"]
     if sha(state) != doc["workspace_sha256"]:
         raise RuntimeError("Saved analysis state hash mismatch")
+    try:
+        from .source_repair import source_issues, verify_analysis_files, partial_state
+    except ImportError:
+        from source_repair import source_issues, verify_analysis_files, partial_state
+    verify_analysis_files(doc)
+    issues = source_issues(doc)
+    if issues:
+        if not allow_repair:
+            verify_sources(path, doc)
+        _recovery = issues
+        partial = Path(doc['project_root']) / 'repairs' / ('P' + uuid.uuid4().hex) / 'available.pvsm'
+        selection = partial_state(state, doc, issues, partial)
+        p.LoadState(str(partial))
+        missing = {row['source_ref'] for row in issues}
+        healthy = {**doc, 'sources': {ref: row for ref, row in doc['sources'].items() if ref not in missing}}
+        missing_readers = {row['reader_name'] for row in issues}
+        healthy['native_readers'] = [row for row in doc.get('native_readers', []) if row['reader_name'] not in missing_readers]
+        verify_readers(healthy)
+        _verify_metadata_records(healthy, live=True)
+        restore_selection(healthy)
+        doc['partial_workspace'] = True
+        print('PARTIAL RESTORE: healthy sources and retained analysis remain available; missing-input branches require explicit repair.')
+        return {'state': 'PARTIAL_RESTORE', 'issues': issues, **selection}
     for file, expected in doc.get("native_reader_files", {}).items():
         if sha(file) != expected:
             raise RuntimeError("Saved analysis reader input changed: " + file)
     p.LoadState(str(state))
     verify_readers(doc)
-    p.SetActiveSource(p.FindSource(doc["sources"]["result"]["reader_name"]))
-    p.SetActiveView(next(view for view in p.GetViews() if view.GetXMLName() == "RenderView"))
-    print("CAE Post external result restored; units remain undeclared unless supplied by the source owner.")
+    _verify_metadata_records(doc, live=True)
+    restore_selection(doc)
+    print("CAE Post external result restored; source declarations apply only to the exact registered original reader.")
 
 
-def open_result(input_path, project_directory, input_id=None, source_pins=None):
+def restore_selection(doc):
+    selection=doc.get('active_selection')
+    if selection:
+        source=p.FindSource(selection.get('source_name')) if selection.get('source_name') else None
+        views=servermanager.ProxyManager().GetProxiesInGroup('views')
+        view=next((item for (name,_),item in views.items() if name==selection.get('view_name')),None)
+        p.SetActiveSource(source)
+        if view is not None: p.SetActiveView(view)
+    else:
+        # Legacy files had no selection identity. Their original result remains
+        # the explicit fallback; newer files restore the user's selected analysis.
+        original = doc.get('sources', {}).get('result') or next(iter(doc.get('sources', {}).values()), None)
+        p.SetActiveSource(p.FindSource(original['reader_name']) if original else None)
+        view=next((item for item in p.GetViews() if item.GetXMLName()=='RenderView'),None)
+        if view is not None: p.SetActiveView(view)
+
+
+def admit_result(input_path, input_id=None, source_pins=None, native_metadata=None):
+    """Admit one immutable reader without creating a document, view or layout."""
     if input_id is not None and source_pins is None:
         raise ValueError("A registered input ID requires its complete verified source pins")
+    if native_metadata is not None and (not input_id or source_pins is None):
+        raise ValueError("Declared native metadata requires a verified registered input receipt")
     files = source_files(input_path)
     entry = files[0]
     pinned = pins(files)
     if source_pins is not None and pinned != source_pins:
         raise RuntimeError("Registered source pins do not match the actual result dependency set")
-    folder = Path(project_directory).resolve()
-    folder.mkdir(parents=True, exist_ok=False)
     name = "Result | " + entry.name + " | " + uuid.uuid4().hex[:8]
     reader_type = READERS[entry.suffix.lower()]
+    previous_source = p.GetActiveSource() if hasattr(p, "GetActiveSource") else None
+    previous_view = p.GetActiveView()
+    previous_view_time = getattr(previous_view, "ViewTime", None)
     constructor = getattr(p, reader_type)
     source = constructor(registrationName=name, FileName=[str(entry)] if entry.suffix.lower() == ".vtu" else str(entry))
     scene = p.GetAnimationScene()
+    previous_time = float(scene.AnimationTime)
+    try:
+        source.UpdatePipeline()
+        declaration = validate_declared_metadata(source, native_metadata) if native_metadata is not None else None
+        metadata = _inspect_result(source, native_metadata=declaration)
+        if not metadata["points"] and not metadata["cells"]:
+            raise RuntimeError("Native reader returned no mesh data; inspect the reader error before retrying")
+    except BaseException:
+        if hasattr(p, "Delete"):
+            p.Delete(source)
+        raise
+    finally:
+        scene.AnimationTime = previous_time
+        p.SetActiveSource(previous_source)
+        p.SetActiveView(previous_view)
+        if previous_view_time is not None:
+            previous_view.ViewTime = previous_view_time
+    record = {"entry_path": str(entry), "input_id": input_id, "reader_name": name,
+              "reader_type": reader_type, "source_pins": pinned, "metadata": metadata,
+              "source_revision": _metadata_hash({"format": entry.suffix.lower(),
+                  "files": sorted([{"relative": Path(pin["path"]).relative_to(entry.parent).as_posix(),
+                             "sha256": pin["sha256"], "bytes": pin["bytes"]} for pin in pinned], key=lambda row: row['relative'])})}
+    if declaration is not None:
+        record.update(native_metadata=declaration, native_metadata_sha256=_metadata_hash(declaration))
+    return source, record
+
+
+def open_result(input_path, project_directory, input_id=None, source_pins=None, native_metadata=None):
+    # Admission is also used by Add result in an already open analysis.
+    source, record = admit_result(input_path, input_id, source_pins, native_metadata)
+    folder = Path(project_directory).resolve()
+    folder.mkdir(parents=True, exist_ok=False)
+    scene = p.GetAnimationScene()
     scene.UpdateAnimationUsingDataTimeSteps()
-    metadata = inspect_result(source)
-    if not metadata["points"] and not metadata["cells"]:
-        raise RuntimeError("Native reader returned no mesh data; inspect the reader error before retrying")
+    set_time(source)
     layout = p.CreateLayout(name="Result inspection")
     view = p.CreateView("RenderView")
     p.AssignViewToLayout(view=view, layout=layout, hint=0)
@@ -266,8 +513,6 @@ def open_result(input_path, project_directory, input_id=None, source_pins=None):
     p.Show(source, view)
     p.SetActiveSource(source)
     p.ResetCamera(view)
-    record = {"entry_path": str(entry), "input_id": input_id, "reader_name": name,
-              "reader_type": reader_type, "source_pins": pinned, "metadata": metadata}
     doc = {"kind": KIND, "version": 1, "document_id": "D" + uuid.uuid4().hex,
            "project_root": str(folder), "sources": {"result": record}}
     # Publish the first manifest only after the native state and dependency checks succeed.
@@ -300,7 +545,8 @@ def open_registered(input_id, project_directory, service_url):
         raise ValueError("Registered native receipt needs an absolute matching VTU/PVD entry")
     if not isinstance(receipt.get("source_pins"), list) or not receipt["source_pins"]:
         raise ValueError("Registered native receipt needs its complete source pins")
-    return open_result(entry, project_directory, input_id=receipt["id"], source_pins=receipt["source_pins"])
+    return open_result(entry, project_directory, input_id=receipt["id"], source_pins=receipt["source_pins"],
+                       native_metadata=receipt.get("native_metadata"))
 
 
 def main(argv=None):

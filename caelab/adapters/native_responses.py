@@ -2,7 +2,7 @@
 
 The input is the native adapter's own outcome and output directory, not a Lab
 Study.  The old Study readers remain responsible for their existing contracts.
-Only the two native history families admitted here are advertised.
+Only native history/field families with an admitted retained reader are advertised.
 """
 from __future__ import annotations
 
@@ -29,6 +29,35 @@ _EXPLICIT_CHANNELS = (
     ("radioss-spring-work", "spring_internal_energy_j", "J", "scalar", "spring element 2", "time_s", "internal_work"),
     ("radioss-wall-fnz", "ground_impulse_n_s", "N s", "FNZ", "rigid wall 1", "time_s", "impulse"),
 )
+
+
+def verify_retained_response_source(saved, current):
+    """Compare artifact and dependency pins, including the explicit r5 format.
+
+    The original law catalogs used sha256 for a *manifest* rather than the named
+    artifact. Only those known producers admit that old format, and its exact
+    aggregate must match the freshly verified original-file inventory. Other
+    native readers have always used a named artifact hash.
+    """
+    if not isinstance(saved, dict) or not isinstance(current, dict):
+        return False
+    if any(saved.get(key) != current.get(key) for key in ('backend', 'artifact')):
+        return False
+    if any(key in saved and saved[key] != current.get(key) for key in
+           ('value_origin', 'native_origin', 'parsed_sha256', 'model_revision')):
+        return False
+    if not isinstance(saved.get('sha256'), str) or len(saved['sha256']) != 64:
+        return False
+    if 'manifest_sha256' in saved or 'sha256_kind' in saved:
+        return (saved.get('sha256_kind') == current.get('sha256_kind') == 'ARTIFACT_SHA256' and
+                isinstance(saved.get('manifest_sha256'), str) and len(saved['manifest_sha256']) == 64 and
+                saved.get('sha256') == current.get('sha256') and
+                saved.get('manifest_sha256') == current.get('manifest_sha256'))
+    if saved.get('backend') in {'material.mfront', 'material.mfront.hyperelastic',
+                                'material.mfront.viscoelastic', 'structural.code_aster.plasticity'}:
+        return (current.get('sha256_kind') == 'ARTIFACT_SHA256' and
+                saved['sha256'] == current.get('manifest_sha256'))
+    return saved['sha256'] == current.get('sha256')
 
 
 def _need(condition, message):
@@ -137,24 +166,43 @@ def _explicit_context(outcome, output):
           _finite([row.get("time_s") for row in rows]) and
           all(abs(row["time_s"] - t) <= 1e-8 * max(1, abs(t)) for row, t in zip(rows, expected_times)),
           "Retained OpenRadioss history does not cover declared clock")
-    assessment = domain.assess(settings, rows)
-    _need(assessment == outcome.get("assessment") and assessment.get("metrics") == outcome.get("metrics") and
-          assessment.get("checks") == outcome.get("checks"),
+    from .retained_law_responses import verify_saved_assessment
+    _need(verify_saved_assessment(domain.assess(settings, rows), outcome),
           "Retained native history no longer agrees with recorded numerical assessment")
     return raw, raw_hash, settings
 
 
 def _explicit_catalog(outcome, output):
     raw, digest, settings = _explicit_context(outcome, output)
+    from .retained_law_responses import _manifest
+    from ..storage import canonical_hash
+    pins = _manifest(output, {'analysis_raw.json', 'input.json', 'parsed_history.json',
+                              'dropT01', 'drop_0000.out', 'drop_0001.out'})
+    manifest = canonical_hash(pins)
+    native_hash = next(pin['sha256'] for pin in pins if pin['path'] == 'simulation/dropT01')
     fields = set(raw["rows"][0])
     catalog = {}
     for name, field, unit, component, location, clock, quantity in _EXPLICIT_CHANNELS:
         if field not in fields:
             continue
-        if field == "ground_impulse_n_s":
-            # The wall reader defines RWALL/FNZ as cumulative impulse.  Keep
-            # the native sign/quantity instead of changing it into force.
+        if field == "ground_impulse_n_s" and not any(group['type'] == 102 for group in raw['groups']):
+            # The compliant parser integrates FX; this channel specifically
+            # selects captured wall FNZ with its declared body-sign mapping.
             continue
+        derived = field in {'ground_force_n', 'ground_impulse_n_s'}
+        measures = {'z_m': 'native NODE Z; absolute global position',
+                    'bottom_z_m': 'native NODE Z; absolute global position',
+                    'velocity_m_s': 'native NODE VZ; recorded leapfrog half-step velocity',
+                    'bottom_velocity_m_s': 'native NODE VZ; recorded leapfrog half-step velocity',
+                    'acceleration_m_s2': 'native NODE AZ; current-time acceleration',
+                    'kinetic_energy_j': 'native whole-model global kinetic energy',
+                    'internal_energy_j': 'native whole-model global internal energy',
+                    'external_work_j': 'native whole-model global external work; no reference-energy substitution',
+                    'spring_axial_force_n': 'native TYPE4 SPRING local FX',
+                    'ground_force_n': 'DERIVED moving-body global upward force = -native SPRING FX',
+                    'spring_length_change_m': 'native TYPE4 SPRING local LX length change',
+                    'spring_internal_energy_j': 'native TYPE4 IE signed trapezoidal constitutive work; unclamped',
+                    'ground_impulse_n_s': 'DERIVED moving-body cumulative impulse = -native RWALL FNZ; not force'}
         catalog[name] = {"kind": "series", "unit": unit, "component": component,
                          "location": location, "reduction": "none", "quantity": quantity,
                          "axes": [{"name": "time", "unit": "s", "semantics":
@@ -162,8 +210,20 @@ def _explicit_catalog(outcome, output):
                          "coordinate_frame": "spring local Cartesian" if component.startswith('local') else "global Cartesian SI",
                          "coordinate_system": "spring local Cartesian" if component.startswith('local') else "global Cartesian SI",
                          "sensor_alignment": "UNKNOWN",
+                         "measure": measures[field],
+                         "qualification": {"physical": "UNKNOWN", "decision": "NOT_RELEASED"},
                          "source": {"backend": _EXPLICIT, "artifact": "parsed_history.json", "sha256": digest,
+                                    "sha256_kind": "ARTIFACT_SHA256", "manifest_sha256": manifest,
                                     "native_artifact": "dropT01", "native_field": field,
+                                    "value_origin": "DERIVED" if derived else "NATIVE",
+                                    "native_origin": {"kind": "DERIVED" if derived else "NATIVE",
+                                        "artifact": "simulation/dropT01", "sha256": native_hash,
+                                        "native_field": 'SPRING FX' if field == 'ground_force_n' else
+                                                        'RWALL FNZ' if field == 'ground_impulse_n_s' else field,
+                                        "mapping": measures[field], "clock_policy": raw['clock_policy'],
+                                        "force_policy": raw['force_policy'],
+                                        "spring_energy_policy": raw['spring_energy_policy'],
+                                        "external_work_policy": raw['external_work_policy']},
                                     "selector": name},
                          "model_conditions": dict(settings)}
     return catalog
@@ -175,6 +235,9 @@ def catalog_native_responses(backend, outcome, output):
         return _pde_catalog(outcome, output)
     if backend == _EXPLICIT:
         return _explicit_catalog(outcome, output)
+    if backend in {'material.mfront', 'material.mfront.hyperelastic', 'material.mfront.viscoelastic', 'structural.code_aster.plasticity'}:
+        from .retained_law_responses import catalog
+        return catalog(backend, outcome, output)
     return {}
 
 
@@ -221,6 +284,9 @@ def read_native_response(backend, outcome, output, selector, *, start=None, stop
         times = [row[clock] for row in raw["rows"]]
         _need(_finite(values) and _finite(times) and all(right > left for left, right in zip(times, times[1:])),
               "OpenRadioss selected native values/clock are invalid")
+    elif backend in {'material.mfront', 'material.mfront.hyperelastic', 'material.mfront.viscoelastic', 'structural.code_aster.plasticity'}:
+        from .retained_law_responses import read
+        descriptor, values, times = read(backend, outcome, output, selector, catalog)
     else:
         raise ValueError(f"No native response reader for {backend}")
     _need(start is None or type(start) is int and start >= 0, "start must be a nonnegative sample index")

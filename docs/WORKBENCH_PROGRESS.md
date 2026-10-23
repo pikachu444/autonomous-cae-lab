@@ -1,5 +1,56 @@
 # Current workbench implementation
 
+## 2026-10-11 Pro coding delivery: native round trip and independent research
+
+This source change starts from published `3d75c4bf997f477ae17bc87ccbfb9a2021845ba1`
+and incorporates the supplied unfinished source patch. It is a code delivery for
+Codex Root review, not a new product plan or Windows/native acceptance.
+
+- Native Pre gains an actual main-thread document owner, typed edit/selection/
+  Undo/save commands and a small `Run FEM` dock. The existing native FEM writer
+  freezes the editable FCStd, current mesh and INP without remeshing. A persistent
+  shape/mesh association rejects a known shape change with the old mesh; the
+  initial imported association remains UNKNOWN. The connected execution adapter
+  admits one solid, C3D10, static linear isotropic elasticity and Fixed/Force
+  conditions. Other native studies remain editable but cannot silently run through
+  this adapter.
+- The same command receipt registers the frozen bundle and submits through the
+  existing JobManager. Request retry reuses that submission. The CalculiX adapter
+  retains native input/output and validates the final displacement field before
+  registering its VTU for Post. Solver success followed by Post registration
+  failure retains the computed results and exposes the failed delivery.
+- Runner opens the selected job's registered Post input. The new native Post
+  `CAE Return to design` macro activates the original live FreeCAD document; when
+  that document is closed, it opens a clearly labelled retained editable copy.
+  Unfinished current CAD edits are preserved. Post reopen no longer rewrites an
+  existing saved project; explicit Save records the new connection metadata.
+  Declared displacement units, frame and static load parameter stay attached to
+  the exact registered reader, not to unrelated filters or inferred time units.
+- Independent Data and Numerical Qt editors use the existing document owner,
+  table reader, fit/DOE/analysis engines and Runner. A Plan binds retained Data
+  responses and an exact Material input, displays actual candidates/failures and
+  fit/holdout responses, and explicitly adopts evaluated coefficients through
+  the Material owner as an undoable edit. Failed or stale adoption does not
+  overwrite the current Material. Source rows, units, frame and measure remain
+  explicit. The default research launcher opens Runner; Data, Material and
+  Numerical retain direct entry points.
+
+Actually checked here: a real local HTTP service with an offscreen Qt Data
+editor, real table import, shared-owner reads, invalid-draft preservation and
+stale-command rejection; actual FELUPE fit/holdout and DOE with explicit adoption,
+Undo and retained inputs/results; targeted native-shaped doubles for FreeCAD
+writer/observer commands, FRD parsing, Post reader/save/navigation, submission
+retry and failed publication. Changed Python files compile. These checks do not
+constitute native solver or visible Windows GUI runs. No broad regression, new
+FreeCAD/ParaView/CalculiX execution, PowerShell launch or exhausted cloud trial was
+performed. The previous FAIL/PARTIAL observations and engineering
+UNKNOWN/NOT_RELEASED remain unchanged.
+
+Review next against the actual native event loop/writer and Windows launch path
+when that environment is available. General contact/nonlinear/J2/DP execution,
+full Post comparison/mapping, PDE and discussion-style Expert UI are not added
+by this delivery and still belong to the whole-product work.
+
 ## 2026-10-11 current direction after repository review; Runner connection
 
 Actual Pro read the published `8934416` tree and `97f1a45` implementation.
